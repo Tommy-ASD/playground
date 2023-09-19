@@ -1,0 +1,31 @@
+[package]
+name = "example-http-proxy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+axum = { version = "0.6.16", path = "../../axum", features = [
+    "http2",
+    "macros",
+    "multipart",
+    "tracing",
+    "ws",
+] }
+bytes = "1"
+futures-channel = "0.3"
+futures-util = { version = "0.3", default-features = false }
+http = "0.2"
+http-body = "=1.0.0-rc.2"
+http-body-util = "=0.1.0-rc.3"
+httpdate = "1.0"
+tokio-test = "0.4"
+httparse = "1.8"
+# axum = { path = "../../axum" }
+hyper = { version = "0.14", features = ["full"] }
+tokio = { version = "1.0", features = ["full"] }
+tower = { version = "0.4", features = ["make"] }
+traceback-derive = "0.1.1"
+traceback-error = "0.1.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
