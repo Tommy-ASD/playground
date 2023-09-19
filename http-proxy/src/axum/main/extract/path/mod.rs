@@ -3,13 +3,13 @@
 
 mod de;
 
-use crate::{
+use crate::axum::core::response::{IntoResponse, Response};
+use crate::axum::main::{
     extract::{rejection::*, FromRequestParts},
     routing::url_params::UrlParams,
     util::PercentDecodedStr,
 };
 use async_trait::async_trait;
-use axum_core::response::{IntoResponse, Response};
 use http::{request::Parts, StatusCode};
 use serde::de::DeserializeOwned;
 use std::{fmt, sync::Arc};
@@ -140,7 +140,7 @@ use std::{fmt, sync::Arc};
 #[derive(Debug)]
 pub struct Path<T>(pub T);
 
-axum_core::__impl_deref!(Path);
+crate::axum::core::__impl_deref!(Path);
 
 #[async_trait]
 impl<T, S> FromRequestParts<S> for Path<T>
@@ -395,7 +395,7 @@ impl FailedToDeserializePathParams {
 
 impl IntoResponse for FailedToDeserializePathParams {
     fn into_response(self) -> Response {
-        axum_core::__log_rejection!(
+        crate::axum::core::__log_rejection!(
             rejection_type = Self,
             body_text = self.body_text(),
             status = self.status(),
@@ -534,12 +534,12 @@ impl IntoResponse for InvalidUtf8InPathParam {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{routing::get, test_helpers::*, Router};
+    use crate::axum::main::{routing::get, test_helpers::*, Router};
     use http::StatusCode;
     use serde::Deserialize;
     use std::collections::HashMap;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extracting_url_params() {
         let app = Router::new().route(
             "/users/:id",
@@ -560,7 +560,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extracting_url_params_multiple_times() {
         let app = Router::new().route("/users/:id", get(|_: Path<i32>, _: Path<String>| async {}));
 
@@ -570,7 +570,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn percent_decoding() {
         let app = Router::new().route(
             "/:key",
@@ -584,7 +584,7 @@ mod tests {
         assert_eq!(res.text().await, "one two");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn supports_128_bit_numbers() {
         let app = Router::new()
             .route(
@@ -605,7 +605,7 @@ mod tests {
         assert_eq!(res.text().await, "123");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn wildcard() {
         let app = Router::new()
             .route(
@@ -628,7 +628,7 @@ mod tests {
         assert_eq!(res.text().await, "baz/qux");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn captures_dont_match_empty_path() {
         let app = Router::new().route("/:key", get(|| async {}));
 
@@ -641,7 +641,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn captures_match_empty_inner_segments() {
         let app = Router::new().route(
             "/:key/method",
@@ -657,7 +657,7 @@ mod tests {
         assert_eq!(res.text().await, "");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn captures_match_empty_inner_segments_near_end() {
         let app = Router::new().route(
             "/method/:key/",
@@ -676,7 +676,7 @@ mod tests {
         assert_eq!(res.text().await, "");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn captures_match_empty_trailing_segment() {
         let app = Router::new().route(
             "/method/:key",
@@ -698,7 +698,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::NOT_FOUND);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn str_reference_deserialize() {
         struct Param(String);
         impl<'de> serde::Deserialize<'de> for Param {
@@ -723,7 +723,7 @@ mod tests {
         assert_eq!(res.text().await, "foo bar");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn two_path_extractors() {
         let app = Router::new().route("/:a/:b", get(|_: Path<String>, _: Path<String>| async {}));
 
@@ -738,7 +738,7 @@ mod tests {
         );
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn deserialize_into_vec_of_tuples() {
         let app = Router::new().route(
             "/:a/:b",
@@ -759,7 +759,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn type_that_uses_deserialize_any() {
         use time::Date;
 
@@ -850,7 +850,7 @@ mod tests {
         assert_eq!(res.text().await, "struct: 2023-01-01 2023-01-02 2023-01-03");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn wrong_number_of_parameters_json() {
         use serde_json::Value;
 
@@ -873,7 +873,7 @@ mod tests {
             .starts_with("Wrong number of path arguments for `Path`. Expected 1 but got 2"));
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn raw_path_params() {
         let app = Router::new().route(
             "/:a/:b/:c",

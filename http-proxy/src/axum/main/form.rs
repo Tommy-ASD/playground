@@ -1,8 +1,8 @@
-use crate::extract::Request;
-use crate::extract::{rejection::*, FromRequest, RawForm};
+use crate::axum::core::response::{IntoResponse, Response};
+use crate::axum::core::RequestExt;
+use crate::axum::main::extract::Request;
+use crate::axum::main::extract::{rejection::*, FromRequest, RawForm};
 use async_trait::async_trait;
-use axum_core::response::{IntoResponse, Response};
-use axum_core::RequestExt;
 use http::header::CONTENT_TYPE;
 use http::StatusCode;
 use serde::de::DeserializeOwned;
@@ -20,7 +20,7 @@ use serde::Serialize;
 /// *last* if there are multiple extractors in a handler. See ["the order of
 /// extractors"][order-of-extractors]
 ///
-/// [order-of-extractors]: crate::extract#the-order-of-extractors
+/// [order-of-extractors]: crate::axum::main::extract#the-order-of-extractors
 ///
 /// ```rust
 /// use axum::Form;
@@ -56,7 +56,7 @@ use serde::Serialize;
 /// }
 /// ```
 ///
-/// [`Multipart`]: crate::extract::Multipart
+/// [`Multipart`]: crate::axum::main::extract::Multipart
 #[cfg_attr(docsrs, doc(cfg(feature = "form")))]
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]
@@ -110,18 +110,18 @@ where
     }
 }
 
-axum_core::__impl_deref!(Form);
+crate::axum::core::__impl_deref!(Form);
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::axum::main::{
         routing::{on, MethodFilter},
         test_helpers::TestClient,
         Router,
     };
 
     use super::*;
-    use axum_core::body::Body;
+    use crate::axum::core::body::Body;
     use http::{Method, Request};
     use mime::APPLICATION_WWW_FORM_URLENCODED;
     use serde::{Deserialize, Serialize};
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(Form::<T>::from_request(req, &()).await.unwrap().0, value);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_form_query() {
         check_query(
             "http://example.com/test",
@@ -181,7 +181,7 @@ mod tests {
         .await;
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_form_body() {
         check_body(Pagination {
             size: None,
@@ -202,7 +202,7 @@ mod tests {
         .await;
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_incorrect_content_type() {
         let req = Request::builder()
             .uri("http://example.com/test")

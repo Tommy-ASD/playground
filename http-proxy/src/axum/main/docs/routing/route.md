@@ -5,7 +5,7 @@ can be either static, a capture, or a wildcard.
 
 `method_router` is the [`MethodRouter`] that should receive the request if the
 path matches `path`. `method_router` will commonly be a handler wrapped in a method
-router like [`get`](crate::routing::get). See [`handler`](crate::handler) for
+router like [`get`](crate::axum::main::routing::get). See [`handler`](crate::axum::main::handler) for
 more details on handlers.
 
 # Static paths
@@ -31,13 +31,13 @@ Examples:
 - `/users/:id`
 - `/users/:id/tweets`
 
-Captures can be extracted using [`Path`](crate::extract::Path). See its
+Captures can be extracted using [`Path`](crate::axum::main::extract::Path). See its
 documentation for more details.
 
 It is not possible to create segments that only match some types like numbers or
 regular expression. You must handle that manually in your handlers.
 
-[`MatchedPath`](crate::extract::MatchedPath) can be used to extract the matched
+[`MatchedPath`](crate::axum::main::extract::MatchedPath) can be used to extract the matched
 path rather than the actual path.
 
 # Wildcards
@@ -56,7 +56,7 @@ Note that `/*key` doesn't match empty segments. Thus:
 - `/*key` doesn't match `/` but does match `/a`, `/a/`, etc.
 - `/x/*key` doesn't match `/x` or `/x/` but does match `/x/a`, `/x/a/`, etc.
 
-Wildcard captures can also be extracted using [`Path`](crate::extract::Path).
+Wildcard captures can also be extracted using [`Path`](crate::axum::main::extract::Path).
 Note that the leading slash is not included, i.e. for the route `/foo/*rest` and
 the path `/foo/bar/baz` the value of `rest` will be `bar/baz`.
 

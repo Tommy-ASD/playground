@@ -1,9 +1,9 @@
-use crate::{extract::rejection::*, response::IntoResponseParts};
-use async_trait::async_trait;
-use axum_core::{
+use crate::axum::core::{
     extract::FromRequestParts,
     response::{IntoResponse, Response, ResponseParts},
 };
+use crate::axum::main::{extract::rejection::*, response::IntoResponseParts};
+use async_trait::async_trait;
 use http::{request::Parts, Request};
 use std::{
     convert::Infallible,
@@ -94,7 +94,7 @@ where
     }
 }
 
-axum_core::__impl_deref!(Extension);
+crate::axum::core::__impl_deref!(Extension);
 
 impl<T> IntoResponseParts for Extension<T>
 where

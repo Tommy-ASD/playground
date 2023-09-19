@@ -87,14 +87,14 @@ where
 }
 
 #[cfg(feature = "original-uri")]
-axum_core::__impl_deref!(OriginalUri: Uri);
+crate::axum::core::__impl_deref!(OriginalUri: Uri);
 
 #[cfg(test)]
 mod tests {
-    use crate::{extract::Extension, routing::get, test_helpers::*, Router};
+    use crate::axum::main::{extract::Extension, routing::get, test_helpers::*, Router};
     use http::{Method, StatusCode};
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extract_request_parts() {
         #[derive(Clone)]
         struct Ext;

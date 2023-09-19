@@ -20,8 +20,8 @@ Types and traits for extracting data from requests.
 
 A handler function is an async function that takes any number of
 "extractors" as arguments. An extractor is a type that implements
-[`FromRequest`](crate::extract::FromRequest)
-or [`FromRequestParts`](crate::extract::FromRequestParts).
+[`FromRequest`](crate::axum::main::extract::FromRequest)
+or [`FromRequestParts`](crate::axum::main::extract::FromRequestParts).
 
 For example, [`Json`] is an extractor that consumes the request body and
 deserializes it as JSON into some target type:
@@ -385,21 +385,21 @@ where
         None
     }
 }
-# 
+#
 # #[tokio::main]
 # async fn main() {
 #     use axum::extract::FromRequest;
-# 
+#
 #     let req = axum::http::Request::builder()
 #         .header("content-type", "application/json")
 #         .body(axum::body::Body::from("{"))
 #         .unwrap();
-# 
+#
 #     let err = match Json::<serde_json::Value>::from_request(req, &()).await.unwrap_err() {
 #         JsonRejection::JsonSyntaxError(err) => err,
 #         _ => panic!(),
 #     };
-# 
+#
 #     let (_, body) = serde_json_error_response(err);
 #     assert_eq!(body, "Invalid JSON at line 1 column 1");
 # }
@@ -711,10 +711,10 @@ logs, enable the `tracing` feature for axum and the `axum::rejection=trace`
 tracing target, for example with `RUST_LOG=info,axum::rejection=trace cargo
 run`.
 
-[`body::Body`]: crate::body::Body
-[`Bytes`]: crate::body::Bytes
+[`body::Body`]: crate::axum::main::body::Body
+[`Bytes`]: crate::axum::main::body::Bytes
 [customize-extractor-error]: https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/main.rs
 [`HeaderMap`]: https://docs.rs/http/latest/http/header/struct.HeaderMap.html
 [`Request`]: https://docs.rs/http/latest/http/struct.Request.html
-[`RequestParts::body_mut`]: crate::extract::RequestParts::body_mut
+[`RequestParts::body_mut`]: crate::axum::main::extract::RequestParts::body_mut
 [`JsonRejection::JsonDataError`]: rejection::JsonRejection::JsonDataError

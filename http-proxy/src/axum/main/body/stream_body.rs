@@ -1,9 +1,9 @@
-use crate::{
+use crate::axum::core::body::Body;
+use crate::axum::main::{
     body::{Bytes, HttpBody},
     response::{IntoResponse, Response},
     BoxError, Error,
 };
-use axum_core::body::Body;
 use futures_util::{
     ready,
     stream::{self, TryStream},
@@ -22,7 +22,7 @@ pin_project! {
     ///
     /// The purpose of this type is to be used in responses. If you want to
     /// extract the request body as a stream consider using
-    /// [`Body`](crate::body::Body).
+    /// [`Body`](crate::axum::main::body::Body).
     ///
     /// # Example
     ///
@@ -143,7 +143,7 @@ fn stream_body_traits() {
 
     type EmptyStream = StreamBody<Empty<Result<Bytes, BoxError>>>;
 
-    crate::test_helpers::assert_send::<EmptyStream>();
-    crate::test_helpers::assert_sync::<EmptyStream>();
-    crate::test_helpers::assert_unpin::<EmptyStream>();
+    crate::axum::main::test_helpers::assert_send::<EmptyStream>();
+    crate::axum::main::test_helpers::assert_sync::<EmptyStream>();
+    crate::axum::main::test_helpers::assert_unpin::<EmptyStream>();
 }

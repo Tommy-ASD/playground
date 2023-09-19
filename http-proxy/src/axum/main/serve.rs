@@ -2,8 +2,8 @@
 
 use std::{convert::Infallible, io, net::SocketAddr};
 
-use crate::hyper1_tokio_io::TokioIo;
-use axum_core::{body::Body, extract::Request, response::Response};
+use crate::axum::core::{body::Body, extract::Request, response::Response};
+use crate::axum::main::hyper1_tokio_io::TokioIo;
 use futures_util::{future::poll_fn, FutureExt};
 use hyper1::server::conn::http1;
 use tokio::net::{TcpListener, TcpStream};
@@ -67,13 +67,13 @@ use tower_service::Service;
 /// See also [`HandlerWithoutStateExt::into_make_service_with_connect_info`] and
 /// [`HandlerService::into_make_service_with_connect_info`].
 ///
-/// [`Router`]: crate::Router
-/// [`Router::into_make_service_with_connect_info`]: crate::Router::into_make_service_with_connect_info
-/// [`MethodRouter`]: crate::routing::MethodRouter
-/// [`MethodRouter::into_make_service_with_connect_info`]: crate::routing::MethodRouter::into_make_service_with_connect_info
-/// [`Handler`]: crate::handler::Handler
-/// [`HandlerWithoutStateExt::into_make_service_with_connect_info`]: crate::handler::HandlerWithoutStateExt::into_make_service_with_connect_info
-/// [`HandlerService::into_make_service_with_connect_info`]: crate::handler::HandlerService::into_make_service_with_connect_info
+/// [`Router`]: crate::axum::main::Router
+/// [`Router::into_make_service_with_connect_info`]: crate::axum::main::Router::into_make_service_with_connect_info
+/// [`MethodRouter`]: crate::axum::main::routing::MethodRouter
+/// [`MethodRouter::into_make_service_with_connect_info`]: crate::axum::main::routing::MethodRouter::into_make_service_with_connect_info
+/// [`Handler`]: crate::axum::main::handler::Handler
+/// [`HandlerWithoutStateExt::into_make_service_with_connect_info`]: crate::axum::main::handler::HandlerWithoutStateExt::into_make_service_with_connect_info
+/// [`HandlerService::into_make_service_with_connect_info`]: crate::axum::main::handler::HandlerService::into_make_service_with_connect_info
 #[cfg(feature = "tokio")]
 pub async fn serve<M, S>(tcp_listener: TcpListener, mut make_service: M) -> io::Result<()>
 where
@@ -161,7 +161,7 @@ where
 ///
 /// Used with [`serve`] and [`IntoMakeServiceWithConnectInfo`].
 ///
-/// [`IntoMakeServiceWithConnectInfo`]: crate::extract::connect_info::IntoMakeServiceWithConnectInfo
+/// [`IntoMakeServiceWithConnectInfo`]: crate::axum::main::extract::connect_info::IntoMakeServiceWithConnectInfo
 #[derive(Debug)]
 pub struct IncomingStream<'a> {
     tcp_stream: &'a TokioIo<TcpStream>,
@@ -183,7 +183,7 @@ impl IncomingStream<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
+    use crate::axum::main::{
         handler::{Handler, HandlerWithoutStateExt},
         routing::get,
         Router,

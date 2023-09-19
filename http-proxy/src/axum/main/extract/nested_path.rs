@@ -3,9 +3,9 @@ use std::{
     task::{Context, Poll},
 };
 
-use crate::extract::Request;
+use crate::axum::core::extract::FromRequestParts;
+use crate::axum::main::extract::Request;
 use async_trait::async_trait;
-use axum_core::extract::FromRequestParts;
 use http::request::Parts;
 use tower_layer::{layer_fn, Layer};
 use tower_service::Service;
@@ -110,10 +110,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use axum_core::response::Response;
+    use crate::axum::core::response::Response;
     use http::StatusCode;
 
-    use crate::{
+    use crate::axum::main::{
         extract::{NestedPath, Request},
         middleware::{from_fn, Next},
         routing::get,
@@ -121,7 +121,7 @@ mod tests {
         Router,
     };
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn one_level_of_nesting() {
         let api = Router::new().route(
             "/users",
@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn one_level_of_nesting_with_trailing_slash() {
         let api = Router::new().route(
             "/users",
@@ -157,7 +157,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn two_levels_of_nesting() {
         let api = Router::new().route(
             "/users",
@@ -175,7 +175,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn two_levels_of_nesting_with_trailing_slash() {
         let api = Router::new().route(
             "/users",
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn nested_at_root() {
         let api = Router::new().route(
             "/users",
@@ -211,7 +211,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn deeply_nested_from_root() {
         let api = Router::new().route(
             "/users",
@@ -229,7 +229,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn in_fallbacks() {
         let api = Router::new().fallback(get(|nested_path: NestedPath| {
             assert_eq!(nested_path.as_str(), "/api");
@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn in_middleware() {
         async fn middleware(nested_path: NestedPath, req: Request, next: Next) -> Response {
             assert_eq!(nested_path.as_str(), "/api");

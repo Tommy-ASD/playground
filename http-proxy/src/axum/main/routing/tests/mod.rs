@@ -1,4 +1,5 @@
-use crate::{
+use crate::axum::core::extract::Request;
+use crate::axum::main::{
     body::{Body, Bytes},
     error_handling::HandleErrorLayer,
     extract::{self, DefaultBodyLimit, FromRef, Path, State},
@@ -14,7 +15,6 @@ use crate::{
     },
     BoxError, Extension, Json, Router,
 };
-use axum_core::extract::Request;
 use futures_util::stream::StreamExt;
 use http::{
     header::CONTENT_LENGTH,
@@ -43,7 +43,7 @@ mod handle_error;
 mod merge;
 mod nest;
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn hello_world() {
     async fn root(_: Request) -> &'static str {
         "Hello, World!"
@@ -76,7 +76,7 @@ async fn hello_world() {
     assert_eq!(body, "users#create");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn routing() {
     let app = Router::new()
         .route(
@@ -111,7 +111,7 @@ async fn routing() {
     assert_eq!(res.text().await, "users#action");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn router_type_doesnt_change() {
     let app: Router = Router::new()
         .route(
@@ -132,7 +132,7 @@ async fn router_type_doesnt_change() {
     assert_eq!(res.text().await, "hi from POST");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn routing_between_services() {
     use std::convert::Infallible;
     use tower::service_fn;
@@ -178,7 +178,7 @@ async fn routing_between_services() {
     assert_eq!(res.text().await, "handler");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn middleware_on_single_route() {
     use tower_http::{compression::CompressionLayer, trace::TraceLayer};
 
@@ -199,7 +199,7 @@ async fn middleware_on_single_route() {
     assert_eq!(body, "Hello, World!");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn service_in_bottom() {
     async fn handler(_req: Request) -> Result<Response<Body>, Infallible> {
         Ok(Response::new(Body::empty()))
@@ -210,7 +210,7 @@ async fn service_in_bottom() {
     TestClient::new(app);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn wrong_method_handler() {
     let app = Router::new()
         .route("/", get(|| async {}).post(|| async {}))
@@ -233,7 +233,7 @@ async fn wrong_method_handler() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn wrong_method_service() {
     #[derive(Clone)]
     struct Svc;
@@ -273,7 +273,7 @@ async fn wrong_method_service() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn multiple_methods_for_one_handler() {
     async fn root(_: Request) -> &'static str {
         "Hello, World!"
@@ -290,7 +290,7 @@ async fn multiple_methods_for_one_handler() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn wildcard_sees_whole_url() {
     let app = Router::new().route("/api/*rest", get(|uri: Uri| async move { uri.to_string() }));
 
@@ -300,7 +300,7 @@ async fn wildcard_sees_whole_url() {
     assert_eq!(res.text().await, "/api/foo/bar");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn middleware_applies_to_routes_above() {
     let app = Router::new()
         .route("/one", get(std::future::pending::<()>))
@@ -316,7 +316,7 @@ async fn middleware_applies_to_routes_above() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn not_found_for_extra_trailing_slash() {
     let app = Router::new().route("/foo", get(|| async {}));
 
@@ -329,7 +329,7 @@ async fn not_found_for_extra_trailing_slash() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn not_found_for_missing_trailing_slash() {
     let app = Router::new().route("/foo/", get(|| async {}));
 
@@ -339,7 +339,7 @@ async fn not_found_for_missing_trailing_slash() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn with_and_without_trailing_slash() {
     let app = Router::new()
         .route("/foo", get(|| async { "without tsr" }))
@@ -357,7 +357,7 @@ async fn with_and_without_trailing_slash() {
 }
 
 // for https://github.com/tokio-rs/axum/issues/420
-#[crate::test]
+#[crate::axum::main::test]
 async fn wildcard_doesnt_match_just_trailing_slash() {
     let app = Router::new().route(
         "/x/*path",
@@ -377,7 +377,7 @@ async fn wildcard_doesnt_match_just_trailing_slash() {
     assert_eq!(res.text().await, "foo/bar");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn what_matches_wildcard() {
     let app = Router::new()
         .route("/*key", get(|| async { "root" }))
@@ -405,7 +405,7 @@ async fn what_matches_wildcard() {
     assert_eq!(get("/x/a/b/").await, "x");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn static_and_dynamic_paths() {
     let app = Router::new()
         .route(
@@ -423,14 +423,14 @@ async fn static_and_dynamic_paths() {
     assert_eq!(res.text().await, "static");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 #[should_panic(expected = "Paths must start with a `/`. Use \"/\" for root routes")]
 async fn empty_route() {
     let app = Router::new().route("", get(|| async {}));
     TestClient::new(app);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn middleware_still_run_for_unmatched_requests() {
     #[derive(Clone)]
     struct CountMiddleware<S>(S);
@@ -470,7 +470,7 @@ async fn middleware_still_run_for_unmatched_requests() {
     assert_eq!(COUNT.load(Ordering::SeqCst), 2);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 #[should_panic(expected = "\
     Invalid route: `Router::route_service` cannot be used with `Router`s. \
     Use `Router::nest` instead\
@@ -479,7 +479,7 @@ async fn routing_to_router_panics() {
     TestClient::new(Router::new().route_service("/", Router::new()));
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn route_layer() {
     let app = Router::new()
         .route("/foo", get(|| async {}))
@@ -507,7 +507,7 @@ async fn route_layer() {
     assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn different_methods_added_in_different_routes() {
     let app = Router::new()
         .route("/", get(|| async { "GET" }))
@@ -524,7 +524,7 @@ async fn different_methods_added_in_different_routes() {
     assert_eq!(body, "POST");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 #[should_panic(expected = "Cannot merge two `Router`s that both have a fallback")]
 async fn merging_routers_with_fallbacks_panics() {
     async fn fallback() {}
@@ -550,7 +550,7 @@ fn merging_with_overlapping_method_routes() {
     _ = app.clone().merge(app);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn merging_routers_with_same_paths_but_different_methods() {
     let one = Router::new().route("/", get(|| async { "GET" }));
     let two = Router::new().route("/", post(|| async { "POST" }));
@@ -566,7 +566,7 @@ async fn merging_routers_with_same_paths_but_different_methods() {
     assert_eq!(body, "POST");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn head_content_length_through_hyper_server() {
     let app = Router::new()
         .route("/", get(|| async { "foo" }))
@@ -583,7 +583,7 @@ async fn head_content_length_through_hyper_server() {
     assert!(res.text().await.is_empty());
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn head_content_length_through_hyper_server_that_hits_fallback() {
     let app = Router::new().fallback(|| async { "foo" });
 
@@ -593,7 +593,7 @@ async fn head_content_length_through_hyper_server_that_hits_fallback() {
     assert_eq!(res.headers()["content-length"], "3");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn head_with_middleware_applied() {
     use tower_http::compression::{predicate::SizeAbove, CompressionLayer};
 
@@ -629,14 +629,14 @@ async fn head_with_middleware_applied() {
     assert!(!res.headers().contains_key("content-length"));
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 #[should_panic(expected = "Paths must start with a `/`")]
 async fn routes_must_start_with_slash() {
     let app = Router::new().route(":foo", get(|| async {}));
     TestClient::new(app);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn body_limited_by_default() {
     let app = Router::new()
         .route("/bytes", post(|_: Bytes| async {}))
@@ -664,7 +664,7 @@ async fn body_limited_by_default() {
     }
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn disabling_the_default_limit() {
     let app = Router::new()
         .route("/", post(|_: Bytes| async {}))
@@ -680,7 +680,7 @@ async fn disabling_the_default_limit() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn limited_body_with_content_length() {
     const LIMIT: usize = 3;
 
@@ -702,7 +702,7 @@ async fn limited_body_with_content_length() {
     assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn changing_the_default_limit() {
     let new_limit = 2;
 
@@ -727,7 +727,7 @@ async fn changing_the_default_limit() {
     assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn changing_the_default_limit_differently_on_different_routes() {
     let limit1 = 2;
     let limit2 = 10;
@@ -796,7 +796,7 @@ async fn changing_the_default_limit_differently_on_different_routes() {
     assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn limited_body_with_streaming_body() {
     const LIMIT: usize = 3;
 
@@ -828,7 +828,7 @@ async fn limited_body_with_streaming_body() {
     assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn extract_state() {
     #[derive(Clone)]
     struct AppState {
@@ -864,7 +864,7 @@ async fn extract_state() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn explicitly_set_state() {
     let app = Router::new()
         .route_service(
@@ -878,7 +878,7 @@ async fn explicitly_set_state() {
     assert_eq!(res.text().await, "foo");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn layer_response_into_response() {
     fn map_response<B>(_res: Response<B>) -> Result<Response<B>, impl IntoResponse> {
         let headers = [("x-foo", "bar")];
@@ -925,7 +925,7 @@ fn test_path_for_nested_route() {
     assert_eq!(path_for_nested_route("/a/", "/b/"), "/a/b/");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn state_isnt_cloned_too_much() {
     static SETUP_DONE: AtomicBool = AtomicBool::new(false);
     static COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -977,7 +977,7 @@ async fn state_isnt_cloned_too_much() {
     assert_eq!(COUNT.load(Ordering::SeqCst), 5);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn logging_rejections() {
     #[derive(Deserialize, Eq, PartialEq, Debug)]
     #[serde(deny_unknown_fields)]
@@ -1035,7 +1035,7 @@ async fn logging_rejections() {
                     body: "Request body didn't contain valid UTF-8: \
                         invalid utf-8 sequence of 1 bytes from index 1"
                         .to_owned(),
-                    rejection_type: "axum_core::extract::rejection::InvalidUtf8".to_owned(),
+                    rejection_type: "crate::axum::core::extract::rejection::InvalidUtf8".to_owned(),
                 },
                 target: "axum::rejection".to_owned(),
                 level: "TRACE".to_owned(),
@@ -1045,7 +1045,7 @@ async fn logging_rejections() {
 }
 
 // https://github.com/tokio-rs/axum/issues/1955
-#[crate::test]
+#[crate::axum::main::test]
 async fn connect_going_to_custom_fallback() {
     let app = Router::new().fallback(|| async { (StatusCode::NOT_FOUND, "custom fallback") });
 
@@ -1063,7 +1063,7 @@ async fn connect_going_to_custom_fallback() {
 }
 
 // https://github.com/tokio-rs/axum/issues/1955
-#[crate::test]
+#[crate::axum::main::test]
 async fn connect_going_to_default_fallback() {
     let app = Router::new();
 
@@ -1080,7 +1080,7 @@ async fn connect_going_to_default_fallback() {
     assert!(body.is_empty());
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn impl_handler_for_into_response() {
     let app = Router::new().route("/things", post((StatusCode::CREATED, "thing created")));
 

@@ -70,7 +70,7 @@ Some commonly used middleware are:
   [`PropagateRequestIdLayer`](tower_http::request_id) set and propagate request
   ids.
 - [`TimeoutLayer`](tower::timeout::TimeoutLayer) for timeouts. Note this
-  requires using [`HandleErrorLayer`](crate::error_handling::HandleErrorLayer)
+  requires using [`HandleErrorLayer`](crate::axum::main::error_handling::HandleErrorLayer)
   to convert timeouts to responses.
 
 # Ordering
@@ -320,7 +320,7 @@ let app = Router::new()
 # let _: Router = app;
 ```
 
-See [`error_handling`](crate::error_handling) for more details on axum's error
+See [`error_handling`](crate::axum::main::error_handling) for more details on axum's error
 handling model.
 
 # Routing to services/middleware and backpressure
@@ -390,7 +390,7 @@ written.
 
 ## Accessing state in `axum::middleware::from_fn`
 
-Use [`axum::middleware::from_fn_with_state`](crate::middleware::from_fn_with_state).
+Use [`axum::middleware::from_fn_with_state`](crate::axum::main::middleware::from_fn_with_state).
 
 ## Accessing state in custom `tower::Layer`s
 
@@ -565,20 +565,20 @@ axum::serve(listener, app_with_middleware.into_make_service()).await.unwrap();
 [`tower`]: https://crates.io/crates/tower
 [`tower-http`]: https://crates.io/crates/tower-http
 [tower-guides]: https://github.com/tower-rs/tower/tree/master/guides
-[`axum::middleware::from_fn`]: fn@crate::middleware::from_fn
-[`middleware::from_fn`]: fn@crate::middleware::from_fn
+[`axum::middleware::from_fn`]: fn@crate::axum::main::middleware::from_fn
+[`middleware::from_fn`]: fn@crate::axum::main::middleware::from_fn
 [tower-from-scratch-guide]: https://github.com/tower-rs/tower/blob/master/guides/building-a-middleware-from-scratch.md
 [`ServiceBuilder::map_request`]: tower::ServiceBuilder::map_request
 [`ServiceBuilder::map_response`]: tower::ServiceBuilder::map_response
 [`ServiceBuilder::then`]: tower::ServiceBuilder::then
 [`ServiceBuilder::and_then`]: tower::ServiceBuilder::and_then
-[`axum::middleware::from_extractor`]: fn@crate::middleware::from_extractor
-[`Handler::layer`]: crate::handler::Handler::layer
-[`Router::layer`]: crate::routing::Router::layer
-[`MethodRouter::layer`]: crate::routing::MethodRouter::layer
-[`Router::route_layer`]: crate::routing::Router::route_layer
-[`MethodRouter::route_layer`]: crate::routing::MethodRouter::route_layer
+[`axum::middleware::from_extractor`]: fn@crate::axum::main::middleware::from_extractor
+[`Handler::layer`]: crate::axum::main::handler::Handler::layer
+[`Router::layer`]: crate::axum::main::routing::Router::layer
+[`MethodRouter::layer`]: crate::axum::main::routing::MethodRouter::layer
+[`Router::route_layer`]: crate::axum::main::routing::Router::route_layer
+[`MethodRouter::route_layer`]: crate::axum::main::routing::MethodRouter::route_layer
 [request extensions]: https://docs.rs/http/latest/http/request/struct.Request.html#method.extensions
 [Response extensions]: https://docs.rs/http/latest/http/response/struct.Response.html#method.extensions
-[`State`]: crate::extract::State
+[`State`]: crate::axum::main::extract::State
 [`Service`]: tower::Service

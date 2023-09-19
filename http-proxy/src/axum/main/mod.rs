@@ -89,7 +89,7 @@
 //!
 #![doc = include_str!("docs/handlers_intro.md")]
 //!
-//! See [`handler`](crate::handler) for more details on handlers.
+//! See [`handler`](crate::axum::main::handler) for more details on handlers.
 //!
 //! # Extractors
 //!
@@ -112,7 +112,7 @@
 //! async fn json(Json(payload): Json<serde_json::Value>) {}
 //! ```
 //!
-//! See [`extract`](crate::extract) for more details on extractors.
+//! See [`extract`](crate::axum::main::extract) for more details on extractors.
 //!
 //! # Responses
 //!
@@ -144,7 +144,7 @@
 //! # let _: Router = app;
 //! ```
 //!
-//! See [`response`](crate::response) for more details on building responses.
+//! See [`response`](crate::axum::main::response) for more details on building responses.
 //!
 //! # Error handling
 //!
@@ -152,13 +152,13 @@
 //! it is simple to convert errors into responses and you are guaranteed that
 //! all errors are handled.
 //!
-//! See [`error_handling`](crate::error_handling) for more details on axum's
+//! See [`error_handling`](crate::axum::main::error_handling) for more details on axum's
 //! error handling model and how to handle errors gracefully.
 //!
 //! # Middleware
 //!
 //! There are several different ways to write middleware for axum. See
-//! [`middleware`](crate::middleware) for more details.
+//! [`middleware`](crate::axum::main::middleware) for more details.
 //!
 //! # Sharing state with handlers
 //!
@@ -206,7 +206,7 @@
 //!
 //! ## Using request extensions
 //!
-//! Another way to extract state in handlers is using [`Extension`](crate::extract::Extension) as
+//! Another way to extract state in handlers is using [`Extension`](crate::axum::main::extract::Extension) as
 //! layer and extractor:
 //!
 //! ```rust,no_run
@@ -350,37 +350,37 @@
 //! `form` | Enables the `Form` extractor | Yes
 //! `query` | Enables the `Query` extractor | Yes
 //!
-//! [`MatchedPath`]: crate::extract::MatchedPath
-//! [`Multipart`]: crate::extract::Multipart
-//! [`OriginalUri`]: crate::extract::OriginalUri
+//! [`MatchedPath`]: crate::axum::main::extract::MatchedPath
+//! [`Multipart`]: crate::axum::main::extract::Multipart
+//! [`OriginalUri`]: crate::axum::main::extract::OriginalUri
 //! [`tower`]: https://crates.io/crates/tower
 //! [`tower-http`]: https://crates.io/crates/tower-http
 //! [`tokio`]: http://crates.io/crates/tokio
 //! [`hyper`]: http://crates.io/crates/hyper
 //! [`tonic`]: http://crates.io/crates/tonic
 //! [feature flags]: https://doc.rust-lang.org/cargo/reference/features.html#the-features-section
-//! [`IntoResponse`]: crate::response::IntoResponse
+//! [`IntoResponse`]: crate::axum::main::response::IntoResponse
 //! [`Timeout`]: tower::timeout::Timeout
 //! [examples]: https://github.com/tokio-rs/axum/tree/main/examples
-//! [`Router::merge`]: crate::routing::Router::merge
+//! [`Router::merge`]: crate::axum::main::routing::Router::merge
 //! [`Service`]: tower::Service
 //! [`Service::poll_ready`]: tower::Service::poll_ready
 //! [`Service`'s]: tower::Service
 //! [`tower::Service`]: tower::Service
 //! [tower-guides]: https://github.com/tower-rs/tower/tree/master/guides
 //! [`Uuid`]: https://docs.rs/uuid/latest/uuid/
-//! [`FromRequest`]: crate::extract::FromRequest
-//! [`FromRequestParts`]: crate::extract::FromRequestParts
+//! [`FromRequest`]: crate::axum::main::extract::FromRequest
+//! [`FromRequestParts`]: crate::axum::main::extract::FromRequestParts
 //! [`HeaderMap`]: http::header::HeaderMap
 //! [`Request`]: http::Request
 //! [customize-extractor-error]: https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/main.rs
 //! [axum-macros]: https://docs.rs/axum-macros
 //! [`debug_handler`]: https://docs.rs/axum-macros/latest/axum_macros/attr.debug_handler.html
-//! [`Handler`]: crate::handler::Handler
+//! [`Handler`]: crate::axum::main::handler::Handler
 //! [`Infallible`]: std::convert::Infallible
 //! [load shed]: tower::load_shed
 //! [`axum-core`]: http://crates.io/crates/axum-core
-//! [`State`]: crate::extract::State
+//! [`State`]: crate::axum::main::extract::State
 
 #![warn(
     clippy::all,
@@ -470,10 +470,10 @@ pub use self::routing::Router;
 pub use self::form::Form;
 
 #[doc(inline)]
-pub use axum_core::{BoxError, Error, RequestExt, RequestPartsExt};
+pub use crate::axum::core::{BoxError, Error, RequestExt, RequestPartsExt};
 
 #[cfg(feature = "macros")]
-pub use axum_macros::debug_handler;
+pub use crate::axum::macros::debug_handler;
 
 #[cfg(feature = "tokio")]
 #[doc(inline)]
@@ -482,4 +482,4 @@ pub use self::serve::serve;
 pub use self::service_ext::ServiceExt;
 
 #[cfg(test)]
-use axum_macros::__private_axum_test as test;
+use crate::axum::macros::__private_axum_test as test;

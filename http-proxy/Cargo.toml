@@ -5,27 +5,64 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = { version = "0.6.16", path = "../../axum", features = [
-    "http2",
-    "macros",
-    "multipart",
-    "tracing",
-    "ws",
+
+heck = "0.4"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = [
+    "full",
+    "parsing",
+    # needed for `Hash` impls
+    "extra-traits",
 ] }
-bytes = "1"
-futures-channel = "0.3"
-futures-util = { version = "0.3", default-features = false }
+rustversion = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.25.0", features = ["full"] }
+trybuild = "1.0.63"
+
+bytes = "1.1.0"
+futures-util = { version = "0.3", default-features = false, features = [
+    "alloc",
+] }
 http = "0.2"
 http-body = "=1.0.0-rc.2"
+mime = "0.3"
+pin-project-lite = "0.2"
+tower = { version = "0.4", default_features = false, features = ["util"] }
+tower-layer = "0.3"
+tower-service = "0.3"
+
+cookie = { package = "cookie", version = "0.17", features = [
+    "percent-encode",
+], optional = true }
+form_urlencoded = { version = "1.1.0" }
+headers = { version = "0.3.8" }
+multer = { version = "2.0.0" }
+percent-encoding = { version = "2.1" }
+prost = { version = "0.12" }
+serde_html_form = { version = "0.2.0" }
+tokio-stream = { version = "0.1.9" }
+tokio-util = { version = "0.7" }
+
+futures = "0.3"
+hyper = "0.14"
+reqwest = { version = "0.11", default-features = false, features = [
+    "json",
+    "stream",
+    "multipart",
+] }
+tower-http = { version = "0.4", features = ["map-response-body", "timeout"] }
+
+async-trait = "0.1.67"
+sync_wrapper = "0.1.1"
+
+futures-channel = "0.3"
 http-body-util = "=0.1.0-rc.3"
 httpdate = "1.0"
-tokio-test = "0.4"
 httparse = "1.8"
-# axum = { path = "../../axum" }
-hyper = { version = "0.14", features = ["full"] }
-tokio = { version = "1.0", features = ["full"] }
-tower = { version = "0.4", features = ["make"] }
-traceback-derive = "0.1.1"
-traceback-error = "0.1.9"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+h2 = { version = "0.3.9", optional = true }
+itoa = "1"
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+want = "0.3"
+tokio-test = "0.4.3"

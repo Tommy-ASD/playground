@@ -1,8 +1,8 @@
-use crate::{
+use crate::axum::core::{extract::Request, response::IntoResponse};
+use crate::axum::main::{
     body::{Body, HttpBody},
     response::Response,
 };
-use axum_core::{extract::Request, response::IntoResponse};
 use bytes::Bytes;
 use http::{
     header::{self, CONTENT_LENGTH},
@@ -83,7 +83,7 @@ impl<E> fmt::Debug for Route<E> {
 impl<B, E> Service<Request<B>> for Route<E>
 where
     B: HttpBody<Data = bytes::Bytes> + Send + 'static,
-    B::Error: Into<axum_core::BoxError>,
+    B::Error: Into<crate::axum::core::BoxError>,
 {
     type Response = Response;
     type Error = E;
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn traits() {
-        use crate::test_helpers::*;
+        use crate::axum::main::test_helpers::*;
         assert_send::<Route<()>>();
     }
 }

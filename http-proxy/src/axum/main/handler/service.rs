@@ -1,10 +1,10 @@
 use super::Handler;
-use crate::body::{Body, Bytes, HttpBody};
+use crate::axum::main::body::{Body, Bytes, HttpBody};
 #[cfg(feature = "tokio")]
-use crate::extract::connect_info::IntoMakeServiceWithConnectInfo;
-use crate::response::Response;
-use crate::routing::IntoMakeService;
-use crate::BoxError;
+use crate::axum::main::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use crate::axum::main::response::Response;
+use crate::axum::main::routing::IntoMakeService;
+use crate::axum::main::BoxError;
 use http::Request;
 use std::{
     convert::Infallible,
@@ -99,7 +99,7 @@ impl<H, T, S> HandlerService<H, T, S> {
     /// ```
     ///
     /// [`MakeService`]: tower::make::MakeService
-    /// [`Router::into_make_service_with_connect_info`]: crate::routing::Router::into_make_service_with_connect_info
+    /// [`Router::into_make_service_with_connect_info`]: crate::axum::main::routing::Router::into_make_service_with_connect_info
     #[cfg(feature = "tokio")]
     pub fn into_make_service_with_connect_info<C>(
         self,
@@ -110,7 +110,7 @@ impl<H, T, S> HandlerService<H, T, S> {
 
 #[test]
 fn traits() {
-    use crate::test_helpers::*;
+    use crate::axum::main::test_helpers::*;
     assert_send::<HandlerService<(), NotSendSync, ()>>();
     assert_sync::<HandlerService<(), NotSendSync, ()>>();
 }
@@ -180,7 +180,7 @@ where
 // for `axum::serve(listener, handler)`
 #[cfg(feature = "tokio")]
 const _: () = {
-    use crate::serve::IncomingStream;
+    use crate::axum::main::serve::IncomingStream;
 
     impl<H, T, S> Service<IncomingStream<'_>> for HandlerService<H, T, S>
     where

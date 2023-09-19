@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn traits() {
-        use crate::test_helpers::*;
+        use crate::axum::main::test_helpers::*;
 
         assert_send::<IntoMakeService<()>>();
     }

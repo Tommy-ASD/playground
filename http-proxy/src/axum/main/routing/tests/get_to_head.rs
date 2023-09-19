@@ -6,7 +6,7 @@ mod for_handlers {
     use super::*;
     use http::HeaderMap;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn get_handles_head() {
         let app = Router::new().route(
             "/",
@@ -39,9 +39,9 @@ mod for_handlers {
 
 mod for_services {
     use super::*;
-    use crate::routing::get_service;
+    use crate::axum::main::routing::get_service;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn get_handles_head() {
         let app = Router::new().route(
             "/",

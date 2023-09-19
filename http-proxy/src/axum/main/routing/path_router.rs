@@ -1,5 +1,5 @@
-use crate::extract::{nested_path::SetNestedPath, Request};
-use axum_core::response::IntoResponse;
+use crate::axum::core::response::IntoResponse;
+use crate::axum::main::extract::{nested_path::SetNestedPath, Request};
 use matchit::MatchError;
 use std::{borrow::Cow, collections::HashMap, convert::Infallible, fmt, sync::Arc};
 use tower_layer::Layer;
@@ -322,7 +322,7 @@ where
     ) -> Result<RouteFuture<Infallible>, (Request, S)> {
         #[cfg(feature = "original-uri")]
         {
-            use crate::extract::OriginalUri;
+            use crate::axum::main::extract::OriginalUri;
 
             if req.extensions().get::<OriginalUri>().is_none() {
                 let original_uri = OriginalUri(req.uri().clone());
@@ -338,7 +338,7 @@ where
 
                 if !IS_FALLBACK {
                     #[cfg(feature = "matched-path")]
-                    crate::extract::matched_path::set_matched_path_for_request(
+                    crate::axum::main::extract::matched_path::set_matched_path_for_request(
                         id,
                         &self.node.route_id_to_path,
                         req.extensions_mut(),

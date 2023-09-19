@@ -29,7 +29,7 @@ impl<R> Service<R> for Svc {
     }
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn handler() {
     let app = Router::new().route(
         "/",
@@ -45,7 +45,7 @@ async fn handler() {
     assert_eq!(res.status(), StatusCode::REQUEST_TIMEOUT);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn handler_multiple_methods_first() {
     let app = Router::new().route(
         "/",
@@ -62,7 +62,7 @@ async fn handler_multiple_methods_first() {
     assert_eq!(res.status(), StatusCode::REQUEST_TIMEOUT);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn handler_multiple_methods_middle() {
     let app = Router::new().route(
         "/",
@@ -80,7 +80,7 @@ async fn handler_multiple_methods_middle() {
     assert_eq!(res.status(), StatusCode::REQUEST_TIMEOUT);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn handler_multiple_methods_last() {
     let app = Router::new().route(
         "/",

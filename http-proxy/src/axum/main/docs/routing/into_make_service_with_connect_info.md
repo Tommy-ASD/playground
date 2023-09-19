@@ -67,6 +67,6 @@ See the [unix domain socket example][uds] for an example of how to use
 this to collect UDS connection info.
 
 [`MakeService`]: tower::make::MakeService
-[`Connected`]: crate::extract::connect_info::Connected
-[`ConnectInfo`]: crate::extract::connect_info::ConnectInfo
+[`Connected`]: crate::axum::main::extract::connect_info::Connected
+[`ConnectInfo`]: crate::axum::main::extract::connect_info::ConnectInfo
 [uds]: https://github.com/tokio-rs/axum/blob/main/examples/unix-domain-socket/src/main.rs

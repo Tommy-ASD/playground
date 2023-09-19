@@ -1,17 +1,17 @@
 //! Routing between [`Service`]s and handlers.
 
 use self::{future::RouteFuture, not_found::NotFound, path_router::PathRouter};
+use crate::axum::core::{
+    extract::Request,
+    response::{IntoResponse, Response},
+};
 #[cfg(feature = "tokio")]
-use crate::extract::connect_info::IntoMakeServiceWithConnectInfo;
-use crate::{
+use crate::axum::main::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use crate::axum::main::{
     body::{Body, HttpBody},
     boxed::BoxedIntoRoute,
     handler::Handler,
     util::try_downcast,
-};
-use axum_core::{
-    extract::Request,
-    response::{IntoResponse, Response},
 };
 use std::{
     convert::Infallible,
@@ -433,7 +433,7 @@ impl Router {
 // for `axum::serve(listener, router)`
 #[cfg(feature = "tokio")]
 const _: () = {
-    use crate::serve::IncomingStream;
+    use crate::axum::main::serve::IncomingStream;
 
     impl Service<IncomingStream<'_>> for Router<()> {
         type Response = Self;
@@ -453,7 +453,7 @@ const _: () = {
 impl<B> Service<Request<B>> for Router<()>
 where
     B: HttpBody<Data = bytes::Bytes> + Send + 'static,
-    B::Error: Into<axum_core::BoxError>,
+    B::Error: Into<crate::axum::core::BoxError>,
 {
     type Response = Response;
     type Error = Infallible;
@@ -482,7 +482,7 @@ pub struct RouterAsService<'a, B, S = ()> {
 impl<'a, B> Service<Request<B>> for RouterAsService<'a, B, ()>
 where
     B: HttpBody<Data = bytes::Bytes> + Send + 'static,
-    B::Error: Into<axum_core::BoxError>,
+    B::Error: Into<crate::axum::core::BoxError>,
 {
     type Response = Response;
     type Error = Infallible;
@@ -521,7 +521,7 @@ pub struct RouterIntoService<B, S = ()> {
 impl<B> Service<Request<B>> for RouterIntoService<B, ()>
 where
     B: HttpBody<Data = bytes::Bytes> + Send + 'static,
-    B::Error: Into<axum_core::BoxError>,
+    B::Error: Into<crate::axum::core::BoxError>,
 {
     type Response = Response;
     type Error = Infallible;
@@ -671,6 +671,6 @@ impl<S> fmt::Debug for Endpoint<S> {
 
 #[test]
 fn traits() {
-    use crate::test_helpers::*;
+    use crate::axum::main::test_helpers::*;
     assert_send::<Router<()>>();
 }

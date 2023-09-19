@@ -112,7 +112,7 @@ For example:
 # use axum::{Router, routing::get, extract::State};
 # #[derive(Clone)]
 # struct AppState {}
-# 
+#
 // A router that _needs_ an `AppState` to handle requests
 let router: Router<AppState> = Router::new()
     .route("/", get(|_: State<AppState>| async {}));
@@ -141,7 +141,7 @@ Perhaps a little counter intuitively, `Router::with_state` doesn't always return
 # use axum::{Router, routing::get, extract::State};
 # #[derive(Clone)]
 # struct AppState {}
-# 
+#
 let router: Router<AppState> = Router::new()
     .route("/", get(|_: State<AppState>| async {}));
 
@@ -170,7 +170,7 @@ work:
 # use axum::{Router, routing::get, extract::State};
 # #[derive(Clone)]
 # struct AppState {}
-# 
+#
 // This wont work because we're returning a `Router<AppState>`
 // i.e. we're saying we're still missing an `AppState`
 fn routes(state: AppState) -> Router<AppState> {
@@ -195,7 +195,7 @@ Instead return `Router<()>` since we have provided all the state needed:
 # use axum::{Router, routing::get, extract::State};
 # #[derive(Clone)]
 # struct AppState {}
-# 
+#
 // We've provided all the state necessary so return `Router<()>`
 fn routes(state: AppState) -> Router<()> {
     Router::new()
@@ -234,4 +234,4 @@ which may impact performance and reduce allocations.
 Note that [`Router::into_make_service`] and [`Router::into_make_service_with_connect_info`]
 do this automatically.
 
-[`Extension`]: crate::Extension
+[`Extension`]: crate::axum::main::Extension

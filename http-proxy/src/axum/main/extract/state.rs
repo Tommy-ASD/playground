@@ -1,5 +1,5 @@
+use crate::axum::core::extract::{FromRef, FromRequestParts};
 use async_trait::async_trait;
-use axum_core::extract::{FromRef, FromRequestParts};
 use http::request::Parts;
 use std::{
     convert::Infallible,
@@ -11,7 +11,7 @@ use std::{
 /// See ["Accessing state in middleware"][state-from-middleware] for how to
 /// access state in middleware.
 ///
-/// [state-from-middleware]: crate::middleware#accessing-state-in-middleware
+/// [state-from-middleware]: crate::axum::main::middleware#accessing-state-in-middleware
 ///
 /// # With `Router`
 ///
@@ -49,7 +49,7 @@ use std::{
 /// Note that `State` is an extractor, so be sure to put it before any body
 /// extractors, see ["the order of extractors"][order-of-extractors].
 ///
-/// [order-of-extractors]: crate::extract#the-order-of-extractors
+/// [order-of-extractors]: crate::axum::main::extract#the-order-of-extractors
 ///
 /// ## Combining stateful routers
 ///
@@ -113,10 +113,10 @@ use std::{
 /// (no state) unless [`Router::with_state`] is called or the value
 /// of the generic type is given explicitly.
 ///
-/// [`Router`]: crate::Router
-/// [`Router::merge`]: crate::Router::merge
-/// [`Router::nest`]: crate::Router::nest
-/// [`Router::with_state`]: crate::Router::with_state
+/// [`Router`]: crate::axum::main::Router
+/// [`Router::merge`]: crate::axum::main::Router::merge
+/// [`Router::nest`]: crate::axum::main::Router::nest
+/// [`Router::with_state`]: crate::axum::main::Router::with_state
 ///
 /// # With `MethodRouter`
 ///
@@ -217,7 +217,7 @@ use std::{
 /// to do it:
 ///
 /// ```rust
-/// use axum_core::extract::{FromRequestParts, FromRef};
+/// use crate::axum::core::extract::{FromRequestParts, FromRef};
 /// use http::request::Parts;
 /// use async_trait::async_trait;
 /// use std::convert::Infallible;
@@ -337,7 +337,7 @@ use std::{
 /// # let _: Router = app;
 /// ```
 ///
-/// [global]: crate::Router::with_state
+/// [global]: crate::axum::main::Router::with_state
 /// [the tokio docs]: https://docs.rs/tokio/1.25.0/tokio/sync/struct.Mutex.html#which-kind-of-mutex-should-you-use
 #[derive(Debug, Default, Clone, Copy)]
 pub struct State<S>(pub S);

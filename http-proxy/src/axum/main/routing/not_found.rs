@@ -1,5 +1,5 @@
-use crate::response::Response;
-use axum_core::response::IntoResponse;
+use crate::axum::core::response::IntoResponse;
+use crate::axum::main::response::Response;
 use http::{Request, StatusCode};
 use std::{
     convert::Infallible,

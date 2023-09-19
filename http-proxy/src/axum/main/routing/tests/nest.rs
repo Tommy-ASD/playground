@@ -1,9 +1,9 @@
 use super::*;
-use crate::extract::Extension;
+use crate::axum::main::extract::Extension;
 use std::collections::HashMap;
 use tower_http::services::ServeDir;
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nesting_apps() {
     let api_routes = Router::new()
         .route(
@@ -58,7 +58,7 @@ async fn nesting_apps() {
     assert_eq!(res.text().await, "v0: games#show (123)");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn wrong_method_nest() {
     let nested_app = Router::new().route("/", get(|| async {}));
     let app = Router::new().nest("/", nested_app);
@@ -76,7 +76,7 @@ async fn wrong_method_nest() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nesting_router_at_root() {
     let nested = Router::new().route("/foo", get(|uri: Uri| async move { uri.to_string() }));
     let app = Router::new().nest("/", nested);
@@ -94,7 +94,7 @@ async fn nesting_router_at_root() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nesting_router_at_empty_path() {
     let nested = Router::new().route("/foo", get(|uri: Uri| async move { uri.to_string() }));
     let app = Router::new().nest("", nested);
@@ -112,7 +112,7 @@ async fn nesting_router_at_empty_path() {
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nesting_handler_at_root() {
     let app = Router::new().nest_service("/", get(|uri: Uri| async move { uri.to_string() }));
 
@@ -131,7 +131,7 @@ async fn nesting_handler_at_root() {
     assert_eq!(res.text().await, "/foo/bar");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nested_url_extractor() {
     let app = Router::new().nest(
         "/foo",
@@ -157,7 +157,7 @@ async fn nested_url_extractor() {
     assert_eq!(res.text().await, "/qux");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nested_url_original_extractor() {
     let app = Router::new().nest(
         "/foo",
@@ -177,7 +177,7 @@ async fn nested_url_original_extractor() {
     assert_eq!(res.text().await, "/foo/bar/baz");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nested_service_sees_stripped_uri() {
     let app = Router::new().nest(
         "/foo",
@@ -200,7 +200,7 @@ async fn nested_service_sees_stripped_uri() {
     assert_eq!(res.text().await, "/baz");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nest_static_file_server() {
     let app = Router::new().nest_service("/static", ServeDir::new("."));
 
@@ -210,7 +210,7 @@ async fn nest_static_file_server() {
     assert_eq!(res.status(), StatusCode::OK);
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nested_multiple_routes() {
     let app = Router::new()
         .nest(
@@ -243,7 +243,7 @@ fn nested_at_root_with_other_routes() {
         .route("/", get(|| async {}));
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn multiple_top_level_nests() {
     let app = Router::new()
         .nest(
@@ -261,13 +261,13 @@ async fn multiple_top_level_nests() {
     assert_eq!(client.get("/two/route").send().await.text().await, "two");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 #[should_panic(expected = "Invalid route: nested routes cannot contain wildcards (*)")]
 async fn nest_cannot_contain_wildcards() {
     _ = Router::<()>::new().nest("/one/*rest", Router::new());
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn outer_middleware_still_see_whole_url() {
     #[derive(Clone)]
     struct SetUriExtension<S>(S);
@@ -318,7 +318,7 @@ async fn outer_middleware_still_see_whole_url() {
     assert_eq!(client.get("/one/two").send().await.text().await, "/one/two");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nest_at_capture() {
     let api_routes = Router::new().route(
         "/:b",
@@ -334,7 +334,7 @@ async fn nest_at_capture() {
     assert_eq!(res.text().await, "a=foo b=bar");
 }
 
-#[crate::test]
+#[crate::axum::main::test]
 async fn nest_with_and_without_trailing() {
     let app = Router::new().nest_service("/foo", get(|| async {}));
 
@@ -396,7 +396,7 @@ macro_rules! nested_route_test {
         // the route we expect to be able to call
         expected = $expected_path:literal $(,)?
     ) => {
-        #[crate::test]
+        #[crate::axum::main::test]
         async fn $name() {
             let inner = Router::new().route($route_path, get(|| async {}));
             let app = Router::new().nest($nested_path, inner);

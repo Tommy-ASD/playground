@@ -1,5 +1,5 @@
 use super::{rejection::*, FromRequestParts};
-use crate::routing::{RouteId, NEST_TAIL_PARAM_CAPTURE};
+use crate::axum::main::routing::{RouteId, NEST_TAIL_PARAM_CAPTURE};
 use async_trait::async_trait;
 use http::request::Parts;
 use std::{collections::HashMap, sync::Arc};
@@ -130,7 +130,7 @@ fn append_nested_matched_path(matched_path: &Arc<str>, extensions: &http::Extens
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
+    use crate::axum::main::{
         extract::Request,
         handler::HandlerWithoutStateExt,
         middleware::map_request,
@@ -140,7 +140,7 @@ mod tests {
     };
     use http::StatusCode;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extracting_on_handler() {
         let app = Router::new().route(
             "/:a",
@@ -153,7 +153,7 @@ mod tests {
         assert_eq!(res.text().await, "/:a");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extracting_on_handler_in_nested_router() {
         let app = Router::new().nest(
             "/:a",
@@ -169,7 +169,7 @@ mod tests {
         assert_eq!(res.text().await, "/:a/:b");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extracting_on_handler_in_deeply_nested_router() {
         let app = Router::new().nest(
             "/:a",
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(res.text().await, "/:a/:b/:c");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn cannot_extract_nested_matched_path_in_middleware() {
         async fn extract_matched_path<B>(
             matched_path: Option<MatchedPath>,
@@ -208,7 +208,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn can_extract_nested_matched_path_in_middleware_using_nest() {
         async fn extract_matched_path<B>(
             matched_path: Option<MatchedPath>,
@@ -228,7 +228,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn cannot_extract_nested_matched_path_in_middleware_via_extension() {
         async fn assert_no_matched_path<B>(req: Request<B>) -> Request<B> {
             assert!(req.extensions().get::<MatchedPath>().is_none());
@@ -262,7 +262,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn can_extract_nested_matched_path_in_middleware_on_nested_router() {
         async fn extract_matched_path<B>(matched_path: MatchedPath, req: Request<B>) -> Request<B> {
             assert_eq!(matched_path.as_str(), "/:a/:b");
@@ -282,7 +282,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn can_extract_nested_matched_path_in_middleware_on_nested_router_via_extension() {
         async fn extract_matched_path<B>(req: Request<B>) -> Request<B> {
             let matched_path = req.extensions().get::<MatchedPath>().unwrap();
@@ -303,7 +303,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn extracting_on_nested_handler() {
         async fn handler(path: Option<MatchedPath>) {
             assert!(path.is_none());
@@ -318,7 +318,7 @@ mod tests {
     }
 
     // https://github.com/tokio-rs/axum/issues/1579
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn doesnt_panic_if_router_called_from_wildcard_route() {
         use tower::ServiceExt;
 
@@ -337,7 +337,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn cant_extract_in_fallback() {
         async fn handler(path: Option<MatchedPath>, req: Request) {
             assert!(path.is_none());

@@ -1,5 +1,5 @@
 use super::Handler;
-use crate::response::Response;
+use crate::axum::main::response::Response;
 use http::Request;
 use std::{
     convert::Infallible,
@@ -16,7 +16,7 @@ pub(crate) struct IntoServiceStateInExtension<H, T, S, B> {
 
 #[test]
 fn traits() {
-    use crate::test_helpers::*;
+    use crate::axum::main::test_helpers::*;
     assert_send::<IntoServiceStateInExtension<(), NotSendSync, (), NotSendSync>>();
     assert_sync::<IntoServiceStateInExtension<(), NotSendSync, (), NotSendSync>>();
 }

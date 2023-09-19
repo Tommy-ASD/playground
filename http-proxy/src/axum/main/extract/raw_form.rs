@@ -1,5 +1,5 @@
+use crate::axum::core::extract::{FromRequest, Request};
 use async_trait::async_trait;
-use axum_core::extract::{FromRequest, Request};
 use bytes::{Bytes, BytesMut};
 use http::Method;
 
@@ -58,12 +58,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use axum_core::body::Body;
+    use crate::axum::core::body::Body;
     use http::{header::CONTENT_TYPE, Request};
 
     use super::{InvalidFormContentType, RawForm, RawFormRejection};
 
-    use crate::extract::FromRequest;
+    use crate::axum::main::extract::FromRequest;
 
     async fn check_query(uri: &str, value: &[u8]) {
         let req = Request::builder().uri(uri).body(Body::empty()).unwrap();
@@ -80,21 +80,21 @@ mod tests {
         assert_eq!(RawForm::from_request(req, &()).await.unwrap().0, body);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_from_query() {
         check_query("http://example.com/test", b"").await;
 
         check_query("http://example.com/test?page=0&size=10", b"page=0&size=10").await;
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_from_body() {
         check_body(b"").await;
 
         check_body(b"username=user&password=secure%20password").await;
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_incorrect_content_type() {
         let req = Request::post("http://example.com/test")
             .body(Body::from("page=0&size=10"))

@@ -1,6 +1,6 @@
 #[cfg(feature = "tokio")]
-use crate::extract::connect_info::IntoMakeServiceWithConnectInfo;
-use crate::routing::IntoMakeService;
+use crate::axum::main::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use crate::axum::main::routing::IntoMakeService;
 use tower_service::Service;
 
 /// Extension trait that adds additional methods to any [`Service`].
@@ -12,8 +12,8 @@ pub trait ServiceExt<R>: Service<R> + Sized {
     /// request URI in middleware"] for more details.
     ///
     /// [`MakeService`]: tower::make::MakeService
-    /// ["Rewriting request URI in middleware"]: crate::middleware#rewriting-request-uri-in-middleware
-    /// [`Router`]: crate::Router
+    /// ["Rewriting request URI in middleware"]: crate::axum::main::middleware#rewriting-request-uri-in-middleware
+    /// [`Router`]: crate::axum::main::Router
     fn into_make_service(self) -> IntoMakeService<Self>;
 
     /// Convert this service into a [`MakeService`], that will store `C`'s
@@ -25,9 +25,9 @@ pub trait ServiceExt<R>: Service<R> + Sized {
     /// request URI in middleware"] for more details.
     ///
     /// [`MakeService`]: tower::make::MakeService
-    /// ["Rewriting request URI in middleware"]: crate::middleware#rewriting-request-uri-in-middleware
-    /// [`Router`]: crate::Router
-    /// [`ConnectInfo`]: crate::extract::connect_info::ConnectInfo
+    /// ["Rewriting request URI in middleware"]: crate::axum::main::middleware#rewriting-request-uri-in-middleware
+    /// [`Router`]: crate::axum::main::Router
+    /// [`ConnectInfo`]: crate::axum::main::extract::connect_info::ConnectInfo
     #[cfg(feature = "tokio")]
     fn into_make_service_with_connect_info<C>(self) -> IntoMakeServiceWithConnectInfo<Self, C>;
 }

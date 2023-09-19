@@ -3,13 +3,13 @@
 //! See [`Multipart`] for more details.
 
 use super::{FromRequest, Request};
-use crate::body::Bytes;
+use crate::axum::core::__composite_rejection as composite_rejection;
+use crate::axum::core::__define_rejection as define_rejection;
+use crate::axum::core::body::Body;
+use crate::axum::core::response::{IntoResponse, Response};
+use crate::axum::core::RequestExt;
+use crate::axum::main::body::Bytes;
 use async_trait::async_trait;
-use axum_core::__composite_rejection as composite_rejection;
-use axum_core::__define_rejection as define_rejection;
-use axum_core::body::Body;
-use axum_core::response::{IntoResponse, Response};
-use axum_core::RequestExt;
 use futures_util::stream::Stream;
 use http::header::{HeaderMap, CONTENT_TYPE};
 use http::StatusCode;
@@ -26,7 +26,7 @@ use std::{
 /// `Multipart` extractor must be *last* if there are multiple extractors in a handler.
 /// See ["the order of extractors"][order-of-extractors]
 ///
-/// [order-of-extractors]: crate::extract#the-order-of-extractors
+/// [order-of-extractors]: crate::axum::main::extract#the-order-of-extractors
 ///
 /// # Example
 ///
@@ -56,7 +56,7 @@ use std::{
 /// For security reasons, by default, `Multipart` limits the request body size to 2MB.
 /// See [`DefaultBodyLimit`][default-body-limit] for how to configure this limit.
 ///
-/// [default-body-limit]: crate::extract::DefaultBodyLimit
+/// [default-body-limit]: crate::axum::main::extract::DefaultBodyLimit
 #[cfg_attr(docsrs, doc(cfg(feature = "multipart")))]
 #[derive(Debug)]
 pub struct Multipart {
@@ -247,7 +247,7 @@ fn status_code_from_multer_error(err: &multer::Error) -> StatusCode {
             }
 
             if err
-                .downcast_ref::<crate::Error>()
+                .downcast_ref::<crate::axum::main::Error>()
                 .and_then(|err| err.source())
                 .and_then(|err| err.downcast_ref::<http_body::LengthLimitError>())
                 .is_some()
@@ -275,7 +275,7 @@ impl std::error::Error for MultipartError {
 
 impl IntoResponse for MultipartError {
     fn into_response(self) -> Response {
-        axum_core::__log_rejection!(
+        crate::axum::core::__log_rejection!(
             rejection_type = Self,
             body_text = self.body_text(),
             status = self.status(),
@@ -308,12 +308,12 @@ define_rejection! {
 
 #[cfg(test)]
 mod tests {
-    use axum_core::extract::DefaultBodyLimit;
+    use crate::axum::core::extract::DefaultBodyLimit;
 
     use super::*;
-    use crate::{response::IntoResponse, routing::post, test_helpers::*, Router};
+    use crate::axum::main::{response::IntoResponse, routing::post, test_helpers::*, Router};
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn content_type_with_encoding() {
         const BYTES: &[u8] = "<!doctype html><title>🦀</title>".as_bytes();
         const FILE_NAME: &str = "index.html";
@@ -352,7 +352,7 @@ mod tests {
             .layer(tower_http::limit::RequestBodyLimitLayer::new(1024));
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn body_too_large() {
         const BYTES: &[u8] = "<!doctype html><title>🦀</title>".as_bytes();
 

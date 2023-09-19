@@ -1,7 +1,7 @@
-use crate::extract::Request;
-use crate::extract::{rejection::*, FromRequest};
+use crate::axum::core::response::{IntoResponse, Response};
+use crate::axum::main::extract::Request;
+use crate::axum::main::extract::{rejection::*, FromRequest};
 use async_trait::async_trait;
-use axum_core::response::{IntoResponse, Response};
 use bytes::{BufMut, Bytes, BytesMut};
 use http::{
     header::{self, HeaderMap, HeaderValue},
@@ -25,7 +25,7 @@ use serde::{de::DeserializeOwned, Serialize};
 /// *last* if there are multiple extractors in a handler.
 /// See ["the order of extractors"][order-of-extractors]
 ///
-/// [order-of-extractors]: crate::extract#the-order-of-extractors
+/// [order-of-extractors]: crate::axum::main::extract#the-order-of-extractors
 ///
 /// See [`JsonRejection`] for more details.
 ///
@@ -159,7 +159,7 @@ fn json_content_type(headers: &HeaderMap) -> bool {
     is_json_content_type
 }
 
-axum_core::__impl_deref!(Json);
+crate::axum::core::__impl_deref!(Json);
 
 impl<T> From<T> for Json<T> {
     fn from(inner: T) -> Self {
@@ -200,11 +200,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{routing::post, test_helpers::*, Router};
+    use crate::axum::main::{routing::post, test_helpers::*, Router};
     use serde::Deserialize;
     use serde_json::{json, Value};
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn deserialize_body() {
         #[derive(Debug, Deserialize)]
         struct Input {
@@ -220,7 +220,7 @@ mod tests {
         assert_eq!(body, "bar");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn consume_body_to_json_requires_json_content_type() {
         #[derive(Debug, Deserialize)]
         struct Input {
@@ -237,7 +237,7 @@ mod tests {
         assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn json_content_types() {
         async fn valid_json_content_type(content_type: &str) -> bool {
             println!("testing {content_type:?}");
@@ -261,7 +261,7 @@ mod tests {
         assert!(!valid_json_content_type("text/json").await);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn invalid_json_syntax() {
         let app = Router::new().route("/", post(|_: Json<serde_json::Value>| async {}));
 
@@ -292,7 +292,7 @@ mod tests {
         y: i32,
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn invalid_json_data() {
         let app = Router::new().route("/", post(|_: Json<Foo>| async {}));
 

@@ -18,10 +18,12 @@ mod request_parts;
 mod state;
 
 #[doc(inline)]
-pub use axum_core::extract::{DefaultBodyLimit, FromRef, FromRequest, FromRequestParts, Request};
+pub use crate::axum::core::extract::{
+    DefaultBodyLimit, FromRef, FromRequest, FromRequestParts, Request,
+};
 
 #[cfg(feature = "macros")]
-pub use axum_macros::{FromRef, FromRequest, FromRequestParts};
+pub use crate::axum::macros::{FromRef, FromRequest, FromRequestParts};
 
 #[doc(inline)]
 #[allow(deprecated)]
@@ -40,14 +42,14 @@ pub use self::connect_info::ConnectInfo;
 
 #[doc(no_inline)]
 #[cfg(feature = "json")]
-pub use crate::Json;
+pub use crate::axum::main::Json;
 
 #[doc(no_inline)]
-pub use crate::Extension;
+pub use crate::axum::main::Extension;
 
 #[cfg(feature = "form")]
 #[doc(no_inline)]
-pub use crate::form::Form;
+pub use crate::axum::main::form::Form;
 
 #[cfg(feature = "matched-path")]
 pub(crate) mod matched_path;
@@ -97,9 +99,9 @@ pub(super) fn has_content_type(headers: &HeaderMap, expected_content_type: &mime
 
 #[cfg(test)]
 mod tests {
-    use crate::{routing::get, test_helpers::*, Router};
+    use crate::axum::main::{routing::get, test_helpers::*, Router};
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn consume_body() {
         let app = Router::new().route("/", get(|body: String| async { body }));
 

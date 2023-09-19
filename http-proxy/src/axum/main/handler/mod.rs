@@ -45,8 +45,8 @@
 #![doc = include_str!("../docs/debugging_handler_type_errors.md")]
 
 #[cfg(feature = "tokio")]
-use crate::extract::connect_info::IntoMakeServiceWithConnectInfo;
-use crate::{
+use crate::axum::main::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use crate::axum::main::{
     extract::{FromRequest, FromRequestParts, Request},
     response::{IntoResponse, Response},
     routing::IntoMakeService,
@@ -66,7 +66,7 @@ pub use self::service::HandlerService;
 /// You shouldn't need to depend on this trait directly. It is automatically
 /// implemented to closures of the right types.
 ///
-/// See the [module docs](crate::handler) for more details.
+/// See the [module docs](crate::axum::main::handler) for more details.
 ///
 /// # Converting `Handler`s into [`Service`]s
 ///
@@ -146,12 +146,12 @@ pub trait Handler<T, S>: Clone + Send + Sized + 'static {
     /// This can be used to add additional processing to a request for a single
     /// handler.
     ///
-    /// Note this differs from [`routing::Router::layer`](crate::routing::Router::layer)
+    /// Note this differs from [`routing::Router::layer`](crate::axum::main::routing::Router::layer)
     /// which adds a middleware to a group of routes.
     ///
     /// If you're applying middleware that produces errors you have to handle the errors
     /// so they're converted into responses. You can learn more about doing that
-    /// [here](crate::error_handling).
+    /// [here](crate::axum::main::error_handling).
     ///
     /// # Example
     ///
@@ -386,8 +386,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{extract::State, test_helpers::*};
-    use axum_core::body::Body;
+    use crate::axum::core::body::Body;
+    use crate::axum::main::{extract::State, test_helpers::*};
     use http::StatusCode;
     use std::time::Duration;
     use tower_http::{
@@ -396,7 +396,7 @@ mod tests {
         timeout::TimeoutLayer,
     };
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn handler_into_service() {
         async fn handle(body: String) -> impl IntoResponse {
             format!("you said: {body}")
@@ -409,7 +409,7 @@ mod tests {
         assert_eq!(res.text().await, "you said: hi there!");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn with_layer_that_changes_request_body_and_state() {
         async fn handle(State(state): State<&'static str>) -> &'static str {
             state

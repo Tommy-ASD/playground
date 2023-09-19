@@ -1,5 +1,5 @@
-use crate::response::{IntoResponse, Response};
-use axum_core::extract::{FromRequest, FromRequestParts, Request};
+use crate::axum::core::extract::{FromRequest, FromRequestParts, Request};
+use crate::axum::main::response::{IntoResponse, Response};
 use futures_util::future::BoxFuture;
 use std::{
     any::type_name,
@@ -104,15 +104,15 @@ use tower_service::Service;
 /// # let app: Router = app;
 /// ```
 ///
-/// [extractors]: crate::extract::FromRequest
-/// [`State`]: crate::extract::State
+/// [extractors]: crate::axum::main::extract::FromRequest
+/// [`State`]: crate::axum::main::extract::State
 pub fn from_fn<F, T>(f: F) -> FromFnLayer<F, (), T> {
     from_fn_with_state((), f)
 }
 
 /// Create a middleware from an async function with the given state.
 ///
-/// See [`State`](crate::extract::State) for more details about accessing state.
+/// See [`State`](crate::axum::main::extract::State) for more details about accessing state.
 ///
 /// # Example
 ///
@@ -164,7 +164,7 @@ pub fn from_fn_with_state<F, S, T>(state: S, f: F) -> FromFnLayer<F, S, T> {
 
 /// A [`tower::Layer`] from an async function.
 ///
-/// [`tower::Layer`] is used to apply middleware to [`Router`](crate::Router)'s.
+/// [`tower::Layer`] is used to apply middleware to [`Router`](crate::axum::main::Router)'s.
 ///
 /// Created with [`from_fn`]. See that function for more details.
 #[must_use]
@@ -381,11 +381,11 @@ impl fmt::Debug for ResponseFuture {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{body::Body, routing::get, Router};
+    use crate::axum::main::{body::Body, routing::get, Router};
     use http::{HeaderMap, StatusCode};
     use tower::ServiceExt;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn basic() {
         async fn insert_header(mut req: Request, next: Next) -> impl IntoResponse {
             req.headers_mut()

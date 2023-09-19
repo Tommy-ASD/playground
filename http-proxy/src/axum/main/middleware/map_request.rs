@@ -1,7 +1,7 @@
-use crate::body::{Body, Bytes, HttpBody};
-use crate::response::{IntoResponse, Response};
-use crate::BoxError;
-use axum_core::extract::{FromRequest, FromRequestParts};
+use crate::axum::core::extract::{FromRequest, FromRequestParts};
+use crate::axum::main::body::{Body, Bytes, HttpBody};
+use crate::axum::main::response::{IntoResponse, Response};
+use crate::axum::main::BoxError;
 use futures_util::future::BoxFuture;
 use http::Request;
 use std::{
@@ -120,7 +120,7 @@ pub fn map_request<F, T>(f: F) -> MapRequestLayer<F, (), T> {
 
 /// Create a middleware from an async function that transforms a request, with the given state.
 ///
-/// See [`State`](crate::extract::State) for more details about accessing state.
+/// See [`State`](crate::axum::main::extract::State) for more details about accessing state.
 ///
 /// # Example
 ///
@@ -354,7 +354,7 @@ impl fmt::Debug for ResponseFuture {
 }
 
 mod private {
-    use crate::{http::Request, response::IntoResponse};
+    use crate::axum::main::{http::Request, response::IntoResponse};
 
     pub trait Sealed<B> {}
     impl<B, E> Sealed<B> for Result<Request<B>, E> where E: IntoResponse {}
@@ -388,10 +388,10 @@ impl<B> IntoMapRequestResult<B> for Request<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{routing::get, test_helpers::TestClient, Router};
+    use crate::axum::main::{routing::get, test_helpers::TestClient, Router};
     use http::{HeaderMap, StatusCode};
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn works() {
         async fn add_header<B>(mut req: Request<B>) -> Request<B> {
             req.headers_mut().insert("x-foo", "foo".parse().unwrap());
@@ -416,7 +416,7 @@ mod tests {
         assert_eq!(res.text().await, "foo");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn works_for_short_circutting() {
         async fn add_header<B>(_req: Request<B>) -> Result<Request<B>, (StatusCode, &'static str)> {
             Err((StatusCode::INTERNAL_SERVER_ERROR, "something went wrong"))

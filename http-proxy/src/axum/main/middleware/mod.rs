@@ -17,7 +17,7 @@ pub use self::map_request::{
 pub use self::map_response::{
     map_response, map_response_with_state, MapResponse, MapResponseLayer,
 };
-pub use crate::extension::AddExtension;
+pub use crate::axum::main::extension::AddExtension;
 
 pub mod future {
     //! Future types.

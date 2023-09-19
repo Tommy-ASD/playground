@@ -1,6 +1,6 @@
 #![doc = include_str!("../docs/error_handling.md")]
 
-use crate::{
+use crate::axum::main::{
     extract::FromRequestParts,
     http::Request,
     response::{IntoResponse, Response},
@@ -224,7 +224,7 @@ impl_service!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, 
 pub mod future {
     //! Future types.
 
-    use crate::response::Response;
+    use crate::axum::main::response::Response;
     use pin_project_lite::pin_project;
     use std::{
         convert::Infallible,
@@ -255,7 +255,7 @@ pub mod future {
 
 #[test]
 fn traits() {
-    use crate::test_helpers::*;
+    use crate::axum::main::test_helpers::*;
 
     assert_send::<HandleError<(), (), NotSendSync>>();
     assert_sync::<HandleError<(), (), NotSendSync>>();

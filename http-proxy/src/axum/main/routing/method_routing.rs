@@ -1,9 +1,10 @@
 //! Route to services and handlers based on HTTP methods.
 
 use super::{future::InfallibleRouteFuture, IntoMakeService};
+use crate::axum::core::{extract::Request, response::IntoResponse, BoxError};
 #[cfg(feature = "tokio")]
-use crate::extract::connect_info::IntoMakeServiceWithConnectInfo;
-use crate::{
+use crate::axum::main::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use crate::axum::main::{
     body::{Body, Bytes, HttpBody},
     boxed::BoxedIntoRoute,
     error_handling::{HandleError, HandleErrorLayer},
@@ -12,7 +13,6 @@ use crate::{
     response::Response,
     routing::{future::RouteFuture, Fallback, MethodFilter, Route},
 };
-use axum_core::{extract::Request, response::IntoResponse, BoxError};
 use bytes::BytesMut;
 use std::{
     convert::Infallible,
@@ -662,7 +662,7 @@ impl MethodRouter<(), Infallible> {
     /// ```
     ///
     /// [`MakeService`]: tower::make::MakeService
-    /// [`Router::into_make_service_with_connect_info`]: crate::routing::Router::into_make_service_with_connect_info
+    /// [`Router::into_make_service_with_connect_info`]: crate::axum::main::routing::Router::into_make_service_with_connect_info
     #[cfg(feature = "tokio")]
     pub fn into_make_service_with_connect_info<C>(self) -> IntoMakeServiceWithConnectInfo<Self, C> {
         IntoMakeServiceWithConnectInfo::new(self.with_state(()))
@@ -1227,7 +1227,7 @@ where
 // for `axum::serve(listener, router)`
 #[cfg(feature = "tokio")]
 const _: () = {
-    use crate::serve::IncomingStream;
+    use crate::axum::main::serve::IncomingStream;
 
     impl Service<IncomingStream<'_>> for MethodRouter<()> {
         type Response = Self;
@@ -1247,8 +1247,8 @@ const _: () = {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{body::Body, extract::State, handler::HandlerWithoutStateExt};
-    use axum_core::response::IntoResponse;
+    use crate::axum::core::response::IntoResponse;
+    use crate::axum::main::{body::Body, extract::State, handler::HandlerWithoutStateExt};
     use http::{header::ALLOW, HeaderMap};
     use std::time::Duration;
     use tower::{Service, ServiceExt};
@@ -1256,7 +1256,7 @@ mod tests {
         services::fs::ServeDir, timeout::TimeoutLayer, validate_request::ValidateRequestHeaderLayer,
     };
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn method_not_allowed_by_default() {
         let mut svc = MethodRouter::new();
         let (status, _, body) = call(Method::GET, &mut svc).await;
@@ -1264,7 +1264,7 @@ mod tests {
         assert!(body.is_empty());
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn get_service_fn() {
         async fn handle(_req: Request) -> Result<Response<Body>, Infallible> {
             Ok(Response::new(Body::from("ok")))
@@ -1277,7 +1277,7 @@ mod tests {
         assert_eq!(body, "ok");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn get_handler() {
         let mut svc = MethodRouter::new().get(ok);
         let (status, _, body) = call(Method::GET, &mut svc).await;
@@ -1285,7 +1285,7 @@ mod tests {
         assert_eq!(body, "ok");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn get_accepts_head() {
         let mut svc = MethodRouter::new().get(ok);
         let (status, _, body) = call(Method::HEAD, &mut svc).await;
@@ -1293,7 +1293,7 @@ mod tests {
         assert!(body.is_empty());
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn head_takes_precedence_over_get() {
         let mut svc = MethodRouter::new().head(created).get(ok);
         let (status, _, body) = call(Method::HEAD, &mut svc).await;
@@ -1301,7 +1301,7 @@ mod tests {
         assert!(body.is_empty());
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn merge() {
         let mut svc = get(ok).merge(post(ok));
 
@@ -1312,7 +1312,7 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn layer() {
         let mut svc = MethodRouter::new()
             .get(|| async { std::future::pending::<()>().await })
@@ -1327,7 +1327,7 @@ mod tests {
         assert_eq!(status, StatusCode::UNAUTHORIZED);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn route_layer() {
         let mut svc = MethodRouter::new()
             .get(|| async { std::future::pending::<()>().await })
@@ -1344,7 +1344,7 @@ mod tests {
 
     #[allow(dead_code)]
     async fn building_complex_router() {
-        let app = crate::Router::new().route(
+        let app = crate::axum::main::Router::new().route(
             "/",
             // use the all the things 💣️
             get(ok)
@@ -1357,10 +1357,10 @@ mod tests {
         );
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.unwrap();
-        crate::serve(listener, app).await.unwrap();
+        crate::axum::main::serve(listener, app).await.unwrap();
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn sets_allow_header() {
         let mut svc = MethodRouter::new().put(ok).patch(ok);
         let (status, headers, _) = call(Method::GET, &mut svc).await;
@@ -1368,7 +1368,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "PUT,PATCH");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn sets_allow_header_get_head() {
         let mut svc = MethodRouter::new().get(ok).head(ok);
         let (status, headers, _) = call(Method::PUT, &mut svc).await;
@@ -1376,7 +1376,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "GET,HEAD");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn empty_allow_header_by_default() {
         let mut svc = MethodRouter::new();
         let (status, headers, _) = call(Method::PATCH, &mut svc).await;
@@ -1384,7 +1384,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn allow_header_when_merging() {
         let a = put(ok).patch(ok);
         let b = get(ok).head(ok);
@@ -1395,7 +1395,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "PUT,PATCH,GET,HEAD");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn allow_header_any() {
         let mut svc = any(ok);
 
@@ -1404,7 +1404,7 @@ mod tests {
         assert!(!headers.contains_key(ALLOW));
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn allow_header_with_fallback() {
         let mut svc = MethodRouter::new()
             .get(ok)
@@ -1415,7 +1415,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "GET,HEAD");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn allow_header_with_fallback_that_sets_allow() {
         async fn fallback(method: Method) -> Response {
             if method == Method::POST {
@@ -1443,7 +1443,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "GET,POST");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn allow_header_noop_middleware() {
         let mut svc = MethodRouter::new()
             .get(ok)
@@ -1454,7 +1454,7 @@ mod tests {
         assert_eq!(headers[ALLOW], "GET,HEAD");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     #[should_panic(
         expected = "Overlapping method route. Cannot add two method routes that both handle `GET`"
     )]
@@ -1462,7 +1462,7 @@ mod tests {
         let _: MethodRouter<()> = get(ok).get(ok);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     #[should_panic(
         expected = "Overlapping method route. Cannot add two method routes that both handle `POST`"
     )]
@@ -1470,17 +1470,17 @@ mod tests {
         let _: MethodRouter<()> = post_service(ok.into_service()).post_service(ok.into_service());
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn get_head_does_not_overlap() {
         let _: MethodRouter<()> = get(ok).head(ok);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn head_get_does_not_overlap() {
         let _: MethodRouter<()> = head(ok).get(ok);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn accessing_state() {
         let mut svc = MethodRouter::new()
             .get(|State(state): State<&'static str>| async move { state })
@@ -1492,7 +1492,7 @@ mod tests {
         assert_eq!(text, "state");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn fallback_accessing_state() {
         let mut svc = MethodRouter::new()
             .fallback(|State(state): State<&'static str>| async move { state })
@@ -1504,7 +1504,7 @@ mod tests {
         assert_eq!(text, "state");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn merge_accessing_state() {
         let one = get(|State(state): State<&'static str>| async move { state });
         let two = post(|State(state): State<&'static str>| async move { state });

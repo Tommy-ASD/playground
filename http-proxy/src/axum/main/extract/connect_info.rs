@@ -2,10 +2,10 @@
 //!
 //! See [`Router::into_make_service_with_connect_info`] for more details.
 //!
-//! [`Router::into_make_service_with_connect_info`]: crate::routing::Router::into_make_service_with_connect_info
+//! [`Router::into_make_service_with_connect_info`]: crate::axum::main::routing::Router::into_make_service_with_connect_info
 
 use super::{Extension, FromRequestParts};
-use crate::{middleware::AddExtension, serve::IncomingStream};
+use crate::axum::main::{middleware::AddExtension, serve::IncomingStream};
 use async_trait::async_trait;
 use http::request::Parts;
 use std::{
@@ -24,7 +24,7 @@ use tower_service::Service;
 /// See [`Router::into_make_service_with_connect_info`] for more details.
 ///
 /// [`MakeService`]: tower::make::MakeService
-/// [`Router::into_make_service_with_connect_info`]: crate::routing::Router::into_make_service_with_connect_info
+/// [`Router::into_make_service_with_connect_info`]: crate::axum::main::routing::Router::into_make_service_with_connect_info
 pub struct IntoMakeServiceWithConnectInfo<S, C> {
     svc: S,
     _connect_info: PhantomData<fn() -> C>,
@@ -32,7 +32,7 @@ pub struct IntoMakeServiceWithConnectInfo<S, C> {
 
 #[test]
 fn traits() {
-    use crate::test_helpers::*;
+    use crate::axum::main::test_helpers::*;
     assert_send::<IntoMakeServiceWithConnectInfo<(), NotSendSync>>();
 }
 
@@ -76,7 +76,7 @@ where
 ///
 /// See [`Router::into_make_service_with_connect_info`] for more details.
 ///
-/// [`Router::into_make_service_with_connect_info`]: crate::routing::Router::into_make_service_with_connect_info
+/// [`Router::into_make_service_with_connect_info`]: crate::axum::main::routing::Router::into_make_service_with_connect_info
 pub trait Connected<T>: Clone + Send + Sync + 'static {
     /// Create type holding information about the connection.
     fn connect_info(target: T) -> Self;
@@ -123,7 +123,7 @@ opaque_future! {
 ///
 /// See [`Router::into_make_service_with_connect_info`] for more details.
 ///
-/// [`Router::into_make_service_with_connect_info`]: crate::routing::Router::into_make_service_with_connect_info
+/// [`Router::into_make_service_with_connect_info`]: crate::axum::main::routing::Router::into_make_service_with_connect_info
 #[derive(Clone, Copy, Debug)]
 pub struct ConnectInfo<T>(pub T);
 
@@ -146,7 +146,7 @@ where
     }
 }
 
-axum_core::__impl_deref!(ConnectInfo);
+crate::axum::core::__impl_deref!(ConnectInfo);
 
 /// Middleware used to mock [`ConnectInfo`] during tests.
 ///
@@ -194,7 +194,7 @@ axum_core::__impl_deref!(ConnectInfo);
 /// # }
 /// ```
 ///
-/// [`Router::into_make_service_with_connect_info`]: crate::Router::into_make_service_with_connect_info
+/// [`Router::into_make_service_with_connect_info`]: crate::axum::main::Router::into_make_service_with_connect_info
 #[derive(Clone, Copy, Debug)]
 pub struct MockConnectInfo<T>(pub T);
 
@@ -212,11 +212,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{routing::get, test_helpers::TestClient, Router};
+    use crate::axum::main::{routing::get, test_helpers::TestClient, Router};
     use std::net::SocketAddr;
     use tokio::net::TcpListener;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn socket_addr() {
         async fn handler(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
             format!("{addr}")
@@ -229,7 +229,7 @@ mod tests {
         tokio::spawn(async move {
             let app = Router::new().route("/", get(handler));
             tx.send(()).unwrap();
-            crate::serve(
+            crate::axum::main::serve(
                 listener,
                 app.into_make_service_with_connect_info::<SocketAddr>(),
             )
@@ -245,7 +245,7 @@ mod tests {
         assert!(body.starts_with("127.0.0.1:"));
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn custom() {
         #[derive(Clone, Debug)]
         struct MyConnectInfo {
@@ -271,7 +271,7 @@ mod tests {
         tokio::spawn(async move {
             let app = Router::new().route("/", get(handler));
             tx.send(()).unwrap();
-            crate::serve(
+            crate::axum::main::serve(
                 listener,
                 app.into_make_service_with_connect_info::<MyConnectInfo>(),
             )
@@ -287,7 +287,7 @@ mod tests {
         assert_eq!(body, "it worked!");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn mock_connect_info() {
         async fn handler(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
             format!("{addr}")
@@ -304,7 +304,7 @@ mod tests {
         assert!(body.starts_with("0.0.0.0:1337"));
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn both_mock_and_real_connect_info() {
         async fn handler(ConnectInfo(addr): ConnectInfo<SocketAddr>) -> String {
             format!("{addr}")
@@ -318,7 +318,7 @@ mod tests {
                 .route("/", get(handler))
                 .layer(MockConnectInfo(SocketAddr::from(([0, 0, 0, 0], 1337))));
 
-            crate::serve(
+            crate::axum::main::serve(
                 listener,
                 app.into_make_service_with_connect_info::<SocketAddr>(),
             )

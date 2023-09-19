@@ -1,7 +1,7 @@
 //! Handler future types.
 
-use crate::response::Response;
-use axum_core::extract::Request;
+use crate::axum::core::extract::Request;
+use crate::axum::main::response::Response;
 use futures_util::future::Map;
 use pin_project_lite::pin_project;
 use std::{convert::Infallible, future::Future, pin::Pin, task::Context};

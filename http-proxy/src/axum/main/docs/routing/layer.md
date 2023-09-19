@@ -26,7 +26,7 @@ let app = Router::new()
 ```
 
 If you need to write your own middleware see ["Writing
-middleware"](crate::middleware#writing-middleware) for the different options.
+middleware"](crate::axum::main::middleware#writing-middleware) for the different options.
 
 If you only want middleware on some routes you can use [`Router::merge`]:
 
@@ -52,16 +52,16 @@ let app = Router::new()
 # Multiple middleware
 
 It's recommended to use [`tower::ServiceBuilder`] when applying multiple
-middleware. See [`middleware`](crate::middleware) for more details.
+middleware. See [`middleware`](crate::axum::main::middleware) for more details.
 
 # Runs after routing
 
 Middleware added with this method will run _after_ routing and thus cannot be
 used to rewrite the request URI. See ["Rewriting request URI in
-middleware"](crate::middleware#rewriting-request-uri-in-middleware) for more
+middleware"](crate::axum::main::middleware#rewriting-request-uri-in-middleware) for more
 details and a workaround.
 
 # Error handling
 
-See [`middleware`](crate::middleware) for details on how error handling impacts
+See [`middleware`](crate::axum::main::middleware) for details on how error handling impacts
 middleware.

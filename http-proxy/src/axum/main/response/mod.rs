@@ -1,6 +1,6 @@
 #![doc = include_str!("../docs/response.md")]
 
-use axum_core::body::Body;
+use crate::axum::core::body::Body;
 use http::{header, HeaderValue};
 
 mod redirect;
@@ -10,17 +10,17 @@ pub mod sse;
 
 #[doc(no_inline)]
 #[cfg(feature = "json")]
-pub use crate::Json;
+pub use crate::axum::main::Json;
 
 #[cfg(feature = "form")]
 #[doc(no_inline)]
-pub use crate::form::Form;
+pub use crate::axum::main::form::Form;
 
 #[doc(no_inline)]
-pub use crate::Extension;
+pub use crate::axum::main::Extension;
 
 #[doc(inline)]
-pub use axum_core::response::{
+pub use crate::axum::core::response::{
     AppendHeaders, ErrorResponse, IntoResponse, IntoResponseParts, Response, ResponseParts, Result,
 };
 
@@ -62,9 +62,9 @@ impl<T> From<T> for Html<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::extract::Extension;
-    use crate::{routing::get, Router};
-    use axum_core::response::IntoResponse;
+    use crate::axum::core::response::IntoResponse;
+    use crate::axum::main::extract::Extension;
+    use crate::axum::main::{routing::get, Router};
     use http::HeaderMap;
     use http::{StatusCode, Uri};
 

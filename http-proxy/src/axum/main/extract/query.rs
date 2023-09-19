@@ -90,14 +90,14 @@ where
     }
 }
 
-axum_core::__impl_deref!(Query);
+crate::axum::core::__impl_deref!(Query);
 
 #[cfg(test)]
 mod tests {
-    use crate::{routing::get, test_helpers::TestClient, Router};
+    use crate::axum::main::{routing::get, test_helpers::TestClient, Router};
 
     use super::*;
-    use axum_core::{body::Body, extract::FromRequest};
+    use crate::axum::core::{body::Body, extract::FromRequest};
     use http::{Request, StatusCode};
     use serde::Deserialize;
     use std::fmt::Debug;
@@ -113,7 +113,7 @@ mod tests {
         assert_eq!(Query::<T>::from_request(req, &()).await.unwrap().0, value);
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_query() {
         #[derive(Debug, PartialEq, Deserialize)]
         struct Pagination {
@@ -149,7 +149,7 @@ mod tests {
         .await;
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn correct_rejection_status_code() {
         #[derive(Deserialize)]
         #[allow(dead_code)]

@@ -1,6 +1,6 @@
 #![allow(clippy::disallowed_names)]
 
-use crate::{extract::Request, response::Response, serve};
+use crate::axum::main::{extract::Request, response::Response, serve};
 
 mod test_client;
 pub(crate) use self::test_client::*;

@@ -1,5 +1,5 @@
-use crate::response::{IntoResponse, Response};
-use axum_core::extract::FromRequestParts;
+use crate::axum::core::extract::FromRequestParts;
+use crate::axum::main::response::{IntoResponse, Response};
 use futures_util::future::BoxFuture;
 use http::Request;
 use std::{
@@ -102,7 +102,7 @@ pub fn map_response<F, T>(f: F) -> MapResponseLayer<F, (), T> {
 
 /// Create a middleware from an async function that transforms a response, with the given state.
 ///
-/// See [`State`](crate::extract::State) for more details about accessing state.
+/// See [`State`](crate::axum::main::extract::State) for more details about accessing state.
 ///
 /// # Example
 ///
@@ -345,9 +345,9 @@ impl fmt::Debug for ResponseFuture {
 mod tests {
     #[allow(unused_imports)]
     use super::*;
-    use crate::{test_helpers::TestClient, Router};
+    use crate::axum::main::{test_helpers::TestClient, Router};
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn works() {
         async fn add_header<B>(mut res: Response<B>) -> Response<B> {
             res.headers_mut().insert("x-foo", "foo".parse().unwrap());

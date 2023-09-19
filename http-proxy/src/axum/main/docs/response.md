@@ -165,7 +165,7 @@ In general you can return tuples like:
 This means you cannot accidentally override the status or body as [`IntoResponseParts`] only allows
 setting headers and extensions.
 
-Use [`Response`](crate::response::Response) for more low level control:
+Use [`Response`](crate::axum::main::response::Response) for more low level control:
 
 ```rust,no_run
 use axum::{
@@ -321,6 +321,6 @@ fn create_thing() -> Result<(), StatusCode> {
 Because of this it is generally not recommended to use `impl IntoResponse`
 unless you're familiar with the details of how `impl Trait` works.
 
-[`IntoResponse`]: crate::response::IntoResponse
-[`IntoResponseParts`]: crate::response::IntoResponseParts
+[`IntoResponse`]: crate::axum::main::response::IntoResponse
+[`IntoResponseParts`]: crate::axum::main::response::IntoResponseParts
 [`StatusCode`]: http::StatusCode

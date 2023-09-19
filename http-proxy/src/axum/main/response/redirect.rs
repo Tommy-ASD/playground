@@ -1,4 +1,4 @@
-use axum_core::response::{IntoResponse, Response};
+use crate::axum::core::response::{IntoResponse, Response};
 use http::{header::LOCATION, HeaderValue, StatusCode};
 
 /// Response that redirects the request to another location.

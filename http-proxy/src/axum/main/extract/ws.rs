@@ -92,9 +92,9 @@
 
 use self::rejection::*;
 use super::FromRequestParts;
-use crate::{body::Bytes, hyper1_tokio_io::TokioIo, response::Response, Error};
+use crate::axum::core::body::Body;
+use crate::axum::main::{body::Bytes, hyper1_tokio_io::TokioIo, response::Response, Error};
 use async_trait::async_trait;
-use axum_core::body::Body;
 use futures_util::{
     sink::{Sink, SinkExt},
     stream::{Stream, StreamExt},
@@ -122,7 +122,7 @@ use tokio_tungstenite::{
 /// Extractor for establishing WebSocket connections.
 ///
 /// Note: This extractor requires the request method to be `GET` so it should
-/// always be used with [`get`](crate::routing::get). Requests with other methods will be
+/// always be used with [`get`](crate::axum::main::routing::get). Requests with other methods will be
 /// rejected.
 ///
 /// See the [module docs](self) for an example.
@@ -697,8 +697,8 @@ fn sign(key: &[u8]) -> HeaderValue {
 pub mod rejection {
     //! WebSocket specific rejections.
 
-    use axum_core::__composite_rejection as composite_rejection;
-    use axum_core::__define_rejection as define_rejection;
+    use crate::axum::core::__composite_rejection as composite_rejection;
+    use crate::axum::core::__define_rejection as define_rejection;
 
     define_rejection! {
         #[status = METHOD_NOT_ALLOWED]
@@ -830,11 +830,11 @@ pub mod close_code {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{body::Body, routing::get, Router};
+    use crate::axum::main::{body::Body, routing::get, Router};
     use http::{Request, Version};
     use tower::ServiceExt;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn rejects_http_1_0_requests() {
         let svc = get(|ws: Result<WebSocketUpgrade, WebSocketUpgradeRejection>| {
             let rejection = ws.unwrap_err();

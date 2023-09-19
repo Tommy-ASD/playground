@@ -1,4 +1,4 @@
-use crate::{
+use crate::axum::main::{
     extract::FromRequestParts,
     response::{IntoResponse, Response},
 };
@@ -94,7 +94,7 @@ pub fn from_extractor<E>() -> FromExtractorLayer<E, ()> {
 
 /// Create a middleware from an extractor with the given state.
 ///
-/// See [`State`](crate::extract::State) for more details about accessing state.
+/// See [`State`](crate::axum::main::extract::State) for more details about accessing state.
 pub fn from_extractor_with_state<E, S>(state: S) -> FromExtractorLayer<E, S> {
     FromExtractorLayer {
         state,
@@ -164,7 +164,7 @@ pub struct FromExtractor<T, E, S> {
 
 #[test]
 fn traits() {
-    use crate::test_helpers::*;
+    use crate::axum::main::test_helpers::*;
     assert_send::<FromExtractor<(), NotSendSync, ()>>();
     assert_sync::<FromExtractor<(), NotSendSync, ()>>();
 }
@@ -303,12 +303,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{async_trait, handler::Handler, routing::get, test_helpers::*, Router};
-    use axum_core::extract::FromRef;
+    use crate::axum::core::extract::FromRef;
+    use crate::axum::main::{async_trait, handler::Handler, routing::get, test_helpers::*, Router};
     use http::{header, request::Parts, StatusCode};
     use tower_http::limit::RequestBodyLimitLayer;
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn test_from_extractor() {
         #[derive(Clone)]
         struct Secret(&'static str);

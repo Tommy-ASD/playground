@@ -27,13 +27,13 @@
 //! # };
 //! ```
 
-use crate::{
-    body::{Bytes, HttpBody},
-    BoxError,
-};
-use axum_core::{
+use crate::axum::core::{
     body::Body,
     response::{IntoResponse, Response},
+};
+use crate::axum::main::{
+    body::{Bytes, HttpBody},
+    BoxError,
 };
 use bytes::{BufMut, BytesMut};
 use futures_util::{
@@ -212,7 +212,7 @@ impl Event {
     ///
     /// [`MessageEvent`'s data field]: https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent/data
     #[cfg(feature = "json")]
-    pub fn json_data<T>(mut self, data: T) -> Result<Event, axum_core::Error>
+    pub fn json_data<T>(mut self, data: T) -> Result<Event, crate::axum::core::Error>
     where
         T: serde::Serialize,
     {
@@ -221,7 +221,8 @@ impl Event {
         }
 
         self.buffer.extend_from_slice(b"data: ");
-        serde_json::to_writer((&mut self.buffer).writer(), &data).map_err(axum_core::Error::new)?;
+        serde_json::to_writer((&mut self.buffer).writer(), &data)
+            .map_err(crate::axum::core::Error::new)?;
         self.buffer.put_u8(b'\n');
 
         self.flags.insert(EventFlags::HAS_DATA);
@@ -521,7 +522,7 @@ impl<'a> Iterator for MemchrSplit<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{routing::get, test_helpers::*, Router};
+    use crate::axum::main::{routing::get, test_helpers::*, Router};
     use futures_util::stream;
     use std::{collections::HashMap, convert::Infallible};
     use tokio_stream::StreamExt as _;
@@ -535,7 +536,7 @@ mod tests {
         assert_eq!(&*leading_space.finalize(), b"data:  foobar\n\n");
     }
 
-    #[crate::test]
+    #[crate::axum::main::test]
     async fn basic() {
         let app = Router::new().route(
             "/",
