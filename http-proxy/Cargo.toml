@@ -26,7 +26,8 @@ futures-util = { version = "0.3", default-features = false, features = [
     "alloc",
 ] }
 http = "0.2"
-http-body = "=1.0.0-rc.2"
+rc-http-body = { version = "=1.0.0-rc.2", package = "http-body" }
+http-body = "0.4.5"
 mime = "0.3"
 pin-project-lite = "0.2"
 tower = { version = "0.4", default_features = false, features = ["util"] }
@@ -66,3 +67,5 @@ itoa = "1"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 want = "0.3"
 tokio-test = "0.4.3"
+
+axum_macros = { path = "./axum_macros" }

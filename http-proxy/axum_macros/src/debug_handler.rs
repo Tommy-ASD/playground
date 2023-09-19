@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::axum::macros::{
+use crate::{
     attr_parsing::{parse_assignment_attribute, second},
     with_position::{Position, WithPosition},
 };
@@ -63,7 +63,7 @@ pub(crate) fn expand(attr: Attrs, item_fn: ItemFn) -> TokenStream {
     } else {
         syn::Error::new_spanned(
             &item_fn.sig.generics,
-            "`#[crate::axum::macros::debug_handler]` doesn't support generic functions",
+            "`#[crate::debug_handler]` doesn't support generic functions",
         )
         .into_compile_error()
     };
@@ -580,7 +580,7 @@ fn state_types_from_args(item_fn: &ItemFn) -> HashSet<Type> {
             FnArg::Typed(pat_type) => Some(pat_type),
         })
         .map(|pat_type| &*pat_type.ty);
-    crate::axum::macros::infer_state_types(types).collect()
+    crate::infer_state_types(types).collect()
 }
 
 #[test]

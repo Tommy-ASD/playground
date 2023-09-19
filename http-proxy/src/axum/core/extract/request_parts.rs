@@ -1,4 +1,4 @@
-use super::{rejection::*, FromRequest, FromRequestParts, Request};
+use super::{FromRequest, FromRequestParts, Request};
 use crate::axum::core::{body::Body, RequestExt};
 use async_trait::async_trait;
 use bytes::Bytes;

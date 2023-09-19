@@ -1,5 +1,5 @@
 use self::attr::FromRequestContainerAttrs;
-use crate::axum::macros::{
+use crate::{
     attr_parsing::{parse_attrs, second},
     from_request::attr::FromRequestFieldAttrs,
 };
@@ -980,10 +980,10 @@ fn impl_enum_by_extracting_all_at_once(
 /// We can infer the state type to be `AppState` because it appears inside a `State`
 fn infer_state_type_from_field_types(fields: &Fields) -> impl Iterator<Item = Type> + '_ {
     match fields {
-        Fields::Named(fields_named) => Box::new(crate::axum::macros::infer_state_types(
+        Fields::Named(fields_named) => Box::new(crate::infer_state_types(
             fields_named.named.iter().map(|field| &field.ty),
         )) as Box<dyn Iterator<Item = Type>>,
-        Fields::Unnamed(fields_unnamed) => Box::new(crate::axum::macros::infer_state_types(
+        Fields::Unnamed(fields_unnamed) => Box::new(crate::infer_state_types(
             fields_unnamed.unnamed.iter().map(|field| &field.ty),
         )),
         Fields::Unit => Box::new(iter::empty()),
@@ -1048,7 +1048,7 @@ fn ui() {
 /// we don't use trybuild for this test.
 ///
 /// ```compile_fail
-/// #[derive(crate::axum::macros::FromRequest)]
+/// #[derive(crate::FromRequest)]
 /// struct Extractor {
 ///     thing: bool,
 /// }

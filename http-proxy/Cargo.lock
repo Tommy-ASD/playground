@@ -63,6 +63,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "axum_macros"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "serde",
+ "serde_json",
+ "syn",
+ "tokio",
+ "trybuild",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -212,6 +227,7 @@ name = "example-http-proxy"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "axum_macros",
  "bytes",
  "cookie",
  "form_urlencoded",
@@ -222,6 +238,7 @@ dependencies = [
  "headers",
  "heck",
  "http",
+ "http-body 0.4.5",
  "http-body 1.0.0-rc.2",
  "http-body-util",
  "httparse",

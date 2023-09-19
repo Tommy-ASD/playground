@@ -5,7 +5,7 @@ use futures_channel::mpsc;
 use futures_channel::oneshot;
 use futures_util::{stream::FusedStream, Stream}; // for mpsc::Receiver
 use http::HeaderMap;
-use http_body::{Body, Frame, SizeHint};
+use rc_http_body::{Body, Frame, SizeHint};
 
 use super::DecodedLength;
 use crate::hyper::common::Future;

@@ -6,7 +6,7 @@ use syn::{
     Field, ItemStruct, Token, Type,
 };
 
-use crate::axum::macros::attr_parsing::{combine_unary_attribute, parse_attrs, Combine};
+use crate::attr_parsing::{combine_unary_attribute, parse_attrs, Combine};
 
 pub(crate) fn expand(item: ItemStruct) -> syn::Result<TokenStream> {
     if !item.generics.params.is_empty() {

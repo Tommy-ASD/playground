@@ -70,7 +70,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// By default `#[derive(FromRequest)]` will call `FromRequest::from_request` for each field:
 ///
 /// ```
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use axum::{
 ///     extract::Extension,
 ///     body::Bytes,
@@ -100,7 +100,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// Note that only the last field can consume the request body. Therefore this doesn't compile:
 ///
 /// ```compile_fail
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use axum::body::Bytes;
 ///
 /// #[derive(FromRequest)]
@@ -118,7 +118,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// field itself doesn't need to implement `FromRequest`:
 ///
 /// ```
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use axum::{
 ///     extract::Extension,
 ///     body::Bytes,
@@ -164,7 +164,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// `#[from_request(via(...))]` supports `Option<_>` and `Result<_, _>` to make fields optional:
 ///
 /// ```
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use crate::axum::extra::{
 ///     TypedHeader,
 ///     headers::{ContentType, UserAgent},
@@ -239,7 +239,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// instead of each field individually:
 ///
 /// ```
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use axum::extract::Extension;
 ///
 /// // This will extracted via `Extension::<State>::from_request`
@@ -258,7 +258,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// You can use a different rejection type with `#[from_request(rejection(YourType))]`:
 ///
 /// ```
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use axum::{
 ///     extract::{Extension, rejection::ExtensionRejection},
 ///     response::{IntoResponse, Response},
@@ -305,7 +305,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// This allows you to wrap other extractors and easily customize the rejection:
 ///
 /// ```
-/// use crate::axum::macros::::FromRequest;
+/// use crate::::FromRequest;
 /// use axum::{
 ///     extract::{Extension, rejection::JsonRejection},
 ///     response::{IntoResponse, Response},
@@ -352,7 +352,7 @@ use from_request::Trait::{FromRequest, FromRequestParts};
 /// Generics are only supported on tuple structs with exactly on field. Thus this doesn't work
 ///
 /// ```compile_fail
-/// #[derive(crate::axum::macros::FromRequest)]
+/// #[derive(crate::FromRequest)]
 /// struct MyExtractor<T> {
 ///     thing: Option<T>,
 /// }
@@ -374,7 +374,7 @@ pub fn derive_from_request(item: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```
-/// use crate::axum::macros::::FromRequestParts;
+/// use crate::::FromRequestParts;
 /// use axum::{
 ///     extract::Query,
 /// };
@@ -399,7 +399,7 @@ pub fn derive_from_request(item: TokenStream) -> TokenStream {
 /// [`FromRequestParts`] cannot extract the request body:
 ///
 /// ```compile_fail
-/// use crate::axum::macros::::FromRequestParts;
+/// use crate::::FromRequestParts;
 ///
 /// #[derive(FromRequestParts)]
 /// struct MyExtractor {
@@ -440,7 +440,7 @@ pub fn derive_from_request_parts(item: TokenStream) -> TokenStream {
 ///
 /// ```compile_fail
 /// # use axum::{routing::get, Router};
-/// # use crate::axum::macros::::debug_handler;
+/// # use crate::::debug_handler;
 /// #
 /// # #[tokio::main]
 /// # async fn main() {

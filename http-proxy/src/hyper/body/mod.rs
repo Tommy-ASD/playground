@@ -21,8 +21,8 @@
 
 pub use bytes::{Buf, Bytes};
 pub use http_body::Body;
-pub use http_body::Frame;
 pub use http_body::SizeHint;
+pub use rc_http_body::Frame;
 
 pub use self::incoming::Incoming;
 

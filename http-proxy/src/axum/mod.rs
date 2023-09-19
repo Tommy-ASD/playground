@@ -1,4 +1,5 @@
 mod core;
 mod extra;
-mod macros;
 mod main;
+
+pub use axum_macros as macros;

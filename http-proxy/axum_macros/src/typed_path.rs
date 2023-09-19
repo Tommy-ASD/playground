@@ -2,9 +2,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::{parse::Parse, ItemStruct, LitStr, Token};
 
-use crate::axum::macros::attr_parsing::{
-    combine_attribute, parse_parenthesized_attribute, second, Combine,
-};
+use crate::attr_parsing::{combine_attribute, parse_parenthesized_attribute, second, Combine};
 
 pub(crate) fn expand(item_struct: ItemStruct) -> syn::Result<TokenStream> {
     let ItemStruct {
@@ -22,8 +20,7 @@ pub(crate) fn expand(item_struct: ItemStruct) -> syn::Result<TokenStream> {
         ));
     }
 
-    let Attrs { path, rejection } =
-        crate::axum::macros::attr_parsing::parse_attrs("typed_path", attrs)?;
+    let Attrs { path, rejection } = crate::attr_parsing::parse_attrs("typed_path", attrs)?;
 
     let path = path.ok_or_else(|| {
         syn::Error::new(

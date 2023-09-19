@@ -1,4 +1,4 @@
-use crate::axum::macros::attr_parsing::{combine_attribute, parse_parenthesized_attribute, Combine};
+use crate::attr_parsing::{combine_attribute, parse_parenthesized_attribute, Combine};
 use syn::{
     parse::{Parse, ParseStream},
     Token,
