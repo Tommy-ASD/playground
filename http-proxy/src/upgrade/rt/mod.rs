@@ -7,12 +7,12 @@
 //! - Timers
 //! - IO transports
 
-pub mod bounds;
+pub(crate) mod bounds;
 mod io;
 mod timer;
 
-pub use self::io::{Read, ReadBuf, ReadBufCursor, Write};
-pub use self::timer::{Sleep, Timer};
+pub(crate) use self::io::{Read, ReadBuf, ReadBufCursor, Write};
+pub(crate) use self::timer::{Sleep, Timer};
 
 /// An executor of futures.
 ///
@@ -32,11 +32,11 @@ pub use self::timer::{Sleep, Timer};
 ///     F::Output: Send + 'static,
 /// {
 ///     fn execute(&self, future: F) {
-///         tokio::spawn(future);
+///         crate::custom_tokio::spawn(future);
 ///     }
 /// }
 /// ```
-pub trait Executor<Fut> {
+pub(crate) trait Executor<Fut> {
     /// Place the future into the executor to be run.
     fn execute(&self, fut: Fut);
 }

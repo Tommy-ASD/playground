@@ -18,7 +18,7 @@ type TrailersSender = oneshot::Sender<HeaderMap>;
 
 /// A stream of `Bytes`, used when receiving bodies from the network.
 #[must_use = "streams do nothing unless polled"]
-pub struct Incoming {
+pub(crate) struct Incoming {
     kind: Kind,
 }
 
@@ -38,7 +38,7 @@ enum Kind {
         ping: ping::Recorder,
         recv: h2::RecvStream,
     },
-    #[cfg(feature = "ffi")]
+
     Ffi(crate::ffi::UserBody),
 }
 
@@ -109,7 +109,6 @@ impl Incoming {
         Incoming::new(Kind::Empty)
     }
 
-    #[cfg(feature = "ffi")]
     pub(crate) fn ffi() -> Incoming {
         Incoming::new(Kind::Ffi(crate::ffi::UserBody::new()))
     }
@@ -135,7 +134,6 @@ impl Incoming {
         body
     }
 
-    #[cfg(feature = "ffi")]
     pub(crate) fn as_ffi_mut(&mut self) -> &mut crate::ffi::UserBody {
         match self.kind {
             Kind::Ffi(ref mut body) => return body,
@@ -230,7 +228,6 @@ impl Body for Incoming {
                 }
             }
 
-            #[cfg(feature = "ffi")]
             Kind::Ffi(ref mut body) => body.poll_data(cx),
         }
     }
@@ -241,7 +238,7 @@ impl Body for Incoming {
             Kind::Chan { content_length, .. } => content_length == DecodedLength::ZERO,
             #[cfg(all(feature = "http2", any(feature = "client", feature = "server")))]
             Kind::H2 { recv: ref h2, .. } => h2.is_end_stream(),
-            #[cfg(feature = "ffi")]
+
             Kind::Ffi(..) => false,
         }
     }
@@ -264,7 +261,7 @@ impl Body for Incoming {
             Kind::Chan { content_length, .. } => opt_len!(content_length),
             #[cfg(all(feature = "http2", any(feature = "client", feature = "server")))]
             Kind::H2 { content_length, .. } => opt_len!(content_length),
-            #[cfg(feature = "ffi")]
+
             Kind::Ffi(..) => SizeHint::default(),
         }
     }
@@ -348,7 +345,7 @@ impl Sender {
     /// This is mostly useful for when trying to send from some other thread
     /// that doesn't have an async context. If in an async context, prefer
     /// `send_data()` instead.
-    #[cfg(feature = "http1")]
+
     pub(crate) fn try_send_data(&mut self, chunk: Bytes) -> Result<(), Bytes> {
         self.data_tx
             .try_send(Ok(chunk))
@@ -475,7 +472,6 @@ mod tests {
         assert!(err.is_body_write_aborted(), "{:?}", err);
     }
 
-    #[cfg(feature = "http1")]
     #[test]
     fn channel_buffers_one() {
         let (mut tx, _rx) = Incoming::channel();

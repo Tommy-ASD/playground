@@ -13,18 +13,18 @@
 //! use hyper::rt::{Timer, Sleep};
 //!
 //! #[derive(Clone, Debug)]
-//! pub struct TokioTimer;
+//! pub(crate) struct TokioTimer;
 //!
 //! impl Timer for TokioTimer {
 //!     fn sleep(&self, duration: Duration) -> Pin<Box<dyn Sleep>> {
 //!         Box::pin(TokioSleep {
-//!             inner: tokio::time::sleep(duration),
+//!             inner: crate::custom_tokio::time::sleep(duration),
 //!         })
 //!     }
 //!
 //!     fn sleep_until(&self, deadline: Instant) -> Pin<Box<dyn Sleep>> {
 //!         Box::pin(TokioSleep {
-//!             inner: tokio::time::sleep_until(deadline.into()),
+//!             inner: crate::custom_tokio::time::sleep_until(deadline.into()),
 //!         })
 //!     }
 //!
@@ -38,7 +38,7 @@
 //! pin_project! {
 //!     pub(crate) struct TokioSleep {
 //!         #[pin]
-//!         pub(crate) inner: tokio::time::Sleep,
+//!         pub(crate) inner: crate::custom_tokio::time::Sleep,
 //!     }
 //! }
 //!
@@ -53,7 +53,7 @@
 //! impl Sleep for TokioSleep {}
 //!
 //! impl TokioSleep {
-//!     pub fn reset(self: Pin<&mut Self>, deadline: Instant) {
+//!     pub(crate) fn reset(self: Pin<&mut Self>, deadline: Instant) {
 //!         self.project().inner.as_mut().reset(deadline.into());
 //!     }
 //! }
@@ -67,7 +67,7 @@ use std::{
 };
 
 /// A timer which provides timer-like functions.
-pub trait Timer {
+pub(crate) trait Timer {
     /// Return a future that resolves in `duration` time.
     fn sleep(&self, duration: Duration) -> Pin<Box<dyn Sleep>>;
 
@@ -81,7 +81,7 @@ pub trait Timer {
 }
 
 /// A future returned by a `Timer`.
-pub trait Sleep: Send + Sync + Future<Output = ()> {
+pub(crate) trait Sleep: Send + Sync + Future<Output = ()> {
     #[doc(hidden)]
     /// This method is private and can not be implemented by downstream crate
     fn __type_id(&self, _: private::Sealed) -> TypeId
@@ -96,7 +96,7 @@ impl dyn Sleep {
     //! This is a re-implementation of downcast methods from std::any::Any
 
     /// Check whether the type is the same as `T`
-    pub fn is<T>(&self) -> bool
+    pub(crate) fn is<T>(&self) -> bool
     where
         T: Sleep + 'static,
     {
@@ -104,7 +104,7 @@ impl dyn Sleep {
     }
 
     /// Downcast a pinned &mut Sleep object to its original type
-    pub fn downcast_mut_pin<T>(self: Pin<&mut Self>) -> Option<Pin<&'static mut T>>
+    pub(crate) fn downcast_mut_pin<T>(self: Pin<&mut Self>) -> Option<Pin<&'static mut T>>
     where
         T: Sleep + 'static,
     {
@@ -123,5 +123,5 @@ impl dyn Sleep {
 
 mod private {
     #![allow(missing_debug_implementations)]
-    pub struct Sealed {}
+    pub(crate) struct Sealed {}
 }

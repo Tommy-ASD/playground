@@ -3,7 +3,6 @@ use std::fmt;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct DecodedLength(u64);
 
-#[cfg(any(feature = "http1", feature = "http2"))]
 impl From<Option<u64>> for DecodedLength {
     fn from(len: Option<u64>) -> Self {
         len.and_then(|len| {
@@ -14,7 +13,6 @@ impl From<Option<u64>> for DecodedLength {
     }
 }
 
-#[cfg(any(feature = "http1", feature = "http2", test))]
 const MAX_LEN: u64 = std::u64::MAX - 2;
 
 impl DecodedLength {
@@ -33,7 +31,7 @@ impl DecodedLength {
     /// Should only be called if previously confirmed this isn't
     /// CLOSE_DELIMITED or CHUNKED.
     #[inline]
-    #[cfg(feature = "http1")]
+
     pub(crate) fn danger_len(self) -> u64 {
         debug_assert!(self.0 < Self::CHUNKED.0);
         self.0
@@ -48,7 +46,7 @@ impl DecodedLength {
     }
 
     /// Checks the `u64` is within the maximum allowed for content-length.
-    #[cfg(any(feature = "http1", feature = "http2"))]
+
     pub(crate) fn checked_new(len: u64) -> Result<Self, crate::error::Parse> {
         use tracing::warn;
 
@@ -74,7 +72,7 @@ impl DecodedLength {
     /// This includes 0, which of course is an exact known length.
     ///
     /// It would return false if "chunked" or otherwise size-unknown.
-    #[cfg(feature = "http2")]
+
     pub(crate) fn is_exact(&self) -> bool {
         self.0 <= MAX_LEN
     }

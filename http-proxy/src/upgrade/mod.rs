@@ -58,19 +58,21 @@
 //!
 //! [feature flags]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 
-pub use http;
+pub(crate) use http;
 
-pub use crate::upgrade::http::{header, Method, Request, Response, StatusCode, Uri, Version};
+pub(crate) use crate::upgrade::http::{
+    header, Method, Request, Response, StatusCode, Uri, Version,
+};
 
 #[doc(no_inline)]
-pub use crate::upgrade::http::HeaderMap;
+pub(crate) use crate::upgrade::http::HeaderMap;
 
-pub use crate::upgrade::body::Body;
-pub use crate::upgrade::error::{Error, Result};
+pub(crate) use crate::upgrade::body::Body;
+pub(crate) use crate::upgrade::error::{Error, Result};
 
 #[macro_use]
 mod common;
-pub mod body;
+pub(crate) mod body;
 mod error;
-pub mod rt;
-pub mod upgrade;
+pub(crate) mod rt;
+pub(crate) mod upgrade;

@@ -24,7 +24,7 @@ use std::task::{Context, Poll};
 /// Reads bytes from a source.
 ///
 /// This trait is similar to `std::io::Read`, but supports asynchronous reads.
-pub trait Read {
+pub(crate) trait Read {
     /// Attempts to read bytes into the `buf`.
     ///
     /// On success, returns `Poll::Ready(Ok(()))` and places data in the
@@ -44,7 +44,7 @@ pub trait Read {
 /// Write bytes asynchronously.
 ///
 /// This trait is similar to `std::io::Write`, but for asynchronous writes.
-pub trait Write {
+pub(crate) trait Write {
     /// Attempt to write bytes from `buf` into the destination.
     ///
     /// On success, returns `Poll::Ready(Ok(num_bytes_written)))`. If
@@ -117,7 +117,7 @@ pub trait Write {
 /// It is undefined behavior to de-initialize any bytes from the uninitialized
 /// region, since it is merely unknown whether this region is uninitialized or
 /// not, and if part of it turns out to be initialized, it must stay initialized.
-pub struct ReadBuf<'a> {
+pub(crate) struct ReadBuf<'a> {
     raw: &'a mut [MaybeUninit<u8>],
     filled: usize,
     init: usize,
@@ -127,7 +127,7 @@ pub struct ReadBuf<'a> {
 ///
 /// This is created by calling `ReadBuf::unfilled()`.
 #[derive(Debug)]
-pub struct ReadBufCursor<'a> {
+pub(crate) struct ReadBufCursor<'a> {
     buf: &'a mut ReadBuf<'a>,
 }
 
@@ -146,7 +146,7 @@ impl<'data> ReadBuf<'data> {
 
     /// Create a new `ReadBuf` with a slice of uninitialized bytes.
     #[inline]
-    pub fn uninit(raw: &'data mut [MaybeUninit<u8>]) -> Self {
+    pub(crate) fn uninit(raw: &'data mut [MaybeUninit<u8>]) -> Self {
         Self {
             raw,
             filled: 0,
@@ -156,14 +156,14 @@ impl<'data> ReadBuf<'data> {
 
     /// Get a slice of the buffer that has been filled in with bytes.
     #[inline]
-    pub fn filled(&self) -> &[u8] {
+    pub(crate) fn filled(&self) -> &[u8] {
         // SAFETY: We only slice the filled part of the buffer, which is always valid
         unsafe { &*(&self.raw[0..self.filled] as *const [MaybeUninit<u8>] as *const [u8]) }
     }
 
     /// Get a cursor to the unfilled portion of the buffer.
     #[inline]
-    pub fn unfilled<'cursor>(&'cursor mut self) -> ReadBufCursor<'cursor> {
+    pub(crate) fn unfilled<'cursor>(&'cursor mut self) -> ReadBufCursor<'cursor> {
         ReadBufCursor {
             // SAFETY: self.buf is never re-assigned, so its safe to narrow
             // the lifetime.
@@ -224,7 +224,7 @@ impl<'data> ReadBufCursor<'data> {
     /// The caller must not uninitialize any bytes that may have been
     /// initialized before.
     #[inline]
-    pub unsafe fn as_mut(&mut self) -> &mut [MaybeUninit<u8>] {
+    pub(crate) unsafe fn as_mut(&mut self) -> &mut [MaybeUninit<u8>] {
         &mut self.buf.raw[self.buf.filled..]
     }
 
@@ -234,7 +234,7 @@ impl<'data> ReadBufCursor<'data> {
     ///
     /// The caller must take care that `n` more bytes have been initialized.
     #[inline]
-    pub unsafe fn advance(&mut self, n: usize) {
+    pub(crate) unsafe fn advance(&mut self, n: usize) {
         self.buf.filled = self.buf.filled.checked_add(n).expect("overflow");
         self.buf.init = self.buf.filled.max(self.buf.init);
     }

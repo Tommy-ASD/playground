@@ -12,7 +12,11 @@
 //!
 //! Example is based on <https://github.com/hyperium/hyper/blob/master/examples/http_proxy.rs>
 
-use crate::bidirectional::copy_bidirectional;
+#![allow(dead_code)]
+
+// use crate::bidirectional::copy_bidirectional;
+
+use crate::custom_tokio::io::copy_bidirectional;
 use axum::{
     body::Body,
     extract::Request,
@@ -21,15 +25,15 @@ use axum::{
     routing::get,
     Router,
 };
-use hyper::upgrade::Upgraded;
+use custom_hyper as hyper;
 use std::{error::Error, net::SocketAddr};
 use tower::{make::Shared, ServiceExt};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use traceback_error::{traceback, TracebackError};
 
-mod bidirectional;
-mod upgrade;
+mod custom_hyper;
+mod custom_tokio;
+// mod tcpstream;
+// mod upgrade;
 
 #[tokio::main]
 async fn main() {
@@ -69,7 +73,7 @@ async fn proxy(req: Request) -> Result<Response, hyper::Error> {
     tracing::trace!(?req);
 
     if let Some(host_addr) = req.uri().authority().map(|auth| auth.to_string()) {
-        tokio::task::spawn(async move {
+        crate::custom_tokio::task::spawn(async move {
             match crate::upgrade::upgrade::on(req).await {
                 Ok(upgraded) => {
                     if let Err(e) = tunnel(upgraded, host_addr).await {
@@ -93,10 +97,10 @@ async fn proxy(req: Request) -> Result<Response, hyper::Error> {
 
 #[traceback_derive::traceback]
 async fn tunnel(
-    mut upgraded: crate::upgrade::upgrade::Upgraded,
+    mut upgraded: crate::custom_hyper::upgrade::Upgraded,
     addr: String,
 ) -> Result<(), TracebackError> {
-    let mut server = tokio::net::TcpStream::connect(&addr).await?;
+    let mut server = crate::custom_tokio::net::TcpStream::connect(&addr).await?;
 
     let client_to_server = copy_bidirectional(&mut upgraded, &mut server).await?;
 
@@ -104,14 +108,4 @@ async fn tunnel(
     tracing::debug!("client wrote {from_client} bytes and received {from_server} bytes");
 
     Ok(())
-}
-
-#[macro_export]
-macro_rules! ready {
-    ($e:expr $(,)?) => {
-        match $e {
-            std::task::Poll::Ready(t) => t,
-            std::task::Poll::Pending => return std::task::Poll::Pending,
-        }
-    };
 }

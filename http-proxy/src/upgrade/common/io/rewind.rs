@@ -1,8 +1,8 @@
 use std::marker::Unpin;
 use std::{cmp, io};
 
+use crate::custom_tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use bytes::{Buf, Bytes};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 use crate::upgrade::common::{task, Pin, Poll};
 
@@ -171,8 +171,8 @@ mod tests {
     // FIXME: re-implement tests with `async/await`, this import should
     // trigger a warning to remind us
     use super::Rewind;
+    use crate::custom_tokio::io::AsyncReadExt;
     use bytes::Bytes;
-    use tokio::io::AsyncReadExt;
 
     #[tokio::test]
     async fn partial_rewind() {

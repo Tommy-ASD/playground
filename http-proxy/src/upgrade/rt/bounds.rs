@@ -4,10 +4,10 @@
 //! implemented by implementing another trait.
 
 #[cfg(all(feature = "server", feature = "http2"))]
-pub use self::h2::Http2ConnExec;
+pub(crate) use self::h2::Http2ConnExec;
 
 #[cfg(all(feature = "client", feature = "http2"))]
-pub use self::h2_client::ExecutorClient;
+pub(crate) use self::h2_client::ExecutorClient;
 
 #[cfg(all(feature = "client", feature = "http2"))]
 #[cfg_attr(docsrs, doc(cfg(all(feature = "server", feature = "http2"))))]
@@ -25,7 +25,7 @@ mod h2_client {
     /// This trait is sealed and cannot be implemented for types outside this crate.
     ///
     /// [`Executor`]: crate::rt::Executor
-    pub trait ExecutorClient<B, T>: sealed_client::Sealed<(B, T)>
+    pub(crate) trait ExecutorClient<B, T>: sealed_client::Sealed<(B, T)>
     where
         B: http_body::Body,
         B::Error: Into<Box<dyn Error + Send + Sync>>,
@@ -59,7 +59,7 @@ mod h2_client {
     }
 
     mod sealed_client {
-        pub trait Sealed<X> {}
+        pub(crate) trait Sealed<X> {}
     }
 }
 
@@ -78,7 +78,7 @@ mod h2 {
     /// This trait is sealed and cannot be implemented for types outside this crate.
     ///
     /// [`Executor`]: crate::rt::Executor
-    pub trait Http2ConnExec<F, B: Body>: sealed::Sealed<(F, B)> + Clone {
+    pub(crate) trait Http2ConnExec<F, B: Body>: sealed::Sealed<(F, B)> + Clone {
         #[doc(hidden)]
         fn execute_h2stream(&mut self, fut: H2Stream<F, B>);
     }
@@ -104,6 +104,6 @@ mod h2 {
     }
 
     mod sealed {
-        pub trait Sealed<T> {}
+        pub(crate) trait Sealed<T> {}
     }
 }

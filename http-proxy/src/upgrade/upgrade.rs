@@ -45,10 +45,10 @@ use std::fmt;
 use std::io;
 use std::marker::Unpin;
 
+use crate::bidirectional::io::{AsyncRead, AsyncWrite, ReadBuf};
+use crate::custom_tokio::sync::oneshot;
 use bytes::Bytes;
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use tokio::sync::oneshot;
-#[cfg(any(feature = "http1", feature = "http2"))]
+
 use tracing::trace;
 
 use crate::upgrade::common::io::Rewind;
@@ -62,14 +62,14 @@ use crate::upgrade::common::{task, Future, Pin, Poll};
 ///
 /// Alternatively, if the exact type is known, this can be deconstructed
 /// into its parts.
-pub struct Upgraded {
+pub(crate) struct Upgraded {
     io: Rewind<Box<dyn Io + Send>>,
 }
 
 /// A future for a possible HTTP upgrade.
 ///
 /// If no upgrade was available, or it doesn't succeed, yields an `Error`.
-pub struct OnUpgrade {
+pub(crate) struct OnUpgrade {
     rx: Option<oneshot::Receiver<crate::upgrade::error::Result<Upgraded>>>,
 }
 
@@ -78,9 +78,9 @@ pub struct OnUpgrade {
 /// Includes the original IO type, and a read buffer of bytes that the
 /// HTTP state machine may have already read before completing an upgrade.
 #[derive(Debug)]
-pub struct Parts<T> {
+pub(crate) struct Parts<T> {
     /// The original IO object used before the upgrade.
-    pub io: T,
+    pub(crate) io: T,
     /// A buffer of bytes that have been read but not processed as HTTP.
     ///
     /// For instance, if the `Connection` is used for an HTTP upgrade request,
@@ -89,7 +89,7 @@ pub struct Parts<T> {
     ///
     /// You will want to check for any existing bytes if you plan to continue
     /// communicating on the IO object.
-    pub read_buf: Bytes,
+    pub(crate) read_buf: Bytes,
     _inner: (),
 }
 
@@ -101,17 +101,15 @@ pub struct Parts<T> {
 /// - `http::Response<B>`
 /// - `&mut http::Request<B>`
 /// - `&mut http::Response<B>`
-pub fn on<T: sealed::CanUpgrade>(msg: T) -> OnUpgrade {
+pub(crate) fn on<T: sealed::CanUpgrade>(msg: T) -> OnUpgrade {
     msg.on_upgrade()
 }
 
-#[cfg(any(feature = "http1", feature = "http2"))]
-pub(super) struct Pending {
+pub(crate) struct Pending {
     tx: oneshot::Sender<crate::Result<Upgraded>>,
 }
 
-#[cfg(any(feature = "http1", feature = "http2"))]
-pub(super) fn pending() -> (Pending, OnUpgrade) {
+pub(crate) fn pending() -> (Pending, OnUpgrade) {
     let (tx, rx) = oneshot::channel();
     (Pending { tx }, OnUpgrade { rx: Some(rx) })
 }
@@ -119,8 +117,7 @@ pub(super) fn pending() -> (Pending, OnUpgrade) {
 // ===== impl Upgraded =====
 
 impl Upgraded {
-    #[cfg(any(feature = "http1", feature = "http2", test))]
-    pub(super) fn new<T>(io: T, read_buf: Bytes) -> Self
+    pub(crate) fn new<T>(io: T, read_buf: Bytes) -> Self
     where
         T: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
@@ -133,7 +130,9 @@ impl Upgraded {
     ///
     /// On success, returns the downcasted parts. On error, returns the
     /// `Upgraded` back.
-    pub fn downcast<T: AsyncRead + AsyncWrite + Unpin + 'static>(self) -> Result<Parts<T>, Self> {
+    pub(crate) fn downcast<T: AsyncRead + AsyncWrite + Unpin + 'static>(
+        self,
+    ) -> Result<Parts<T>, Self> {
         let (io, buf) = self.io.into_inner();
         match io.__hyper_downcast() {
             Ok(t) => Ok(Parts {
@@ -148,47 +147,17 @@ impl Upgraded {
     }
 }
 
-impl crate::bidirectional::io::AsyncRead for Upgraded {
+impl AsyncRead for Upgraded {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut task::Context<'_>,
-        buf: &mut crate::bidirectional::io::ReadBuf<'_>,
+        buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        crate::bidirectional::io::AsyncRead::poll_read(Pin::new(&mut self.io), cx, buf)
+        AsyncRead::poll_read(Pin::new(&mut self.io), cx, buf)
     }
 }
 
 impl AsyncWrite for Upgraded {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut task::Context<'_>,
-        buf: &[u8],
-    ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.io).poll_write(cx, buf)
-    }
-
-    fn poll_write_vectored(
-        mut self: Pin<&mut Self>,
-        cx: &mut task::Context<'_>,
-        bufs: &[io::IoSlice<'_>],
-    ) -> Poll<io::Result<usize>> {
-        Pin::new(&mut self.io).poll_write_vectored(cx, bufs)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.io).poll_flush(cx)
-    }
-
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.io).poll_shutdown(cx)
-    }
-
-    fn is_write_vectored(&self) -> bool {
-        self.io.is_write_vectored()
-    }
-}
-
-impl crate::bidirectional::io::AsyncWrite for Upgraded {
     fn poll_write(
         mut self: Pin<&mut Self>,
         cx: &mut task::Context<'_>,
@@ -227,12 +196,11 @@ impl fmt::Debug for Upgraded {
 // ===== impl OnUpgrade =====
 
 impl OnUpgrade {
-    pub(super) fn none() -> Self {
+    pub(crate) fn none() -> Self {
         OnUpgrade { rx: None }
     }
 
-    #[cfg(feature = "http1")]
-    pub(super) fn is_none(&self) -> bool {
+    pub(crate) fn is_none(&self) -> bool {
         self.rx.is_none()
     }
 }
@@ -262,17 +230,15 @@ impl fmt::Debug for OnUpgrade {
 
 // ===== impl Pending =====
 
-#[cfg(any(feature = "http1", feature = "http2"))]
 impl Pending {
-    pub(super) fn fulfill(self, upgraded: Upgraded) {
+    pub(crate) fn fulfill(self, upgraded: Upgraded) {
         trace!("pending upgrade fulfill");
         let _ = self.tx.send(Ok(upgraded));
     }
 
-    #[cfg(feature = "http1")]
     /// Don't fulfill the pending Upgrade, but instead signal that
     /// upgrades are handled manually.
-    pub(super) fn manual(self) {
+    pub(crate) fn manual(self) {
         trace!("pending upgrade handled manually");
         let _ = self.tx.send(Err(crate::Error::new_user_manual_upgrade()));
     }
@@ -297,7 +263,7 @@ impl StdError for UpgradeExpected {}
 
 // ===== impl Io =====
 
-pub(super) trait Io: AsyncRead + AsyncWrite + Unpin + 'static {
+pub(crate) trait Io: AsyncRead + AsyncWrite + Unpin + 'static {
     fn __hyper_type_id(&self) -> TypeId {
         TypeId::of::<Self>()
     }
@@ -327,7 +293,7 @@ impl dyn Io + Send {
 mod sealed {
     use super::OnUpgrade;
 
-    pub trait CanUpgrade {
+    pub(crate) trait CanUpgrade {
         fn on_upgrade(self) -> OnUpgrade;
     }
 

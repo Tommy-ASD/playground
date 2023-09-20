@@ -19,14 +19,14 @@ impl<T> Compat<T> {
     }
 }
 
-impl<T> tokio::io::AsyncRead for Compat<T>
+impl<T> crate::custom_tokio::io::AsyncRead for Compat<T>
 where
     T: crate::upgrade::rt::Read,
 {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        tbuf: &mut tokio::io::ReadBuf<'_>,
+        tbuf: &mut crate::custom_tokio::io::ReadBuf<'_>,
     ) -> Poll<Result<(), std::io::Error>> {
         let init = tbuf.initialized().len();
         let filled = tbuf.filled().len();
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<T> tokio::io::AsyncWrite for Compat<T>
+impl<T> crate::custom_tokio::io::AsyncWrite for Compat<T>
 where
     T: crate::upgrade::rt::Write,
 {
@@ -90,7 +90,7 @@ where
 #[cfg(test)]
 impl<T> crate::upgrade::rt::Read for Compat<T>
 where
-    T: tokio::io::AsyncRead,
+    T: crate::custom_tokio::io::AsyncRead,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -98,8 +98,8 @@ where
         mut buf: crate::upgrade::rt::ReadBufCursor<'_>,
     ) -> Poll<Result<(), std::io::Error>> {
         let n = unsafe {
-            let mut tbuf = tokio::io::ReadBuf::uninit(buf.as_mut());
-            match tokio::io::AsyncRead::poll_read(self.p(), cx, &mut tbuf) {
+            let mut tbuf = crate::custom_tokio::io::ReadBuf::uninit(buf.as_mut());
+            match crate::custom_tokio::io::AsyncRead::poll_read(self.p(), cx, &mut tbuf) {
                 Poll::Ready(Ok(())) => tbuf.filled().len(),
                 other => return other,
             }
@@ -115,29 +115,29 @@ where
 #[cfg(test)]
 impl<T> crate::upgrade::rt::Write for Compat<T>
 where
-    T: tokio::io::AsyncWrite,
+    T: crate::custom_tokio::io::AsyncWrite,
 {
     fn poll_write(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<Result<usize, std::io::Error>> {
-        tokio::io::AsyncWrite::poll_write(self.p(), cx, buf)
+        crate::custom_tokio::io::AsyncWrite::poll_write(self.p(), cx, buf)
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
-        tokio::io::AsyncWrite::poll_flush(self.p(), cx)
+        crate::custom_tokio::io::AsyncWrite::poll_flush(self.p(), cx)
     }
 
     fn poll_shutdown(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), std::io::Error>> {
-        tokio::io::AsyncWrite::poll_shutdown(self.p(), cx)
+        crate::custom_tokio::io::AsyncWrite::poll_shutdown(self.p(), cx)
     }
 
     fn is_write_vectored(&self) -> bool {
-        tokio::io::AsyncWrite::is_write_vectored(&self.0)
+        crate::custom_tokio::io::AsyncWrite::is_write_vectored(&self.0)
     }
 
     fn poll_write_vectored(
@@ -145,6 +145,6 @@ where
         cx: &mut Context<'_>,
         bufs: &[std::io::IoSlice<'_>],
     ) -> Poll<Result<usize, std::io::Error>> {
-        tokio::io::AsyncWrite::poll_write_vectored(self.p(), cx, bufs)
+        crate::custom_tokio::io::AsyncWrite::poll_write_vectored(self.p(), cx, bufs)
     }
 }

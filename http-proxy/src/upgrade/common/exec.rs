@@ -7,7 +7,7 @@ use std::pin::Pin;
 // Because enabling `http2` shouldn't suddenly add new trait bounds that cause
 // a compilation error.
 
-pub struct H2Stream<F, B>(std::marker::PhantomData<(F, B)>);
+pub(crate) struct H2Stream<F, B>(std::marker::PhantomData<(F, B)>);
 
 impl<F, B, E> Future for H2Stream<F, B>
 where
