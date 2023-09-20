@@ -5,154 +5,18 @@ edition = "2021"
 publish = false
 
 [dependencies]
-tokio = { version = "1.32.0", features = ["macros", "rt", "rt-multi-thread"] }
-traceback-derive = "0.1.1"
-traceback-error = "0.1.9"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = { path = "./deps/tokio", features = ["full"] }
+hyper = { path = "./deps/hyper", features = ["full"] }
+
 axum = { version = "0.6.16", git = "https://github.com/tokio-rs/axum", features = [
     "http2",
     "macros",
     "multipart",
     "tracing",
-    "ws",
+    # "ws",
 ] }
+traceback-error = "0.1.9"
+traceback-derive = "0.1.1"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 tower = { version = "0.4", features = ["make"] }
-libc = "0.2.145"
-
-[dependencies.bytes]
-version = "1.0.0"
-
-[dependencies.mio]
-version = "0.8.6"
-default-features = false
-
-[dependencies.num_cpus]
-version = "1.8.0"
-
-[dependencies.parking_lot]
-version = "0.12.0"
-
-[dependencies.pin-project-lite]
-version = "0.2.11"
-
-[dependencies.tokio-macros]
-version = "~2.1.0"
-
-[dev-dependencies.async-stream]
-version = "0.3"
-
-[dev-dependencies.futures]
-version = "0.3.0"
-features = ["async-await"]
-
-[dev-dependencies.mockall]
-version = "0.11.1"
-
-[dev-dependencies.tokio-stream]
-version = "0.1"
-
-[dev-dependencies.tokio-test]
-version = "0.4.0"
-
-[target."cfg(windows)".dependencies.windows-sys]
-version = "0.48"
-
-[target."cfg(windows)".dev-dependencies.windows-sys]
-version = "0.48"
-features = ["Win32_Foundation", "Win32_Security_Authorization"]
-
-[target."cfg(unix)".dependencies.libc]
-version = "0.2.145"
-[target."cfg(unix)".dependencies.signal-hook-registry]
-version = "1.1.1"
-
-[features]
-default = ["full"]
-fs = []
-full = ["fs", "io-std", "net", "process", "rt", "rt-multi-thread", "signal", "sync", "time"]
-io-std = []
-net = ["mio/os-poll", "mio/os-ext", "mio/net", "windows-sys/Win32_Foundation", "windows-sys/Win32_Security", "windows-sys/Win32_Storage_FileSystem", "windows-sys/Win32_System_Pipes", "windows-sys/Win32_System_SystemServices"]
-process = ["mio/os-poll", "mio/os-ext", "mio/net", "windows-sys/Win32_Foundation", "windows-sys/Win32_System_Threading", "windows-sys/Win32_System_WindowsProgramming"]
-rt = []
-rt-multi-thread = ["rt"]
-signal = ["mio/os-poll", "mio/net", "mio/os-ext", "windows-sys/Win32_Foundation", "windows-sys/Win32_System_Console"]
-stats = []
-sync = []
-test-util = ["rt", "sync", "time"]
-time = []
-
-[target."cfg(all(target_family = \"wasm\", not(target_os = \"wasi\")))".dev-dependencies.wasm-bindgen-test]
-version = "0.3.0"
-
-[target."cfg(loom)".dev-dependencies.loom]
-version = "0.7"
-features = ["futures", "checkpoint"]
-
-[target."cfg(not(all(target_family = \"wasm\", target_os = \"unknown\")))".dev-dependencies.rand]
-version = "0.8.0"
-
-[target."cfg(not(target_family = \"wasm\"))".dependencies.socket2]
-version = "0.5.3"
-features = ["all"]
-
-[target."cfg(not(target_family = \"wasm\"))".dev-dependencies.socket2]
-version = "0.5.3"
-
-[target."cfg(not(target_family = \"wasm\"))".dev-dependencies.tempfile]
-version = "3.1.0"
-
-[target."cfg(target_os = \"freebsd\")".dev-dependencies.mio-aio]
-version = "0.7.0"
-features = ["tokio"]
-
-[target."cfg(tokio_taskdump)".dependencies.backtrace]
-version = "0.3.58"
-
-[target."cfg(tokio_unstable)".dependencies.tracing]
-version = "0.1.25"
-features = ["std"]
-default-features = false
-
-[target."cfg(unix)".dev-dependencies.libc]
-version = "0.2.145"
-
-[target."cfg(unix)".dev-dependencies.nix]
-version = "0.26"
-features = ["fs", "socket"]
-default-features = false
-
-
-[dependencies.http]
-version = "0.2"
-
-[dependencies.http-body]
-version = "0.4"
-
-[dependencies.httparse]
-version = "1.8"
-
-[dependencies.httpdate]
-version = "1.0"
-
-[dependencies.tower-service]
-version = "0.3"
-
-[dependencies.futures-util]
-version = "0.3"
-features = ["alloc"]
-
-[dependencies.futures-channel]
-version = "0.3"
-
-[dependencies.futures-core]
-version = "0.3"
-
-[dependencies.want]
-version = "0.3"
-
-[dependencies.pretty_env_logger]
-version = "0.4"
-
-[dependencies.h2]
-version = "0.3.17"
