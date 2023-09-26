@@ -15,6 +15,12 @@ use oauth2::{
 use reqwest::Error as ReqwestError;
 use url::Url;
 
+use crate::upload::primary;
+
+use traceback_error::{traceback, TracebackError};
+
+mod upload;
+
 type Token = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;
 type FailedToken =
     RequestTokenError<OAuthError<ReqwestError>, StandardErrorResponse<BasicErrorResponseType>>;
@@ -23,6 +29,39 @@ type TokenResult = Result<Token, FailedToken>;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv::dotenv().unwrap();
+
+    let token = get_token().await?;
+
+    primary(&token).await.unwrap();
+
+    Ok(())
+}
+
+pub fn input_inner() -> String {
+    let mut line = String::new();
+    match std::io::stdin().read_line(&mut line) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error reading line: {}", e);
+            println!("Please try again");
+            return input_inner();
+        }
+    }
+    line.trim().to_string()
+}
+
+#[macro_export]
+macro_rules! input {
+    ($($arg:expr),*) => {{
+        $(print!("{} ", $arg);)* // Print each argument followed by a space
+        println!(); // Print a newline at the end
+
+        $crate::input_inner()
+    }};
+}
+
+#[traceback_derive::traceback]
+async fn get_token() -> Result<String, TracebackError> {
     let id = std::env::var("GOOGLE_CLIENT_ID").unwrap();
     let secret = std::env::var("GOOGLE_CLIENT_SECRET").unwrap();
     let client = BasicClient::new(
@@ -48,6 +87,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ))
         .add_scope(Scope::new(
             "https://www.googleapis.com/auth/userinfo.profile".to_string(),
+        ))
+        .add_scope(Scope::new(
+            "https://www.googleapis.com/auth/youtube.upload".to_string(),
         ))
         .add_scope(Scope::new("openid".to_string()))
         // Set the PKCE code challenge.
@@ -129,34 +171,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let token = token_response.unwrap().unwrap();
-
-    println!("Token: {token:?}");
-
-    println!("{}", token.access_token().secret());
-
-    Ok(())
-}
-
-pub fn input_inner() -> String {
-    let mut line = String::new();
-    match std::io::stdin().read_line(&mut line) {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Error reading line: {}", e);
-            println!("Please try again");
-            return input_inner();
-        }
-    }
-    line.trim().to_string()
-}
-
-#[macro_export]
-macro_rules! input {
-    ($($arg:expr),*) => {{
-        $(print!("{} ", $arg);)* // Print each argument followed by a space
-        println!(); // Print a newline at the end
-
-        $crate::input_inner()
-    }};
+    let token = token_response
+        .unwrap()
+        .unwrap()
+        .access_token()
+        .secret()
+        .to_string();
+    Ok(token)
 }
