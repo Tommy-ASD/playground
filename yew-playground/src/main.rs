@@ -97,8 +97,6 @@ impl Component for TodoList {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let document: web_sys::Document = web_sys::window().unwrap().document().unwrap();
-
         let link = ctx.link();
         html! {
             <>
