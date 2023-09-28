@@ -1,133 +1,50 @@
-use std::fmt::Display;
+use chrono::{NaiveDateTime, Utc};
+use gloo::console::log;
+use wasm_bindgen::JsCast;
+use web_sys::{Event, HtmlInputElement};
+use yew::{
+    function_component,
+    prelude::{html, Component, Context, Html},
+    Callback, InputEvent, MouseEvent, Properties,
+};
 
-use strum::{EnumIter, EnumString, IntoEnumIterator};
-use yew::prelude::{function_component, html, Callback, Component, Context, Html};
-use yew_router::prelude::{use_location, use_navigator, BrowserRouter, Link, Routable, Switch};
-
-enum Msg {
-    AddElement(String),
+struct TodoItem {
+    added_at: NaiveDateTime,
+    text: String,
 }
 
-#[derive(Clone)]
-struct ListComponent {
-    elements: Vec<String>,
-}
-
-impl ListComponent {
+impl TodoItem {
     fn new() -> Self {
-        Self { elements: vec![] }
-    }
-}
-
-impl Component for ListComponent {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self { elements: vec![] }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::AddElement(element) => {
-                self.elements.push(element);
-                true
-            }
+        Self {
+            added_at: Utc::now().naive_local(),
+            text: "No text specified".to_string(),
         }
     }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let link = ctx.link();
+    fn with_text(text: String) -> Self {
+        Self {
+            added_at: Utc::now().naive_local(),
+            text,
+        }
+    }
+    fn to_html(&self) -> Html {
         html! {
-            <div class="container">
-                <ul>
-                {
-                    self.elements.iter().map(|el| html!{
-                        <li> { el } </li>
-                    }).collect::<Vec<Html>>()
-                }
-                </ul>
-                <input onclick={link.callback(|_| Msg::AddElement("Test".to_string()))}/>
-            </div>
+            <li>
+                <p>{ &self.added_at }</p>
+                <p>{ &self.text }</p>
+            </li>
         }
     }
 }
 
-#[derive(Clone, Routable, PartialEq, EnumIter, EnumString, Debug)]
-enum Route {
-    #[at("/")]
-    Home,
-    #[at("/secure")]
-    Secure,
-    #[at("/news/:id")]
-    News { id: u8 },
-    #[at("/list")]
-    List,
-    #[not_found]
-    #[at("/404")]
-    NotFound,
-}
-
-impl Display for Route {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            &Route::Home => write!(f, "Home"),
-            &Route::Secure => write!(f, "Secure"),
-            &Route::News { id: _ } => write!(f, "News"),
-            &Route::List => write!(f, "List"),
-            &Route::NotFound => write!(f, "404 Not Found"),
-        }
-    }
-}
-
-#[function_component(Secure)]
-fn secure() -> Html {
-    let navigator = use_navigator().unwrap();
-
-    let onclick = Callback::from(move |_| navigator.push(&Route::Home));
-    html! {
-        <div>
-            <h1>{ "Secure" }</h1>
-            <button {onclick}>{ "Go Home" }</button>
-        </div>
-    }
-}
-
-fn switch(routes: Route) -> Html {
-    let location = use_location();
-    let router_elements = Route::iter()
-        .map(|variant| {
-            html! {
-                <li>
-                    <Link<Route> to={variant.clone()}>
-                        { format!("{}", variant) }
-                    </Link<Route>>
-                </li>
-            }
-        })
-        .collect::<Vec<Html>>();
-    match routes {
-        Route::Home => {
-            html! { <ul>{ router_elements }</ul> }
-        }
-        Route::Secure => html! {
-            <Secure />
-        },
-        Route::News { id } => html! { <h1>{ id }</h1> },
-        Route::List => html! {<ListComponent/>},
-        Route::NotFound => html! { <h1>{ "404" }</h1> },
-    }
-}
-
-#[derive(Clone)]
-struct Main {}
-
-impl Component for Main {
+impl Component for TodoItem {
     type Message = ();
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self {}
+        Self {
+            added_at: Utc::now().naive_local(),
+            text: "No text specified".to_string(),
+        }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
@@ -136,15 +53,83 @@ impl Component for Main {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <BrowserRouter>
-                <Switch<Route> render={|a| {
-                    switch(a)
-                }} /> // <- must be child of <BrowserRouter>
-            </BrowserRouter>
+            <li>
+                <p>{ &self.added_at }</p>
+                <p>{ &self.text }</p>
+            </li>
+        }
+        /*
+            <input oninput={ctx.link().callback(|item: InputEvent| {
+                ChangeTodoItem::ChangeText(item.data().unwrap())
+            })}/>
+        */
+    }
+}
+
+enum ChangeTodoList {
+    AddItem(TodoItem),
+    RemoveItem(usize),
+}
+
+struct TodoList {
+    items: Vec<TodoItem>,
+}
+
+impl Component for TodoList {
+    type Message = ChangeTodoList;
+    type Properties = ();
+
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self { items: vec![] }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            ChangeTodoList::AddItem(item) => {
+                self.items.push(item);
+                true
+            }
+            ChangeTodoList::RemoveItem(index) => {
+                self.items.remove(index);
+                true
+            }
+        }
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let document: web_sys::Document = web_sys::window().unwrap().document().unwrap();
+
+        let link = ctx.link();
+        html! {
+            <>
+            <ul>
+                { self.items.iter().enumerate().map(|(index, item)| {
+                    html! {
+                        <>
+                            {item.to_html()}
+                            <button onclick={link.callback(move |_event: MouseEvent| {
+                                ChangeTodoList::RemoveItem(index)
+                            })}/>
+                        </>
+                    }
+                }).collect::<Vec<Html>>() }
+            </ul>
+            <input
+                id={"TodoListInput"}
+                onchange = {
+                    Callback::from(|event: Event| {
+                        let target: web_sys::EventTarget = event.target().unwrap();
+                        let input = target.unchecked_into::<HtmlInputElement>();
+                        let value = input.value();
+                        log!(value)
+                    })
+                }
+            />
+            </>
         }
     }
 }
 
 fn main() {
-    yew::Renderer::<Main>::new().render();
+    yew::Renderer::<TodoList>::new().render();
 }
