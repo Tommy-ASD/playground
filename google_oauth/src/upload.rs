@@ -74,7 +74,7 @@ async fn upload_video(
 
     // Upload the video using the YouTube API
     let response = http_client
-        .post("https://www.googleapis.com/upload/youtube/v3/videos")
+        .post("http://localhost:13425")
         .header(header::AUTHORIZATION, format!("Bearer {token}"))
         .multipart(form)
         .send()

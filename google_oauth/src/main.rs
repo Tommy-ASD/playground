@@ -30,9 +30,9 @@ type TokenResult = Result<Token, FailedToken>;
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv::dotenv().unwrap();
 
-    let token = get_token().await?;
+    let token = "test"; // get_token().await?;
 
-    primary(&token).await.unwrap();
+    primary(token).await.unwrap();
 
     Ok(())
 }
