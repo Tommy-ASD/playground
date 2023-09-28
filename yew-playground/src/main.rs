@@ -117,11 +117,12 @@ impl Component for TodoList {
             <input
                 id={"TodoListInput"}
                 onchange = {
-                    Callback::from(|event: Event| {
+                    link.callback(|event: Event| {
                         let target: web_sys::EventTarget = event.target().unwrap();
                         let input = target.unchecked_into::<HtmlInputElement>();
                         let value = input.value();
-                        log!(value)
+                        log!(&value);
+                        ChangeTodoList::AddItem(TodoItem::with_text(value))
                     })
                 }
             />
