@@ -1,142 +1,194 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
-use actix_web::{get, App as ActixApp, Error, HttpResponse, HttpServer};
+use actix_web::{get, middleware::Logger, App as ActixApp, Error, HttpResponse, HttpServer};
+use tokio::task::spawn_blocking;
 use tokio::task::LocalSet;
-use tokio::task::{spawn_blocking, spawn_local};
 
-use serde::{Deserialize, Serialize};
+mod block_on;
 
-use yew::prelude::*;
-use yew::suspense::{Suspension, SuspensionResult};
+use chrono::{NaiveDateTime, Utc};
+use gloo::console::log;
+use wasm_bindgen::JsCast;
+use web_sys::{Event, HtmlInputElement};
+use yew::{
+    function_component,
+    prelude::{html, use_node_ref, Component, Context, Html},
+    Callback, Hook, InputEvent, MouseEvent, NodeRef, Properties,
+};
 
-#[derive(Serialize, Deserialize, Clone)]
-struct UserResponse {
-    login: String,
-    name: String,
-    blog: String,
-    location: String,
+struct TodoItem {
+    added_at: NaiveDateTime,
+    text: String,
 }
 
-async fn fetch_user() -> UserResponse {
-    // reqwest works for both non-wasm and wasm targets.
-    let resp = reqwest::Client::new()
-        .get("https://api.github.com/users/zzy")
-        .header("User-Agent", "request")
-        .send()
-        .await
-        .unwrap();
-
-    println!("Status: {}", resp.status());
-    let text: String = resp.text().await.unwrap();
-    let user_resp: UserResponse = serde_json::from_str(&text).unwrap();
-
-    user_resp
-}
-
-pub struct UserState {
-    susp: Suspension,
-    value: Rc<RefCell<Option<UserResponse>>>,
-}
-
-impl UserState {
+impl TodoItem {
     fn new() -> Self {
-        let (susp, handle) = Suspension::new();
-        let value: Rc<RefCell<Option<UserResponse>>> = Rc::default();
-
-        {
-            let value = value.clone();
-            // we use tokio spawn local here.
-            spawn_local(async move {
-                let user = fetch_user().await;
-                {
-                    let mut value = value.borrow_mut();
-                    *value = Some(user);
-                }
-
-                handle.resume();
-            });
+        Self {
+            added_at: Utc::now().naive_local(),
+            text: "No text specified".to_string(),
         }
-
-        Self { susp, value }
+    }
+    fn with_text(text: String) -> Self {
+        Self {
+            added_at: Utc::now().naive_local(),
+            text,
+        }
+    }
+    fn to_html(&self) -> (Html, Html) {
+        (
+            html! {
+                <p>{ &self.added_at.to_string() }</p>
+            },
+            html! {
+                <p>{ &self.text }</p>
+            },
+        )
     }
 }
 
-#[hook]
-fn use_user() -> SuspensionResult<UserResponse> {
-    let user_state = use_state(UserState::new);
+impl Component for TodoItem {
+    type Message = ();
+    type Properties = ();
 
-    let result = match *user_state.value.borrow() {
-        Some(ref user) => Ok(user.clone()),
-        None => Err(user_state.susp.clone()),
-    };
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self {
+            added_at: Utc::now().naive_local(),
+            text: "No text specified".to_string(),
+        }
+    }
 
-    result
+    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
+        false
+    }
+
+    fn view(&self, _ctx: &Context<Self>) -> Html {
+        html! {
+            <li>
+                <p>{ &self.added_at.to_string() }</p>
+                <p>{ &self.text }</p>
+            </li>
+        }
+        /*
+            <input oninput={ctx.link().callback(|item: InputEvent| {
+                ChangeTodoItem::ChangeText(item.data().unwrap())
+            })}/>
+        */
+    }
 }
 
-#[function_component]
-fn Content() -> HtmlResult {
-    let user = use_user()?;
-
-    Ok(html! {
-        <div>
-            <div>{"Login name: "}{ user.login }</div>
-            <div>{"User name: "}{ user.name }</div>
-            <div>{"Blog: "}{ user.blog }</div>
-            <div>{"Location: "}{ user.location }</div>
-        </div>
-    })
+enum ChangeTodoList {
+    AddItem(TodoItem),
+    RemoveItem(usize),
+    None,
 }
 
-#[function_component]
-fn App() -> Html {
-    let fallback = html! {<div>{"Loading..."}</div>};
+struct TodoList {
+    items: Vec<TodoItem>,
+}
 
-    html! {
-        <Suspense {fallback}>
-            <Content />
-        </Suspense>
+impl Component for TodoList {
+    type Message = ChangeTodoList;
+    type Properties = ();
+
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self { items: vec![] }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            ChangeTodoList::AddItem(item) => {
+                self.items.push(item);
+                true
+            }
+            ChangeTodoList::RemoveItem(index) => {
+                self.items.remove(index);
+                true
+            }
+            ChangeTodoList::None => false,
+        }
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let link = ctx.link();
+
+        let input_ref = NodeRef::default();
+
+        let button_callback;
+        {
+            let input_ref = input_ref.clone();
+            button_callback = link.callback(move |_event: MouseEvent| {
+                let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
+                    Some(element) => element.value(),
+                    None => return ChangeTodoList::None,
+                };
+                ChangeTodoList::AddItem(TodoItem::with_text(value))
+            });
+        };
+
+        html! {
+            <>
+            <input
+                id={"TodoListInput"}
+                ref={input_ref}
+            />
+            <button
+                onclick={button_callback}
+            >
+                { "Submit input" }
+            </button>
+            <table>
+                <tr>
+                    <th>{ "Name" }</th>
+                    <th>{ "Created at" }</th>
+                    <th>{ "Remove" }</th>
+                </tr>
+                { self.items.iter().enumerate().map(|(index, item)| {
+                    let text = &item.text;
+                    let added_at = &item.added_at;
+                    html! {
+                        <tr>
+                            <th>{ text }</th>
+                            <th>{ added_at.to_string() }</th>
+                            <th>
+                                <button
+                                class={ "remove-todo-element-button" }
+                                onclick={link.callback(move |_event: MouseEvent| {
+                                    ChangeTodoList::RemoveItem(index)
+                                })}/>
+                            </th>
+                        </tr>
+                    }
+                }).collect::<Vec<Html>>() }
+            </table>
+            </>
+        }
     }
 }
 
 #[get("/")]
 async fn render() -> Result<HttpResponse, Error> {
-    let content = spawn_blocking(move || {
+    let fut: tokio::task::JoinHandle<String> = spawn_blocking(move || {
         use tokio::runtime::Builder;
         let set = LocalSet::new();
 
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
 
         set.block_on(&rt, async {
-            let renderer = yew::ServerRenderer::<App>::new();
+            let renderer = yew::ServerRenderer::<TodoList>::new();
 
             renderer.render().await
         })
-    })
-    .await
-    .expect("the thread has failed.");
+    });
+    let content = fut.await.expect("the thread has failed.");
 
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(format!(
-            r#"<!DOCTYPE HTML>
-                <html>
-                    <head>
-                        <title>yew-ssr with actix-web example</title>
-                    </head>
-                    <body>
-                        <h1>yew-ssr with actix-web example</h1>
-                        {}
-                    </body>
-                </html>
-            "#,
-            content
-        )))
+        .body(content))
 }
 
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let server = HttpServer::new(|| ActixApp::new().service(render));
-    println!("You can view the website at: http://localhost:8080/");
-    server.bind(("127.0.0.1", 8080))?.run().await
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+    let server = HttpServer::new(|| ActixApp::new().service(render).wrap(Logger::default()));
+    println!("You can view the website at: http://localhost:1001/");
+    server.bind(("127.0.0.1", 1001))?.run().await
 }
