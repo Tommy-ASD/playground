@@ -69,6 +69,7 @@ impl Component for TodoItem {
 enum ChangeTodoList {
     AddItem(TodoItem),
     RemoveItem(usize),
+    None,
 }
 
 struct TodoList {
@@ -93,11 +94,27 @@ impl Component for TodoList {
                 self.items.remove(index);
                 true
             }
+            ChangeTodoList::None => false,
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link();
+
+        let input_ref = NodeRef::default();
+
+        let button_callback;
+        {
+            let input_ref = input_ref.clone();
+            button_callback = link.callback(move |_event: MouseEvent| {
+                let value = input_ref
+                    .cast::<web_sys::HtmlInputElement>()
+                    .unwrap()
+                    .value();
+                ChangeTodoList::AddItem(TodoItem::with_text(value))
+            });
+        };
+
         html! {
             <>
             <ul>
@@ -114,16 +131,21 @@ impl Component for TodoList {
             </ul>
             <input
                 id={"TodoListInput"}
-                onchange = {
-                    link.callback(|event: Event| {
-                        let target: web_sys::EventTarget = event.target().unwrap();
-                        let input = target.unchecked_into::<HtmlInputElement>();
-                        let value = input.value();
-                        log!(&value);
-                        ChangeTodoList::AddItem(TodoItem::with_text(value))
-                    })
-                }
+                ref={input_ref}
+                // onchange = {
+                //     link.callback(|event: Event| {
+                //         let target: web_sys::EventTarget = event.target().unwrap();
+                //         let input = target.unchecked_into::<HtmlInputElement>();
+                //         let value = input.value();
+                //         log!(&value);
+                //         ChangeTodoList::AddItem(TodoItem::with_text(value))
+                //     })
+                // }
             />
+            <button onclick={button_callback}
+            >
+            { "Submit input" }
+            </button>
             </>
         }
     }
