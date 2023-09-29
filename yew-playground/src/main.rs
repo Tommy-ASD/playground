@@ -8,6 +8,8 @@ use yew::{
     Callback, Hook, InputEvent, MouseEvent, NodeRef, Properties,
 };
 
+mod utilities;
+
 struct TodoItem {
     added_at: NaiveDateTime,
     text: String,
@@ -26,13 +28,15 @@ impl TodoItem {
             text,
         }
     }
-    fn to_html(&self) -> Html {
-        html! {
-            <li>
-                <p>{ &self.added_at }</p>
+    fn to_html(&self) -> (Html, Html) {
+        (
+            html! {
+                <p>{ &self.added_at.to_string() }</p>
+            },
+            html! {
                 <p>{ &self.text }</p>
-            </li>
-        }
+            },
+        )
     }
 }
 
@@ -54,7 +58,7 @@ impl Component for TodoItem {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <li>
-                <p>{ &self.added_at }</p>
+                <p>{ &self.added_at.to_string() }</p>
                 <p>{ &self.text }</p>
             </li>
         }
@@ -99,6 +103,7 @@ impl Component for TodoList {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        utilities::set_cookie("test", "value");
         let link = ctx.link();
 
         let input_ref = NodeRef::default();
@@ -107,45 +112,49 @@ impl Component for TodoList {
         {
             let input_ref = input_ref.clone();
             button_callback = link.callback(move |_event: MouseEvent| {
-                let value = input_ref
-                    .cast::<web_sys::HtmlInputElement>()
-                    .unwrap()
-                    .value();
+                let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
+                    Some(element) => element.value(),
+                    None => return ChangeTodoList::None,
+                };
                 ChangeTodoList::AddItem(TodoItem::with_text(value))
             });
         };
 
         html! {
             <>
-            <ul>
-                { self.items.iter().enumerate().map(|(index, item)| {
-                    html! {
-                        <>
-                            {item.to_html()}
-                            <button onclick={link.callback(move |_event: MouseEvent| {
-                                ChangeTodoList::RemoveItem(index)
-                            })}/>
-                        </>
-                    }
-                }).collect::<Vec<Html>>() }
-            </ul>
             <input
                 id={"TodoListInput"}
                 ref={input_ref}
-                // onchange = {
-                //     link.callback(|event: Event| {
-                //         let target: web_sys::EventTarget = event.target().unwrap();
-                //         let input = target.unchecked_into::<HtmlInputElement>();
-                //         let value = input.value();
-                //         log!(&value);
-                //         ChangeTodoList::AddItem(TodoItem::with_text(value))
-                //     })
-                // }
             />
-            <button onclick={button_callback}
+            <button
+                onclick={button_callback}
             >
-            { "Submit input" }
+                { "Submit input" }
             </button>
+            <table>
+                <tr>
+                    <th>{ "Name" }</th>
+                    <th>{ "Created at" }</th>
+                    <th>{ "Remove" }</th>
+                </tr>
+                { self.items.iter().enumerate().map(|(index, item)| {
+                    let text = &item.text;
+                    let added_at = &item.added_at;
+                    html! {
+                        <tr>
+                            <th>{ text }</th>
+                            <th>{ added_at.to_string() }</th>
+                            <th>
+                                <button
+                                class={ "remove-todo-element-button" }
+                                onclick={link.callback(move |_event: MouseEvent| {
+                                    ChangeTodoList::RemoveItem(index)
+                                })}/>
+                            </th>
+                        </tr>
+                    }
+                }).collect::<Vec<Html>>() }
+            </table>
             </>
         }
     }
