@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "detect-rust-projects"
+name = "map-file-system"
 version = "0.1.0"
