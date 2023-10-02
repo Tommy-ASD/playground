@@ -1,0 +1,57 @@
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This hook is used to manage state in a function component."><title>use_state in yew::functional - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin="" href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin="" href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin="" href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin="" href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin="" href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin="" href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="yew" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0-nightly (e0d7ed1f4 2023-10-01)" data-channel="nightly" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js"><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer="" src="sidebar-items.js"></script><script defer="" src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="stylesheet" href="../../theme.css"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><div id="unreleased-version-header">
+    <div>This is unreleased documentation for Yew Next version.</div>
+    <div>For up-to-date documentation, see <a href="https://docs.rs/yew">the latest version on docs.rs</a>.</div>
+</div>
+
+<nav class="mobile-topbar"><button class="sidebar-menu-toggle">☰</button><a class="logo-container" href="../../yew/index.html"><img src="https://yew.rs/img/logo.png" alt="logo"></a></nav><nav class="sidebar"><a class="logo-container" href="../../yew/index.html"><img src="https://yew.rs/img/logo.png" alt="logo"></a><div class="sidebar-elems"><h2><a href="index.html">In yew::functional</a></h2><h3><a href="index.html#macros">Macros</a></h3><ul class="block macro"><li><a href="macro.use_prepared_state.html">use_prepared_state</a></li><li><a href="macro.use_transitive_state.html">use_transitive_state</a></li></ul><h3><a href="index.html#structs">Structs</a></h3><ul class="block struct"><li><a href="struct.HookContext.html">HookContext</a></li><li><a href="struct.UseForceUpdateHandle.html">UseForceUpdateHandle</a></li><li><a href="struct.UseReducerDispatcher.html">UseReducerDispatcher</a></li><li><a href="struct.UseReducerHandle.html">UseReducerHandle</a></li><li><a href="struct.UseStateHandle.html">UseStateHandle</a></li><li><a href="struct.UseStateSetter.html">UseStateSetter</a></li></ul><h3><a href="index.html#traits">Traits</a></h3><ul class="block trait"><li><a href="trait.FunctionProvider.html">FunctionProvider</a></li><li><a href="trait.Hook.html">Hook</a></li><li><a href="trait.Reducible.html">Reducible</a></li><li><a href="trait.TearDown.html">TearDown</a></li></ul><h3><a href="index.html#functions">Functions</a></h3><ul class="block fn"><li><a href="fn.use_callback.html">use_callback</a></li><li><a href="fn.use_context.html">use_context</a></li><li><a href="fn.use_effect.html">use_effect</a></li><li><a href="fn.use_effect_with.html">use_effect_with</a></li><li><a href="fn.use_force_update.html">use_force_update</a></li><li><a href="fn.use_memo.html">use_memo</a></li><li><a href="fn.use_mut_ref.html">use_mut_ref</a></li><li><a href="fn.use_node_ref.html">use_node_ref</a></li><li><a href="fn.use_reducer.html">use_reducer</a></li><li><a href="fn.use_reducer_eq.html">use_reducer_eq</a></li><li><a href="fn.use_state.html" class="current">use_state</a></li><li><a href="fn.use_state_eq.html">use_state_eq</a></li></ul></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Function <a href="../index.html">yew</a>::<wbr><a href="index.html">functional</a>::<wbr><a class="fn" href="#">use_state</a><button id="copy-path" title="Copy item path to clipboard"><img src="../../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../../src/yew/functional/hooks/use_state.rs.html#75">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>−</span>]</button></span></div><pre class="rust item-decl"><code>pub fn use_state&lt;'hook, T, F&gt;(
+    init_fn: F
+) -&gt; impl 'hook + <a class="trait" href="trait.Hook.html" title="trait yew::functional::Hook">Hook</a>&lt;Output = <a class="struct" href="struct.UseStateHandle.html" title="struct yew::functional::UseStateHandle">UseStateHandle</a>&lt;T&gt;&gt;<span class="where fmt-newline">where
+    T: 'static + 'hook,
+    F: <a class="trait" href="https://doc.rust-lang.org/nightly/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; T + 'hook,</span></code></pre><details class="toggle top-doc" open=""><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This hook is used to manage state in a function component.</p>
+<p>This hook will always trigger a re-render upon receiving a new state. See <a href="fn.use_state_eq.html" title="fn yew::functional::use_state_eq"><code>use_state_eq</code></a>
+if you want the component to only re-render when the new state compares unequal
+to the existing one.</p>
+<h2 id="example"><a href="#example">Example</a></h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>yew::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[function_component(UseState)]
+</span><span class="kw">fn </span>state() -&gt; Html {
+    <span class="kw">let </span>counter = use_state(|| <span class="number">0</span>);
+    <span class="kw">let </span>onclick = {
+        <span class="kw">let </span>counter = counter.clone();
+        Callback::from(<span class="kw">move </span>|<span class="kw">_</span>| counter.set(<span class="kw-2">*</span>counter + <span class="number">1</span>))
+    };
+
+    <span class="macro">html! </span>{
+        &lt;div&gt;
+            &lt;button {onclick}&gt;{ <span class="string">"Increment value" </span>}&lt;/button&gt;
+            &lt;p&gt;
+                &lt;b&gt;{ <span class="string">"Current value: " </span>}&lt;/b&gt;
+                { <span class="kw-2">*</span>counter }
+            &lt;/p&gt;
+        &lt;/div&gt;
+    }
+}</code></pre></div>
+<h2 id="caution"><a href="#caution">Caution</a></h2>
+<p>The value held in the handle will reflect the value of at the time the
+handle is returned by the <code>use_reducer</code>. It is possible that the handle does
+not dereference to an up to date value if you are moving it into a
+<code>use_effect_with</code> hook. You can register the
+state to the dependents so the hook can be updated when the value changes.</p>
+<h2 id="tip"><a href="#tip">Tip</a></h2>
+<p>The setter function is guaranteed to be the same across the entire
+component lifecycle. You can safely omit the <code>UseStateHandle</code> from the
+dependents of <code>use_effect_with</code> if you only intend to set
+values from within the hook.</p>
+<h2 id="note"><a href="#note">Note</a></h2>
+<p>When used in function components and hooks, this hook is equivalent to:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">pub fn </span>use_state&lt;T, F&gt;(init_fn: F) -&gt; UseStateHandle&lt;T&gt;
+<span class="kw">where
+    </span>T: <span class="lifetime">'static</span>,
+    F: FnOnce() -&gt; T,
+{
+    <span class="comment">/* implementation omitted */
+</span>}
+</code></pre></div>
+</div></details></section></div></main></body></html>
