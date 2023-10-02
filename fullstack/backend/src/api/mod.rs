@@ -1,21 +1,9 @@
+use std::sync::Arc;
+
 use axum::Router;
 
-use serde::{Deserialize, Serialize};
+use crate::AppState;
 
-pub fn make_router<T>() -> Router<T>
-where
-    T: Clone + Send + Sync + 'static,
-{
+pub fn make_router() -> Router<Arc<AppState>> {
     Router::new()
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct User {
-    pub username: String,
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Message {
-    pub content: String,
-    pub sender: String, // refers to username
 }
