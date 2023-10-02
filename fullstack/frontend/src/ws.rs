@@ -84,7 +84,6 @@
 //!     fn setInterval(closure: &Closure<dyn Fn()>, time: u32) -> i32;
 //! }
 //! ```
-use gloo::utils::format::JsValueSerdeExt;
 use log::{error, trace};
 use std::rc::Rc;
 use std::{cell::RefCell, fmt::Display};

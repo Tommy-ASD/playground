@@ -1,102 +1,54 @@
-use chrono::{NaiveDateTime, Utc};
-use gloo::console::log;
-use wasm_bindgen::JsCast;
-use web_sys::{Event, HtmlInputElement};
+use wasm_bindgen::JsValue;
 use yew::{
-    function_component,
-    prelude::{html, use_node_ref, Component, Context, Html},
-    Callback, Hook, InputEvent, MouseEvent, NodeRef, Properties,
+    prelude::{html, Component, Context, Html},
+    MouseEvent, NodeRef,
 };
+
+use serde_json::Value;
 
 mod utilities;
 mod ws;
 
-struct TodoItem {
-    added_at: NaiveDateTime,
-    text: String,
-}
+use common::Message;
 
-impl TodoItem {
-    fn new() -> Self {
-        Self {
-            added_at: Utc::now().naive_local(),
-            text: "No text specified".to_string(),
-        }
-    }
-    fn with_text(text: String) -> Self {
-        Self {
-            added_at: Utc::now().naive_local(),
-            text,
-        }
-    }
-    fn to_html(&self) -> (Html, Html) {
-        (
-            html! {
-                <p>{ &self.added_at.to_string() }</p>
-            },
-            html! {
-                <p>{ &self.text }</p>
-            },
-        )
-    }
-}
-
-impl Component for TodoItem {
-    type Message = ();
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            added_at: Utc::now().naive_local(),
-            text: "No text specified".to_string(),
-        }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
-        false
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        html! {
-            <li>
-                <p>{ &self.added_at.to_string() }</p>
-                <p>{ &self.text }</p>
-            </li>
-        }
-        /*
-            <input oninput={ctx.link().callback(|item: InputEvent| {
-                ChangeTodoItem::ChangeText(item.data().unwrap())
-            })}/>
-        */
-    }
-}
-
+#[derive(Debug, Clone)]
 enum ChangeTodoList {
-    AddItem(TodoItem),
+    AddMessage(Message),
     RemoveItem(usize),
     None,
 }
 
-struct TodoList {
-    items: Vec<TodoItem>,
+impl From<ChangeTodoList> for JsValue {
+    fn from(value: ChangeTodoList) -> Self {
+        JsValue::from_str(&format!("{:?}", value))
+    }
 }
 
-impl Component for TodoList {
+struct MessageList {
+    messages: Vec<Message>,
+}
+
+impl Component for MessageList {
     type Message = ChangeTodoList;
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self { items: vec![] }
+        Self { messages: vec![] }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        gloo::console::log!("Recieved message: ", msg.clone());
         match msg {
-            ChangeTodoList::AddItem(item) => {
-                self.items.push(item);
+            ChangeTodoList::AddMessage(item) => {
+                self.messages.push(item);
+                gloo::console::log!("Messages: ");
+                self.messages
+                    .iter()
+                    .for_each(|message| gloo::console::log!(message.clone()));
                 true
             }
             ChangeTodoList::RemoveItem(index) => {
-                self.items.remove(index);
+                self.messages.remove(index);
                 true
             }
             ChangeTodoList::None => false,
@@ -104,6 +56,69 @@ impl Component for TodoList {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        // setup_websocket!();
+        utilities::set_cookie("test", "value");
+        let link = ctx.link();
+
+        let (username_ref, joinbtn_ref, textarea_ref, input_ref, sendbtn_ref) = (
+            NodeRef::default(),
+            NodeRef::default(),
+            NodeRef::default(),
+            NodeRef::default(),
+            NodeRef::default(),
+        );
+
+        let send;
+        {
+            let input_ref = input_ref.clone();
+            send = link.callback(move |_event: MouseEvent| {
+                gloo::console::log!("Button pressed");
+                let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
+                    Some(element) => element.value(),
+                    None => {
+                        gloo::console::log!("No input was provided");
+                        return ChangeTodoList::None;
+                    }
+                };
+                ChangeTodoList::AddMessage(Message::new(Value::String(value), "test"))
+            });
+        };
+        let rendered_textarea = self
+            .messages
+            .iter()
+            .map(|message| {
+                gloo::console::log!("Rendering message: ", message.clone());
+                message.content.to_string()
+            })
+            .collect::<String>();
+
+        html! {
+            <>
+                <input ref={username_ref} id={"username"} style={"display:block; width:100px; box-sizing: border-box"} type={"text"} placeholder={"username"} />
+                <button ref={joinbtn_ref} id={"join-chat"} type={"button"}>{ "Join Chat" }</button>
+                <table ref={textarea_ref} id={"chat"} style={"display:block; width:600px; height:400px; box-sizing: border-box"} cols={"30"} rows={"10"}>
+                {
+                    self
+                        .messages
+                        .iter()
+                        .map(|message| message.to_html())
+                        .collect::<Vec<Html>>()
+                }
+                </table>
+                <input ref={input_ref} id={"input"} style={"display:block; width:600px; box-sizing: border-box"} type={"text"} placeholder={"chat"} />
+                <button ref={sendbtn_ref} id={"send-message"} type={"button"} onclick={send}>{ "Send Message" }</button>
+            </>
+        }
+    }
+}
+
+fn main() {
+    yew::Renderer::<MessageList>::new().render();
+}
+
+#[macro_export]
+macro_rules! setup_websocket {
+    () => {
         let mut client = ws::EventClient::new("ws://localhost:8081/websocket").unwrap();
         client.set_on_error(Some(Box::new(|error| {
             gloo::console::error!(error);
@@ -117,67 +132,9 @@ impl Component for TodoList {
             gloo::console::log!("Connection closed");
         })));
         client.set_on_message(Some(Box::new(
-            |client: &ws::EventClient, message: ws::Message| {
+            |_client: &ws::EventClient, message: ws::Message| {
                 gloo::console::log!("New Message: ", message);
             },
         )));
-        utilities::set_cookie("test", "value");
-        let link = ctx.link();
-
-        let input_ref = NodeRef::default();
-
-        let button_callback;
-        {
-            let input_ref = input_ref.clone();
-            button_callback = link.callback(move |_event: MouseEvent| {
-                let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
-                    Some(element) => element.value(),
-                    None => return ChangeTodoList::None,
-                };
-                ChangeTodoList::AddItem(TodoItem::with_text(value))
-            });
-        };
-
-        html! {
-            <>
-            <input
-                id={"TodoListInput"}
-                ref={input_ref}
-            />
-            <button
-                onclick={button_callback}
-            >
-                { "Submit input" }
-            </button>
-            <table>
-                <tr>
-                    <th>{ "Name" }</th>
-                    <th>{ "Created at" }</th>
-                    <th>{ "Remove" }</th>
-                </tr>
-                { self.items.iter().enumerate().map(|(index, item)| {
-                    let text = &item.text;
-                    let added_at = &item.added_at;
-                    html! {
-                        <tr>
-                            <th>{ text }</th>
-                            <th>{ added_at.to_string() }</th>
-                            <th>
-                                <button
-                                class={ "remove-todo-element-button" }
-                                onclick={link.callback(move |_event: MouseEvent| {
-                                    ChangeTodoList::RemoveItem(index)
-                                })}/>
-                            </th>
-                        </tr>
-                    }
-                }).collect::<Vec<Html>>() }
-            </table>
-            </>
-        }
-    }
-}
-
-fn main() {
-    yew::Renderer::<TodoList>::new().render();
+    };
 }
