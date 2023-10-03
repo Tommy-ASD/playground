@@ -48,7 +48,7 @@ impl CanvasBackend {
     /// Create a new drawing backend backed with an HTML5 canvas object with given Id
     /// - `elem_id` The element id for the canvas
     /// - Return either some drawing backend has been created, or none in error case
-    pub fn new(elem_id: &str) -> Option<Self> {
+    pub fn _new(elem_id: &str) -> Option<Self> {
         let document = window()?.document()?;
         let canvas = document.get_element_by_id(elem_id)?;
         let canvas: HtmlCanvasElement = canvas.dyn_into().ok()?;

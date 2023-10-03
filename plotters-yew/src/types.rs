@@ -26,7 +26,7 @@ pub struct CanvasElement {
 #[derive(Default)]
 pub struct ControlSection {
     pub label: NodeRef,
-    pub select: SelectElement,
+    pub select: NodeRef,
     pub threed_control_div: ThreedControlSection,
     pub mandelbrot_control_div: MandelbrotControlSection,
 }
@@ -66,10 +66,10 @@ pub struct InputRangeElement {
 
 #[derive(Default)]
 pub struct MandelbrotControlSection {
-    label_iterations: NodeRef,
-    iters_input: InputNumberElement,
-    hidden: NodeRef,
-    ref_attr: NodeRef,
+    pub label_iterations: NodeRef,
+    pub iters_input: InputNumberElement,
+    pub hidden: NodeRef,
+    pub ref_attr: NodeRef,
 }
 
 #[derive(Default)]

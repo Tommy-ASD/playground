@@ -1,6 +1,9 @@
 use crate::canvas::inner::CanvasBackend;
 use crate::canvas::DrawResult;
-use plotters::prelude::*;
+use plotters::prelude::{
+    ChartBuilder, Color, DiscreteRanged, IntoDrawingArea, IntoLinspace, LineSeries, SurfaceSeries,
+    BLACK, BLUE, WHITE,
+};
 use web_sys::HtmlCanvasElement;
 
 pub fn draw(canvas: HtmlCanvasElement, pitch: f64, yaw: f64) -> DrawResult<()> {

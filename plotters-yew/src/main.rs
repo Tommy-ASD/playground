@@ -73,13 +73,13 @@ impl Component for App {
                         </select>
                         <div id={"3d-control"} hidden={true} ref={state.threed_ctrls_ref}>
                             <label for={"pitch"}>{"Pitch: "}</label>
-                            <input type={"range"} min={"0"} max={"157"} id={"pitch"} ref={state.pitch_ref} onchange={update_plot_3d} /> <br />
+                            <input type={"range"} min={"0"} max={"157"} id={"pitch"} ref={state.pitch_ref} onchange={update_plot_3d} oninput={update_plot_3d} /> <br />
                             <label for={"yaw"}>{"Yaw: "}</label>
-                            <input type={"range"} min={"0"} max={"314"} id={"yaw"} ref={state.yaw_ref} onchange={update_plot_3d} />
+                            <input type={"range"} min={"0"} max={"314"} id={"yaw"} ref={state.yaw_ref} onchange={update_plot_3d} oninput={update_plot_3d} />
                         </div>
                         <div id={"mandelbrot-control"} hidden={true} ref={state.mandelbrot_ctrls_ref}>
                             <label for={"iterations"} ref={state.iters_label_ref}>{"Iterations: "}</label>
-                            <input type={"number"} min={"0"} id={"iterations"} ref={state.iters_ref} onchange={update_mandelbrot_iterators} /> <br />
+                            <input type={"number"} min={"0"} id={"iterations"} ref={state.iters_ref} onchange={update_mandelbrot_iterators} oninput={update_mandelbrot_iterators} /> <br />
                         </div>
                     </div>
                 </main>
