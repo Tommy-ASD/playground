@@ -1,7 +1,4 @@
 use chrono::{NaiveDateTime, Utc};
-use gloo::console::log;
-use wasm_bindgen::JsCast;
-use web_sys::{Event, HtmlInputElement};
 use yew::{
     function_component,
     prelude::{html, use_node_ref, Component, Context, Html},
