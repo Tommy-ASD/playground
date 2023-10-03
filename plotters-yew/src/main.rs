@@ -6,7 +6,6 @@ use yew::{html, Component, Context, Html, NodeRef};
 use crate::canvas::{func_plot, mandelbrot, plot3d};
 
 mod canvas;
-mod types;
 
 pub struct App;
 
