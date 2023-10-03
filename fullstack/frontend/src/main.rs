@@ -1,15 +1,19 @@
 use wasm_bindgen::JsValue;
+use ws::EventClient;
 use yew::{
     prelude::{html, Component, Context, Html},
-    MouseEvent, NodeRef,
+    Callback, MouseEvent, NodeRef,
 };
 
 use serde_json::Value;
 
+mod canvas;
 mod utilities;
 mod ws;
 
 use common::Message;
+
+use crate::canvas::func_plot::draw;
 
 #[derive(Debug, Clone)]
 enum ChangeTodoList {
@@ -56,11 +60,20 @@ impl Component for MessageList {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        // setup_websocket!();
         utilities::set_cookie("test", "value");
         let link = ctx.link();
 
-        let (username_ref, joinbtn_ref, textarea_ref, input_ref, sendbtn_ref) = (
+        let (
+            username_ref,
+            joinbtn_ref,
+            textarea_ref,
+            input_ref,
+            sendbtn_ref,
+            canvas_ref,
+            renderbtn_ref,
+        ) = (
+            NodeRef::default(),
+            NodeRef::default(),
             NodeRef::default(),
             NodeRef::default(),
             NodeRef::default(),
@@ -68,34 +81,15 @@ impl Component for MessageList {
             NodeRef::default(),
         );
 
-        let send;
-        {
-            let input_ref = input_ref.clone();
-            send = link.callback(move |_event: MouseEvent| {
-                gloo::console::log!("Button pressed");
-                let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
-                    Some(element) => element.value(),
-                    None => {
-                        gloo::console::log!("No input was provided");
-                        return ChangeTodoList::None;
-                    }
-                };
-                ChangeTodoList::AddMessage(Message::new(Value::String(value), "test"))
-            });
-        };
-        let rendered_textarea = self
-            .messages
-            .iter()
-            .map(|message| {
-                gloo::console::log!("Rendering message: ", message.clone());
-                message.content.to_string()
-            })
-            .collect::<String>();
+        let client = create_client(&link);
+        let send = create_send_callback(&link, &input_ref);
+        let join = create_join_callback(&link, &username_ref, &client);
+        let render = create_render_callback(&link);
 
         html! {
             <>
                 <input ref={username_ref} id={"username"} style={"display:block; width:100px; box-sizing: border-box"} type={"text"} placeholder={"username"} />
-                <button ref={joinbtn_ref} id={"join-chat"} type={"button"}>{ "Join Chat" }</button>
+                <button ref={joinbtn_ref} onclick={join} id={"join-chat"} type={"button"}>{ "Join Chat" }</button>
                 <table ref={textarea_ref} id={"chat"} style={"display:block; width:600px; height:400px; box-sizing: border-box"} cols={"30"} rows={"10"}>
                 {
                     self
@@ -107,34 +101,80 @@ impl Component for MessageList {
                 </table>
                 <input ref={input_ref} id={"input"} style={"display:block; width:600px; box-sizing: border-box"} type={"text"} placeholder={"chat"} />
                 <button ref={sendbtn_ref} id={"send-message"} type={"button"} onclick={send}>{ "Send Message" }</button>
+                <canvas ref={canvas_ref} id={"canvas"} />
+                <button ref={renderbtn_ref} type={"button"} onclick={render}>{ "Render canvas" }</button>
             </>
         }
     }
+}
+
+fn create_join_callback(
+    link: &html::Scope<MessageList>,
+    username_ref: &NodeRef,
+    client: &EventClient,
+) -> Callback<MouseEvent> {
+    let client: EventClient = client.clone();
+    let username_ref = username_ref.clone();
+    link.callback(move |_event: MouseEvent| {
+        gloo::console::log!("Button pressed");
+        let value = match username_ref.cast::<web_sys::HtmlInputElement>() {
+            Some(element) => element.value(),
+            None => {
+                gloo::console::log!("No input was provided");
+                return ChangeTodoList::None;
+            }
+        };
+        let _ = client.send_string(&value);
+        return ChangeTodoList::None;
+    })
+}
+
+fn create_send_callback(
+    link: &html::Scope<MessageList>,
+    input_ref: &NodeRef,
+) -> Callback<MouseEvent> {
+    let input_ref = input_ref.clone();
+    link.callback(move |_event: MouseEvent| {
+        gloo::console::log!("Button pressed");
+        let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
+            Some(element) => element.value(),
+            None => {
+                gloo::console::log!("No input was provided");
+                return ChangeTodoList::None;
+            }
+        };
+        ChangeTodoList::AddMessage(Message::new(Value::String(value), "test"))
+    })
+}
+
+fn create_render_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
+    link.callback(move |_event: MouseEvent| {
+        gloo::console::log!("Button pressed");
+        let _ = draw("canvas", 0);
+        ChangeTodoList::None
+    })
 }
 
 fn main() {
     yew::Renderer::<MessageList>::new().render();
 }
 
-#[macro_export]
-macro_rules! setup_websocket {
-    () => {
-        let mut client = ws::EventClient::new("ws://localhost:8081/websocket").unwrap();
-        client.set_on_error(Some(Box::new(|error| {
-            gloo::console::error!(error);
-        })));
-        client.set_on_connection(Some(Box::new(|client: &ws::EventClient| {
-            gloo::console::log!(client.get_status());
-            gloo::console::log!("Sending message...");
-            client.send_string("Hello, World!").unwrap();
-        })));
-        client.set_on_close(Some(Box::new(|_evt| {
-            gloo::console::log!("Connection closed");
-        })));
-        client.set_on_message(Some(Box::new(
-            |_client: &ws::EventClient, message: ws::Message| {
-                gloo::console::log!("New Message: ", message);
-            },
-        )));
-    };
+fn create_client(link: &html::Scope<MessageList>) -> ws::EventClient {
+    let mut client: ws::EventClient =
+        ws::EventClient::new("ws://localhost:8081/websocket").unwrap();
+    client.set_on_error(Some(Box::new(|error| {
+        gloo::console::error!(error);
+    })));
+    client.set_on_connection(Some(Box::new(|client: &ws::EventClient| {
+        gloo::console::log!(client.get_status());
+    })));
+    client.set_on_close(Some(Box::new(|_evt| {
+        gloo::console::log!("Connection closed");
+    })));
+    client.set_on_message(Some(Box::new(
+        |_client: &ws::EventClient, message: ws::Message| {
+            gloo::console::log!("New Message: ", message);
+        },
+    )));
+    client
 }

@@ -247,6 +247,7 @@ pub enum WebSocketError {
     ConnectionCreationError(String),
 }
 
+#[derive(Clone)]
 pub struct EventClient {
     /// The URL this client is connected to
     pub url: Rc<RefCell<String>>,
@@ -460,6 +461,7 @@ impl EventClient {
     /// client.send_string("Hello server!")?;
     /// ```
     pub fn send_string(&self, message: &str) -> Result<(), JsValue> {
+        gloo::console::log!("Sending ", message, " to ws");
         self.connection.borrow().send_with_str(message)
     }
     /// Send a binary message to the server
