@@ -40,4 +40,4 @@ lazy_static = "1.4.0"
 
 [dependencies.web-sys]
 version = "0.3.64"
-features = ["Document", "DomRect", "Node", "Window", "CanvasRenderingContext2d", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlTextAreaElement", "HtmlSelectElement", "HtmlDivElement", "HtmlLabelElement"]
+features = ["Document", "DomRect", "Node", "Window", "CanvasRenderingContext2d", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlTextAreaElement", "HtmlSelectElement", "HtmlDivElement", "HtmlLabelElement", "Performance", "PerformanceTiming"]
