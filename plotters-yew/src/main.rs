@@ -84,8 +84,7 @@ impl Component for App {
                     </div>
                 </main>
                 <footer>
-                    <a href={"https://github.com/plotters-rs/plotters-wasm-demo"} target={"a"}>{"Source"}</a> { " | " }
-                    <a href={"https://github.com/plotters-rs/plotters"} target={"a"}>{"Repo"}</a> { " | " }
+                    <a href={"https://github.com/Tommy-ASD/playground/tree/master/plotters-yew"} target={"a"}>{"Repo"}</a> { " | " }
                     <a href={"https://crates.io/crates/plotters"} target={"a"}>{"Crates"}</a> { " | " }
                     <a href={"https://docs.rs/plotters"} target={"a"}>{"Docs"}</a>
                 </footer>
