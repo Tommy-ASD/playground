@@ -233,7 +233,7 @@ fn update_plot(upgrade: UpgradeType) {
         }
         UpgradeType::Plot3d(pitch, yaw) => {
             threed_controls.set_hidden(false);
-            let _ = plot3d::draw(canvas, pitch, yaw);
+            let _ = plot3d::draw(canvas, pitch / 100f64, yaw / 100f64);
         }
     }
 
