@@ -1,9 +1,11 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 mod listener;
 mod yt;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
+
+use tokio::sync::Mutex;
 
 use traceback_error::{traceback, TracebackError};
 
@@ -15,16 +17,33 @@ pub(crate) static GOOGLE_CLIENT_SECRET: &str = include_str!("../secret.secret");
 #[traceback_derive::traceback]
 #[tokio::main]
 async fn main() -> Result<(), TracebackError> {
+    traceback!();
     let _ = reset_entries();
 
+    traceback!();
     // Create a channel for sending PathBuf
-    let (tx, rx) = std::sync::mpsc::channel::<PathBuf>(); // You can adjust the buffer size as needed
+    let (tx, rx) = tokio::sync::mpsc::channel::<PathBuf>(32); // You can adjust the buffer size as needed
 
-    tokio::task::spawn(listener::listen(tx));
+    traceback!();
+    let rx = Arc::new(Mutex::new(rx)); // Wrap the Receiver in an Arc and Mutex
 
-    yt::handler(rx).await?;
+    traceback!();
+    let listener_handle = tokio::task::spawn(listener::listen(tx));
 
-    loop {}
+    traceback!();
+    let rx_clone = Arc::clone(&rx); // Create a clone of the Arc for use in the yt::handler task
+
+    traceback!();
+    let yt_handle = tokio::task::spawn(yt::handler(rx_clone));
+
+    traceback!();
+    tokio::select! {
+        _ = listener_handle => (),
+        _ = yt_handle => (),
+    }
+
+    traceback!();
+    Ok(())
 }
 
 fn create_path() -> Result<PathBuf, TracebackError> {

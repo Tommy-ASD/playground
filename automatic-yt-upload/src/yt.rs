@@ -1,7 +1,8 @@
-use std::path::PathBuf;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
+use std::{path::PathBuf, sync::Arc};
+use tokio::sync::Mutex;
 
 use chrono::Utc;
 use reqwest::{self, header, multipart};
@@ -60,37 +61,48 @@ struct VideoData {
 }
 
 #[traceback_derive::traceback]
-pub async fn handler(reciever: std::sync::mpsc::Receiver<PathBuf>) -> Result<(), TracebackError> {
+pub async fn handler(
+    reciever: Arc<Mutex<tokio::sync::mpsc::Receiver<PathBuf>>>,
+) -> Result<(), TracebackError> {
+    traceback!();
     let username = whoami::username();
+    traceback!();
     let entry = keyring::Entry::new("AUTOMATIC_YOUTUBE_UPLOAD", &username)?;
+    traceback!();
     match entry.get_password() {
         Ok(pass) => pass,
         // token has not yet been set
         Err(outer_e) => match get_token().await {
             Ok(token) => {
+                traceback!();
                 let _ = entry.set_password(&token);
                 token
             }
             Err(e) => {
+                traceback!();
                 return Err(traceback!(err e).with_extra_data(json!({
                     "outer": outer_e.to_string()
-                })))
+                })));
             }
         },
     };
+    traceback!();
+    let mut rx = reciever.lock().await;
     let mut uploaded_paths = vec![];
-    while let Ok(path) = reciever.recv() {
+    while let Some(path) = rx.recv().await {
+        traceback!();
         if !uploaded_paths.contains(&path) {
             initilize_upload(&path).await?;
             uploaded_paths.push(path);
         }
     }
+    traceback!();
     return Err(traceback!("Exited handler"));
 }
 
 #[traceback_derive::traceback]
 pub async fn initilize_upload(path: &PathBuf) -> Result<(), TracebackError> {
-    println!("Uploading {path:?}");
+    traceback!(format!("Uploading {path:?}"));
     let username = whoami::username();
     let entry = keyring::Entry::new("AUTOMATIC_YOUTUBE_UPLOAD", &username)?;
     let token = match entry.get_password() {
@@ -128,7 +140,10 @@ pub async fn initilize_upload(path: &PathBuf) -> Result<(), TracebackError> {
 
     let video_url = upload_video(path.to_str().unwrap(), &vdata, &token).await?;
 
-    println!("Video uploaded successfully. Video URL: {}", video_url);
+    traceback!(format!(
+        "Video uploaded successfully. Video URL: {}",
+        video_url
+    ));
 
     Ok(())
 }
@@ -155,7 +170,6 @@ async fn upload_video(
                 .file_name(file_path.to_string())
                 .mime_str("video/mp4")?,
         );
-    println!("Form: {form:?}");
 
     // Upload the video using the YouTube API
     let response = http_client
@@ -173,7 +187,7 @@ async fn upload_video(
     // Parse the video ID from the response
     let response_data: serde_json::Value =
         serde_json::from_str(response.text().await.unwrap().as_str())?;
-    dbg!(&response_data);
+    traceback!(format!("{:?}", &response_data));
     let video_id = response_data["id"]
         .as_str()
         .ok_or("Video ID not found in the response")?;
@@ -197,7 +211,7 @@ fn wrap_in_quotes<T: AsRef<OsStr>>(path: T) -> OsString {
 
 #[traceback_derive::traceback]
 async fn get_token() -> Result<String, TracebackError> {
-    println!("No token found; creating token");
+    traceback!(format!("No token found; creating token"));
     let client = BasicClient::new(
         ClientId::new(GOOGLE_CLIENT_ID.to_string()),
         Some(ClientSecret::new(GOOGLE_CLIENT_SECRET.to_string())),
@@ -243,7 +257,10 @@ async fn get_token() -> Result<String, TracebackError> {
     match command.spawn() {
         Ok(_) => {}
         Err(e) => {
-            println!("Failed to open browser, please browse to: {}", auth_url);
+            traceback!(format!(
+                "Failed to open browser, please browse to: {}",
+                auth_url
+            ));
             traceback!(err e);
         }
     }
@@ -293,13 +310,6 @@ async fn get_token() -> Result<String, TracebackError> {
             );
             stream.write_all(response.as_bytes())?;
 
-            println!("Google returned the following code:\n{}\n", code.secret());
-            println!(
-                "Google returned the following state:\n{} (expected `{}`)\n",
-                state.secret(),
-                csrf_token.secret()
-            );
-
             // Exchange the code with a token.
             token_response = Some(
                 client
@@ -309,17 +319,11 @@ async fn get_token() -> Result<String, TracebackError> {
                     .await,
             );
 
-            println!(
-                "Google returned the following token:\n{:?}\n",
-                token_response
-            );
-
             // The server will terminate itself after revoking the token.
             break;
         }
     }
 
     let token = token_response.unwrap()?.access_token().secret().to_string();
-    println!("Got token: {token}");
     Ok(token)
 }
