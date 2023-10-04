@@ -1,3 +1,4 @@
+use log::info;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
@@ -40,7 +41,7 @@ type TokenResult = Result<Token, FailedToken>;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct VideoSnippet {
     title: String,
     description: String,
@@ -48,13 +49,13 @@ struct VideoSnippet {
     category_id: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct VideoStatus {
     #[serde(rename = "privacyStatus")]
     privacy_status: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct VideoData {
     snippet: VideoSnippet,
     status: VideoStatus,
@@ -64,62 +65,44 @@ struct VideoData {
 pub async fn handler(
     reciever: Arc<Mutex<tokio::sync::mpsc::Receiver<PathBuf>>>,
 ) -> Result<(), TracebackError> {
-    traceback!();
     let username = whoami::username();
-    traceback!();
+
     let entry = keyring::Entry::new("AUTOMATIC_YOUTUBE_UPLOAD", &username)?;
-    traceback!();
-    match entry.get_password() {
+
+    let pass = match entry.get_password() {
         Ok(pass) => pass,
         // token has not yet been set
         Err(outer_e) => match get_token().await {
             Ok(token) => {
-                traceback!();
                 let _ = entry.set_password(&token);
                 token
             }
             Err(e) => {
-                traceback!();
                 return Err(traceback!(err e).with_extra_data(json!({
                     "outer": outer_e.to_string()
                 })));
             }
         },
     };
-    traceback!();
+
     let mut rx = reciever.lock().await;
+    info!("Got a lock on message receiver");
     let mut uploaded_paths = vec![];
     while let Some(path) = rx.recv().await {
-        traceback!();
+        info!("Uploading {path:?}");
+        info!("Already uploaded {uploaded_paths:?}");
         if !uploaded_paths.contains(&path) {
-            initilize_upload(&path).await?;
+            initilize_upload(pass.clone(), &path).await?;
             uploaded_paths.push(path);
         }
     }
-    traceback!();
+
     return Err(traceback!("Exited handler"));
 }
 
 #[traceback_derive::traceback]
-pub async fn initilize_upload(path: &PathBuf) -> Result<(), TracebackError> {
-    traceback!(format!("Uploading {path:?}"));
-    let username = whoami::username();
-    let entry = keyring::Entry::new("AUTOMATIC_YOUTUBE_UPLOAD", &username)?;
-    let token = match entry.get_password() {
-        Ok(pass) => pass,
-        // token has not yet been set
-        Err(outer_e) => match get_token().await {
-            Ok(token) => {
-                let _ = entry.set_password(&token);
-                token
-            }
-            Err(e) => {
-                return Err(traceback!(err e).with_extra_data(json!({
-                    "outer": outer_e.to_string()
-                })))
-            }
-        },
-    };
+pub async fn initilize_upload(token: String, path: &PathBuf) -> Result<(), TracebackError> {
+    info!("Initializing {path:?} upload");
     // Read video metadata and file path from command line arguments or configuration
     let video_title = Utc::now().naive_local();
     let video_description = "";
@@ -138,12 +121,11 @@ pub async fn initilize_upload(path: &PathBuf) -> Result<(), TracebackError> {
 
     let vdata = VideoData { snippet, status };
 
+    tokio::time::sleep(std::time::Duration::new(20, 0)).await;
+
     let video_url = upload_video(path.to_str().unwrap(), &vdata, &token).await?;
 
-    traceback!(format!(
-        "Video uploaded successfully. Video URL: {}",
-        video_url
-    ));
+    info!("Video uploaded successfully. Video URL: {}", video_url);
 
     Ok(())
 }
@@ -157,9 +139,12 @@ async fn upload_video(
     let http_client = reqwest::Client::new();
 
     // Open and read the video file
+    info!("Trying to open video file");
     let mut video_file = tokio::fs::File::open(file_path).await?;
     let mut video_data = Vec::new();
+    info!("Trying to read video data");
     video_file.read_to_end(&mut video_data).await?;
+    info!("Read video data");
 
     // Create a multipart form for video upload
     let form = reqwest::multipart::Form::new()
@@ -170,7 +155,7 @@ async fn upload_video(
                 .file_name(file_path.to_string())
                 .mime_str("video/mp4")?,
         );
-
+    info!("Starting request to upload {file_path:?}\n< ({vdata:?})");
     // Upload the video using the YouTube API
     let response = http_client
         .post("https://www.googleapis.com/upload/youtube/v3/videos")
@@ -178,16 +163,18 @@ async fn upload_video(
         .multipart(form)
         .send()
         .await?;
+    info!("Sent request to YT, got response\n{response:?}");
 
     if !response.status().is_success() {
         let error_msg = response.text().await?;
+        info!("Got error: {error_msg}");
         return Err(traceback!(err error_msg));
     }
 
     // Parse the video ID from the response
     let response_data: serde_json::Value =
         serde_json::from_str(response.text().await.unwrap().as_str())?;
-    traceback!(format!("{:?}", &response_data));
+    info!("{:?}", &response_data);
     let video_id = response_data["id"]
         .as_str()
         .ok_or("Video ID not found in the response")?;
@@ -211,7 +198,7 @@ fn wrap_in_quotes<T: AsRef<OsStr>>(path: T) -> OsString {
 
 #[traceback_derive::traceback]
 async fn get_token() -> Result<String, TracebackError> {
-    traceback!(format!("No token found; creating token"));
+    info!("No token found; creating token");
     let client = BasicClient::new(
         ClientId::new(GOOGLE_CLIENT_ID.to_string()),
         Some(ClientSecret::new(GOOGLE_CLIENT_SECRET.to_string())),
@@ -256,16 +243,15 @@ async fn get_token() -> Result<String, TracebackError> {
 
     match command.spawn() {
         Ok(_) => {}
-        Err(e) => {
-            traceback!(format!(
-                "Failed to open browser, please browse to: {}",
-                auth_url
-            ));
-            traceback!(err e);
+        Err(_e) => {
+            info!("Failed to open browser, please browse to: {}", auth_url);
         }
     }
+
+    info!("Opened browser");
     // A very naive implementation of the redirect server.
     let listener = TcpListener::bind("127.0.0.1:13425")?;
+    info!("Created listener");
     for stream in listener.incoming() {
         if let Ok(mut stream) = stream {
             let code;
@@ -319,11 +305,13 @@ async fn get_token() -> Result<String, TracebackError> {
                     .await,
             );
 
+            info!("Got token: {token_response:?}");
+
             // The server will terminate itself after revoking the token.
             break;
         }
     }
-
+    info!("Returning token");
     let token = token_response.unwrap()?.access_token().secret().to_string();
     Ok(token)
 }
