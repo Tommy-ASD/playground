@@ -1,0 +1,32 @@
+[package]
+name = "automatic-yt-upload"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+notify = { version = "6.1.1", default-features = false, features = [
+    "macos_kqueue",
+] }
+tokio = { version = "1.32.0", features = ["full"] }
+dotenv = "0.15.0"
+env_logger = "0.10.0"
+log = "0.4.20"
+oauth2 = "4.4.2"
+reqwest = { version = "0.11.20", features = ["serde_json", "multipart"] }
+serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.107"
+traceback-derive = "0.1.1"
+traceback-error = "0.1.9"
+url = { version = "2.4.1", features = ["serde"] }
+chrono = { version = "0.4.31", features = ["serde"] }
+winapi = "0.3.9"
+dirs = "5.0.1"
+keyring = "2.0.5"
+whoami = "1.4.1"
+
+native-dialog = { version = "0.6.4", features = [
+    "windows_dpi_awareness",
+    "windows_visual_styles",
+] }

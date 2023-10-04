@@ -5,3 +5,5 @@ errors
 
 .cargo
 config.toml
+
+*.secret

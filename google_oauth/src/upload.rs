@@ -8,6 +8,7 @@ use serde::Serialize;
 
 use serde_json::json;
 
+use tokio::io::AsyncReadExt;
 use traceback_error::{traceback, TracebackError};
 
 #[derive(Serialize)]
@@ -24,12 +25,18 @@ struct VideoStatus {
     privacy_status: String,
 }
 
+#[derive(Serialize)]
+struct VideoData {
+    snippet: VideoSnippet,
+    status: VideoStatus,
+}
+
 #[traceback_derive::traceback]
 pub async fn primary(token: &str) -> Result<(), TracebackError> {
     // Read video metadata and file path from command line arguments or configuration
     let video_title = "Test Title";
     let video_description = "Test Description";
-    let video_tags = vec!["tag1".to_string(), "tag2".to_string()];
+    let video_tags = vec![];
     let video_category_id = "22";
     let snippet = VideoSnippet {
         title: video_title.to_string(),
@@ -39,10 +46,16 @@ pub async fn primary(token: &str) -> Result<(), TracebackError> {
     };
     let video_file_path = "./cpp.mp4"; // Update with your video file path
 
+    let status = VideoStatus {
+        privacy_status: "private".to_string(),
+    };
+
+    let vdata = VideoData { snippet, status };
+
     // Initialize a Reqwest HTTP client with the access token
 
     // Upload the video
-    let video_url = upload_video(video_file_path, &snippet, token).await?;
+    let video_url = upload_video(video_file_path, &vdata, token).await?;
 
     println!("Video uploaded successfully. Video URL: {}", video_url);
 
@@ -52,29 +65,30 @@ pub async fn primary(token: &str) -> Result<(), TracebackError> {
 #[traceback_derive::traceback]
 async fn upload_video(
     file_path: &str,
-    snippet: &VideoSnippet,
+    vdata: &VideoData,
     token: &str,
 ) -> Result<String, TracebackError> {
     let http_client = reqwest::Client::new();
 
     // Open and read the video file
-    let file = File::open(file_path)?;
-    let file_len = file.metadata()?.len();
-    let mut buffer = Vec::with_capacity(file_len as usize);
-    let _ = io::BufReader::new(file).read_to_end(&mut buffer)?;
+    let mut video_file = tokio::fs::File::open(file_path).await?;
+    let mut video_data = Vec::new();
+    video_file.read_to_end(&mut video_data).await?;
 
     // Create a multipart form for video upload
     let form = reqwest::multipart::Form::new()
-        .text("snippet", serde_json::to_string(snippet)?)
+        .text("part", serde_json::to_string(vdata)?)
         .part(
-            "video",
-            multipart::Part::bytes(buffer).file_name(file_path.to_string()),
+            "media",
+            multipart::Part::bytes(video_data)
+                .file_name(file_path.to_string())
+                .mime_str("video/mp4")?,
         );
     println!("Form: {form:?}");
 
     // Upload the video using the YouTube API
     let response = http_client
-        .post("http://localhost:13425")
+        .post("https://www.googleapis.com/upload/youtube/v3/videos")
         .header(header::AUTHORIZATION, format!("Bearer {token}"))
         .multipart(form)
         .send()
