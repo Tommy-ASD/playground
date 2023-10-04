@@ -1,7 +1,6 @@
 use log::info;
 use std::{
     convert::Infallible,
-    ffi::OsStr,
     path::{Path, PathBuf},
 };
 

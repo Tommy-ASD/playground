@@ -214,7 +214,7 @@ async fn get_token() -> Result<String, TracebackError> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
     // Generate the full authorization URL.
-    let (auth_url, csrf_token) = client
+    let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         // Set the desired scopes.
         .add_scope(Scope::new(
@@ -255,7 +255,7 @@ async fn get_token() -> Result<String, TracebackError> {
     for stream in listener.incoming() {
         if let Ok(mut stream) = stream {
             let code;
-            let state;
+            let _state;
             {
                 let mut reader = BufReader::new(&stream);
 
@@ -285,7 +285,7 @@ async fn get_token() -> Result<String, TracebackError> {
                     .unwrap();
 
                 let (_, value) = state_pair;
-                state = CsrfToken::new(value.into_owned());
+                _state = CsrfToken::new(value.into_owned());
             }
 
             let message = "Go back to your terminal :)";
