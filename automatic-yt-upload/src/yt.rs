@@ -121,7 +121,7 @@ pub async fn initilize_upload(token: String, path: &PathBuf) -> Result<(), Trace
 
     let vdata = VideoData { snippet, status };
 
-    tokio::time::sleep(std::time::Duration::new(20, 0)).await;
+    tokio::time::sleep(std::time::Duration::new(10 * 60, 0)).await;
 
     let video_url = upload_video(path.to_str().unwrap(), &vdata, &token).await?;
 

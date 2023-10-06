@@ -4,9 +4,6 @@ pub mod func_plot;
 pub mod mandelbrot;
 pub mod plot3d;
 
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 /// Type alias for the result of a drawing function.
 pub type DrawResult<T> = Result<T, Box<dyn std::error::Error>>;
 
