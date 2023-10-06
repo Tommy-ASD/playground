@@ -1,17 +1,19 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
 };
 
-static mut GRAPH: Vec<ArcNode> = vec![];
+use uuid::Uuid;
 
-type ArcNode = Arc<Mutex<GraphNode>>;
-
-#[derive(Debug)]
+#[derive(Hash)]
 struct GraphNode {
-    id: i32,
-    incoming: Vec<ArcNode>,
-    outgoing: Vec<ArcNode>,
+    outgoing: Vec<Uuid>,
+    incoming: Vec<Uuid>,
+    id: Uuid,
+}
+
+struct Graph {
+    nodes: Vec<GraphNode>,
 }
 
 impl PartialEq for GraphNode {
@@ -20,77 +22,66 @@ impl PartialEq for GraphNode {
     }
 }
 
-impl GraphNode {
-    fn new() -> Self {
-        unsafe {
-            let id;
-            id = GRAPH.len();
-
-            let node = GraphNode {
-                id: id.try_into().unwrap(),
-                incoming: Vec::new(),
-                outgoing: Vec::new(),
-            };
-            node
-        }
+fn get_multi_mut<T>(v: &mut [T], i: usize, j: usize) -> Option<(&mut T, &mut T)> {
+    if i == j {
+        return None;
     }
+    let (start, end) = if i < j { (i, j) } else { (j, i) };
 
-    fn add_outgoing_edge(source: &ArcNode, target: &ArcNode) {
-        source.lock().unwrap().outgoing.push(Arc::clone(target));
-        target.lock().unwrap().incoming.push(Arc::clone(source));
+    let (first, second) = v.split_at_mut(start + 1);
+    Some((&mut first[start], &mut second[end - start - 1]))
+}
+
+impl Graph {
+    fn add_outgoing_edge(&mut self, source_idx: Uuid, target_idx: Uuid) {
+        let (source, target) = self.get_multi_mut(source_idx, target_idx).unwrap();
+        source.outgoing.push(target.id);
+        target.incoming.push(source.id);
     }
-
-    fn add_incoming_edge(target: &ArcNode, source: &ArcNode) {
-        source.lock().unwrap().outgoing.push(Arc::clone(target));
-        target.lock().unwrap().incoming.push(Arc::clone(source));
+    fn add_incoming_edge(&mut self, source_idx: Uuid, target_idx: Uuid) {
+        let (source, target) = self.get_multi_mut(source_idx, target_idx).unwrap();
+        source.incoming.push(target.id);
+        target.outgoing.push(source.id);
     }
-
-    fn dfs(source: &ArcNode) -> Vec<i32> {
-        println!("Initializing dfs");
-        let locked = source.lock().unwrap();
-        println!("Got a lock on source");
-        drop(locked);
-        let mut visited = vec![];
-        println!("Initializing dfs_inner");
-        GraphNode::dfs_inner(source, &mut visited);
-        println!("Finished dfs_inner");
-        visited
-    }
-
-    fn dfs_inner(source: &ArcNode, visited: &mut Vec<i32>) {
-        println!("dfs_inner: Trying to get a lock");
-        let lock = source.lock().unwrap();
-        println!("Calculating {lock:?}");
-        if visited.contains(&lock.id) {
-            return;
-        }
-        lock.incoming.iter().for_each(|node| {
-            println!("Calculating incoming node {node:?}");
-            GraphNode::dfs_inner(node, visited);
-            visited.push(node.lock().unwrap().id);
-        });
-        lock.outgoing.iter().for_each(|node| {
-            println!("Calculating outgoing node {node:?}");
-            GraphNode::dfs_inner(node, visited);
-            visited.push(node.lock().unwrap().id);
-        });
+    fn get_multi_mut(
+        &mut self,
+        source_id: Uuid,
+        target_id: Uuid,
+    ) -> Option<(&mut GraphNode, &mut GraphNode)> {
+        let source_idx = self
+            .nodes
+            .iter()
+            .enumerate()
+            .find(|(_, node)| node.id == source_id)
+            .map(|(index, _)| index);
+        let target_idx = self
+            .nodes
+            .iter()
+            .enumerate()
+            .find(|(_, node)| node.id == target_id)
+            .map(|(index, _)| index);
+        let (source_idx, target_idx) = match (source_idx, target_idx) {
+            (Some(source_idx), Some(target_idx)) => (source_idx, target_idx),
+            _ => return None,
+        };
+        get_multi_mut(self.nodes.iter_mut().into_slice(), source_idx, target_idx)
     }
 }
 
 fn main() {
-    // Create some nodes
-    let node1 = Arc::new(Mutex::new(GraphNode::new()));
-    let node2 = Arc::new(Mutex::new(GraphNode::new()));
-    let node3 = Arc::new(Mutex::new(GraphNode::new()));
+    // // Create some nodes
+    // let node1 = Arc::new(Mutex::new(GraphNode::new()));
+    // let node2 = Arc::new(Mutex::new(GraphNode::new()));
+    // let node3 = Arc::new(Mutex::new(GraphNode::new()));
 
-    // Create edges
-    GraphNode::add_outgoing_edge(&node1, &node2);
-    GraphNode::add_outgoing_edge(&node2, &node3);
-    // GraphNode::add_outgoing_edge(&node3, &node1);
+    // // Create edges
+    // GraphNode::add_outgoing_edge(&node1, &node2);
+    // GraphNode::add_outgoing_edge(&node2, &node3);
+    // // GraphNode::add_outgoing_edge(&node3, &node1);
 
-    println!("Node 1: {node1:?}");
-    println!("Node 1 dfs: {dfs:?}", dfs = GraphNode::dfs(&node1));
+    // println!("Node 1: {node1:?}");
+    // println!("Node 1 dfs: {dfs:?}", dfs = GraphNode::dfs(&node1));
 
-    // Perform operations on the graph
-    // ...
+    // // Perform operations on the graph
+    // // ...
 }
