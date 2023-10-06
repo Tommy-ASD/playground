@@ -1,0 +1,19 @@
+[package]
+name = "bevy-wasm"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+wasm-bindgen = "0.2"
+yew = "0.21.0"
+bevy = "0.11.3"
+
+# [lib]
+# crate-type = ["cdylib", "rlib"]
+
+[dependencies.web-sys]
+version = "0.3"
+features = ["CanvasRenderingContext2d"]
+
+[profile.release]
+panic = "abort"
