@@ -132,13 +132,14 @@ fn main() {
         graph_json = serde_json::to_string_pretty(&graph).unwrap()
     );
 
-    visualize_graph(&mut graph);
+    let _ = visualize_graph(&mut graph);
 }
 
 fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> {
+    let size = 10000;
     let mut rng = rand::thread_rng();
     // Create a drawing area
-    let root = BitMapBackend::new("graph.png", (1000, 1000)).into_drawing_area();
+    let root = BitMapBackend::new("graph.png", (size as u32, size as u32)).into_drawing_area();
     root.fill(&WHITE)?;
 
     // Create a chart context
@@ -146,12 +147,12 @@ fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> 
         .x_label_area_size(40)
         .y_label_area_size(40)
         .margin(5)
-        .build_cartesian_2d(0..1000, 0..1000)?;
+        .build_cartesian_2d(0..size, 0..size)?;
 
     // Plot nodes as scatter points
     for node in &mut graph.nodes {
-        let x = rng.gen_range(0..1000);
-        let y = rng.gen_range(0..1000);
+        let x = rng.gen_range(0..size);
+        let y = rng.gen_range(0..size);
 
         node.meta = Some(NodeMetaData { position: (x, y) });
 
