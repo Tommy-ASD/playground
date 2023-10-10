@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+};
 
 use rand::Rng;
 
@@ -6,12 +9,21 @@ use uuid::Uuid;
 
 use serde::{Deserialize, Serialize};
 
-use plotters::prelude::{
-    BitMapBackend, ChartBuilder, Circle, EmptyElement, IntoDrawingArea, LineSeries, PointSeries,
-    RGBColor, BLACK, RED, WHITE,
+use plotters::{
+    prelude::{
+        BitMapBackend, ChartBuilder, Circle, EmptyElement, IntoDrawingArea, LineSeries,
+        PointSeries, RGBColor, Text, BLACK, RED, WHITE,
+    },
+    style::IntoFont,
 };
 
-enum AddEdgeError {
+use ordered_float::OrderedFloat;
+
+use crate::shortest_path::dijkstra::dijkstra;
+
+pub mod shortest_path;
+
+pub enum AddEdgeError {
     TargetNodeMissing(Uuid),
     SourceNodeMissing(Uuid),
     BothNodesMissing(Uuid, Uuid),
@@ -27,32 +39,57 @@ impl std::fmt::Display for AddEdgeError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct NodeMetaData {
-    position: (i32, i32),
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NodeMetaData {
+    pub position: (i32, i32),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct GraphNode {
-    pub outgoing: HashSet<Uuid>,
-    pub incoming: HashSet<Uuid>,
+impl NodeMetaData {
+    pub fn new_random(range: Range<i32>) -> Self {
+        let mut rng = rand::thread_rng();
+        let x = rng.gen_range(range.clone());
+        let y = rng.gen_range(range.clone());
+
+        Self { position: (x, y) }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EdgeMetaData {
+    pub weight: OrderedFloat<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Edge {
+    pub incoming: Uuid,
+    pub outgoing: Uuid,
+    pub meta: EdgeMetaData,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GraphNode {
     pub id: Uuid,
-    meta: Option<NodeMetaData>,
+    pub meta: NodeMetaData,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Graph {
+pub struct Graph {
     pub nodes: Vec<GraphNode>,
+
+    pub edges: Vec<Edge>,
 
     /// Mapping table from a node ID to the node's index in the Nodes vector
     pub node_lookup: HashMap<Uuid, usize>,
+    pub edge_lookup: HashMap<(Uuid, Uuid), usize>,
 }
 
 impl Graph {
     fn new() -> Self {
         Graph {
             nodes: Vec::new(),
+            edges: Vec::new(),
             node_lookup: HashMap::new(),
+            edge_lookup: HashMap::new(),
         }
     }
 
@@ -60,10 +97,8 @@ impl Graph {
         let id = Uuid::new_v4();
         if !self.node_lookup.contains_key(&id) {
             let node = GraphNode {
-                outgoing: HashSet::new(),
-                incoming: HashSet::new(),
                 id,
-                meta: None,
+                meta: NodeMetaData::new_random(1..10),
             };
             let index = self.nodes.len();
             self.nodes.push(node);
@@ -76,9 +111,17 @@ impl Graph {
             self.node_lookup.get(&source_id),
             self.node_lookup.get(&target_id),
         ) {
-            (Some(source_idx), Some(target_idx)) => {
-                self.nodes[*source_idx].outgoing.insert(target_id);
-                self.nodes[*target_idx].incoming.insert(source_id);
+            (Some(_), Some(_)) => {
+                let edge = Edge {
+                    incoming: source_id,
+                    outgoing: target_id,
+                    meta: EdgeMetaData {
+                        weight: OrderedFloat(1.0),
+                    },
+                };
+                self.edges.push(edge);
+                self.edge_lookup
+                    .insert((source_id, target_id), self.edges.len());
                 Ok(())
             }
             (Some(_), None) => Err(AddEdgeError::TargetNodeMissing(target_id)),
@@ -98,23 +141,22 @@ impl Graph {
         for _ in 0..num_nodes {
             self.add_node();
         }
+        println!("Generated {num_nodes} nodes");
 
         // Generate random edges
         for _ in 0..num_edges {
-            let mut closure = || {
-                let source_idx = rng.gen_range(0..self.nodes.len());
-                let target_idx = rng.gen_range(0..self.nodes.len());
+            let source_idx = rng.gen_range(0..self.nodes.len());
+            let target_idx = rng.gen_range(0..self.nodes.len());
 
-                let source_id = self.nodes[source_idx].id;
-                let target_id = self.nodes[target_idx].id;
+            let source_id = self.nodes[source_idx].id;
+            let target_id = self.nodes[target_idx].id;
 
-                // Add the edge
-                if let Err(err) = self.add_outgoing_edge(source_id, target_id) {
-                    eprintln!("Error adding edge: {}", err);
-                }
-            };
-            closure()
+            // Add the edge
+            if let Err(err) = self.add_outgoing_edge(source_id, target_id) {
+                eprintln!("Error adding edge: {}", err);
+            }
         }
+        println!("Generated {num_edges} edges");
     }
 
     fn new_random(num_nodes: usize, num_edges: usize) -> Self {
@@ -122,21 +164,43 @@ impl Graph {
         graph.randomize(num_nodes, num_edges);
         graph
     }
+
+    fn get_random_node(&self) -> Uuid {
+        let mut rng = rand::thread_rng();
+        // Use the gen_range method to generate a random index
+        let random_index = rng.gen_range(0..self.nodes.len());
+
+        // Get the random element from the vector
+        let random_element = self.nodes[random_index].id;
+        random_element
+    }
 }
 
 fn main() {
-    let mut graph = Graph::new_random(10, 10);
+    let mut graph = Graph::new_random(1000000, 10000000);
+    let source_id = graph.get_random_node();
+    let target_id = graph.get_random_node();
+
+    println!("Running Dijkstra for {source_id}, {target_id}");
+
+    let dijkstra = dijkstra(&graph, source_id, target_id);
+
+    println!("Dijkstra result: {dijkstra:?}");
+
+    // println!("Dijkstra: {dijkstra:?}");
+
+    // println!("Graph: {graph:#?}");
+
+    let _ = visualize_graph(&mut graph);
 
     println!(
         "{graph_json}",
         graph_json = serde_json::to_string_pretty(&graph).unwrap()
     );
-
-    let _ = visualize_graph(&mut graph);
 }
 
 fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> {
-    let size = 10000;
+    let size = 1000;
     let mut rng = rand::thread_rng();
     // Create a drawing area
     let root = BitMapBackend::new("graph.png", (size as u32, size as u32)).into_drawing_area();
@@ -154,7 +218,7 @@ fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> 
         let x = rng.gen_range(0..size);
         let y = rng.gen_range(0..size);
 
-        node.meta = Some(NodeMetaData { position: (x, y) });
+        node.meta = NodeMetaData { position: (x, y) };
 
         chart.draw_series(PointSeries::of_element(
             vec![(x, y)],
@@ -162,24 +226,31 @@ fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> 
             &RED,
             &|c, s, st| {
                 return EmptyElement::at(c) // We want the point to be at (x, y)
-                        + Circle::new((0, 0), s, st.filled()); // And a circle that is 2 pixels large
+                        + Circle::new((0, 0), s, st.filled()) // And a circle that is 2 pixels large
+                        + Text::new(
+                        format!("{}", node.id), // Convert the UUID to a string and display it
+                        (0, 0), // Adjust the position to display below the point
+                        ("sans-serif", 25.0).into_font(),
+                    ); // Add text below the point
             },
         ))?;
     }
 
-    // Plot edges as lines
-    // It is critical that this happens after the last loop, as the last loop defined positions
-    for node in &graph.nodes {
-        let source_pos = node.meta.as_ref().unwrap().position;
-        for &outgoing_id in &node.outgoing {
-            let target_idx = graph.node_lookup.get(&outgoing_id).unwrap();
-            let target_node = graph.nodes.get(*target_idx).unwrap();
-            let target_pos = target_node.meta.as_ref().unwrap().position;
-
-            chart.draw_series(LineSeries::new(vec![source_pos, target_pos], &BLACK))?;
-        }
+    for edge in &graph.edges {
+        let source_pos = graph
+            .nodes
+            .get(*graph.node_lookup.get(&edge.incoming).unwrap())
+            .unwrap()
+            .meta
+            .position;
+        let target_pos = graph
+            .nodes
+            .get(*graph.node_lookup.get(&edge.outgoing).unwrap())
+            .unwrap()
+            .meta
+            .position;
+        chart.draw_series(LineSeries::new(vec![source_pos, target_pos], &BLACK))?;
     }
-
     // Export the plot as an image
     root.present()?;
     Ok(())
