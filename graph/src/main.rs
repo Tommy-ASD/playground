@@ -19,7 +19,7 @@ use plotters::{
 
 use ordered_float::OrderedFloat;
 
-use crate::shortest_path::{bfs::bfs_recursive, dijkstra::dijkstra};
+use crate::shortest_path::{bfs::dfs, dijkstra::dijkstra};
 
 pub mod shortest_path;
 
@@ -174,10 +174,30 @@ impl Graph {
         let random_element = self.nodes[random_index].id;
         random_element
     }
+    fn get_neighbors(&self, node_id: Uuid) -> HashSet<Uuid> {
+        let mut neighbors = HashSet::new();
+
+        // Find the index of the node with the given ID in the node vector
+        if let Some(&node_index) = self.node_lookup.get(&node_id) {
+            // Iterate through the edges to find outgoing edges from the node
+            for edge in &self.edges {
+                if edge.incoming == node_id {
+                    // If the incoming ID matches the target node, add the outgoing node to neighbors
+                    neighbors.insert(edge.outgoing);
+                }
+                if edge.outgoing == node_id {
+                    // If the incoming ID matches the target node, add the outgoing node to neighbors
+                    neighbors.insert(edge.incoming);
+                }
+            }
+        }
+
+        neighbors
+    }
 }
 
 fn main() {
-    let mut graph = Graph::new_random(50, 75);
+    let mut graph = Graph::new_random(10, 15);
     let _ = visualize_graph(&mut graph);
     for _ in 0..10 {
         let source_id = graph.get_random_node();
@@ -185,7 +205,7 @@ fn main() {
 
         println!("Running Shortest Path for {source_id}, {target_id}");
 
-        let shortest = bfs_recursive(&graph, source_id);
+        let shortest = dfs(&graph, source_id);
 
         println!("Shortest Path result: {shortest:?}");
         println!(
