@@ -136,7 +136,7 @@ fn main() {
 }
 
 fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> {
-    let size = 10000;
+    let size = 1000;
     let mut rng = rand::thread_rng();
     // Create a drawing area
     let root = BitMapBackend::new("graph.png", (size as u32, size as u32)).into_drawing_area();
