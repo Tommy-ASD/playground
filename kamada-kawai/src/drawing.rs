@@ -1,4 +1,4 @@
-use ndarray::prelude::{Array2, NdFloat};
+use ndarray::{prelude::Array2, NdFloat};
 use num_traits::{cast::FromPrimitive, clamp, float::FloatConst};
 use petgraph::visit::{IntoNeighbors, IntoNodeIdentifiers};
 use std::{
