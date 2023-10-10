@@ -11,36 +11,36 @@ fn norm(x: f32, y: f32) -> f32 {
 }
 
 pub struct KamadaKawai {
-    k: Array2<f32>,
-    l: Array2<f32>,
-    pub eps: f32,
+    k_matrix: Array2<f32>,
+    l_matrix: Array2<f32>,
+    pub epsilon: f32,
 }
 
 impl KamadaKawai {
-    pub fn new<G, F>(graph: G, length: F) -> KamadaKawai
+    pub fn new<G, F>(graph: G, edge_length: F) -> KamadaKawai
     where
         G: IntoEdges + IntoNodeIdentifiers + NodeCount,
         G::NodeId: DrawingIndex + Ord,
         F: FnMut(G::EdgeRef) -> f32,
     {
-        let l = all_sources_dijkstra(graph, length);
-        KamadaKawai::new_with_distance_matrix(&l)
+        let length_matrix = all_sources_dijkstra(graph, edge_length);
+        KamadaKawai::new_with_distance_matrix(&length_matrix)
     }
 
-    pub fn new_with_distance_matrix(l: &Array2<f32>) -> KamadaKawai {
-        let eps = 1e-1;
-        let n = l.nrows();
+    pub fn new_with_distance_matrix(length_matrix: &Array2<f32>) -> KamadaKawai {
+        let epsilon = 1e-1;
+        let n = length_matrix.nrows();
 
-        let mut k = Array2::zeros((n, n));
+        let mut stiffness_matrix = Array2::zeros((n, n));
         for i in 0..n {
             for j in 0..n {
-                k[[i, j]] = 1. / (l[[i, j]] * l[[i, j]]);
+                stiffness_matrix[[i, j]] = 1. / (length_matrix[[i, j]] * length_matrix[[i, j]]);
             }
         }
         KamadaKawai {
-            k,
-            l: l.clone(),
-            eps,
+            k_matrix: stiffness_matrix,
+            l_matrix: length_matrix.clone(),
+            epsilon,
         }
     }
 
@@ -49,9 +49,14 @@ impl KamadaKawai {
         N: DrawingIndex,
     {
         let n = drawing.len();
-        let KamadaKawai { k, l, eps, .. } = self;
-        let mut delta2_max = 0.;
-        let mut m_target = 0;
+        let KamadaKawai {
+            k_matrix,
+            l_matrix,
+            epsilon,
+            ..
+        } = self;
+        let mut max_delta_squared = 0.;
+        let mut target_node = 0;
         for m in 0..n {
             let xm = drawing.coordinates[[m, 0]];
             let ym = drawing.coordinates[[m, 1]];
@@ -64,21 +69,21 @@ impl KamadaKawai {
                     let dx = xm - xi;
                     let dy = ym - yi;
                     let d = norm(dx, dy);
-                    dedx += k[[m, i]] * (1. - l[[m, i]] / d) * dx;
-                    dedy += k[[m, i]] * (1. - l[[m, i]] / d) * dy;
+                    dedx += k_matrix[[m, i]] * (1. - l_matrix[[m, i]] / d) * dx;
+                    dedy += k_matrix[[m, i]] * (1. - l_matrix[[m, i]] / d) * dy;
                 }
             }
-            let delta2 = dedx * dedx + dedy * dedy;
-            if delta2 > delta2_max {
-                delta2_max = delta2;
-                m_target = m;
+            let delta_squared = dedx * dedx + dedy * dedy;
+            if delta_squared > max_delta_squared {
+                max_delta_squared = delta_squared;
+                target_node = m;
             }
         }
 
-        if delta2_max < eps * eps {
+        if max_delta_squared < epsilon * epsilon {
             None
         } else {
-            Some(m_target)
+            Some(target_node)
         }
     }
 
@@ -87,7 +92,9 @@ impl KamadaKawai {
         N: DrawingIndex,
     {
         let n = drawing.len();
-        let KamadaKawai { k, l, .. } = self;
+        let KamadaKawai {
+            k_matrix, l_matrix, ..
+        } = self;
         let xm = drawing.coordinates[[m, 0]];
         let ym = drawing.coordinates[[m, 1]];
         let mut hxx = 0.;
@@ -102,17 +109,17 @@ impl KamadaKawai {
                 let dx = xm - xi;
                 let dy = ym - yi;
                 let d = norm(dx, dy);
-                let d3 = d * d * d;
-                hxx += k[[m, i]] * (1. - l[[m, i]] * dy * dy / d3);
-                hyy += k[[m, i]] * (1. - l[[m, i]] * dx * dx / d3);
-                hxy += k[[m, i]] * l[[m, i]] * dx * dy / d3;
-                dedx += k[[m, i]] * (1. - l[[m, i]] / d) * dx;
-                dedy += k[[m, i]] * (1. - l[[m, i]] / d) * dy;
+                let d_cubed = d * d * d;
+                hxx += k_matrix[[m, i]] * (1. - l_matrix[[m, i]] * dy * dy / d_cubed);
+                hyy += k_matrix[[m, i]] * (1. - l_matrix[[m, i]] * dx * dx / d_cubed);
+                hxy += k_matrix[[m, i]] * l_matrix[[m, i]] * dx * dy / d_cubed;
+                dedx += k_matrix[[m, i]] * (1. - l_matrix[[m, i]] / d) * dx;
+                dedy += k_matrix[[m, i]] * (1. - l_matrix[[m, i]] / d) * dy;
             }
         }
-        let det = hxx * hyy - hxy * hxy;
-        let delta_x = (hyy * dedx - hxy * dedy) / det;
-        let delta_y = (hxx * dedy - hxy * dedx) / det;
+        let determinant = hxx * hyy - hxy * hxy;
+        let delta_x = (hyy * dedx - hxy * dedy) / determinant;
+        let delta_y = (hxx * dedy - hxy * dedx) / determinant;
         drawing.coordinates[[m, 0]] -= delta_x;
         drawing.coordinates[[m, 1]] -= delta_y;
     }
@@ -142,15 +149,15 @@ fn test_kamada_kawai() {
 
     let mut coordinates = Drawing::initial_placement(&graph);
 
-    for &u in &nodes {
-        println!("{:?}", coordinates.position(u));
+    for &node in &nodes {
+        println!("{:?}", coordinates.position(node));
     }
 
     let kamada_kawai = KamadaKawai::new(&graph, &mut |_| 1.);
     kamada_kawai.run(&mut coordinates);
 
-    for &u in &nodes {
-        println!("{:?}", coordinates.position(u));
+    for &node in &nodes {
+        println!("{:?}", coordinates.position(node));
     }
 }
 
@@ -168,14 +175,14 @@ fn main() {
 
     let mut coordinates = Drawing::initial_placement(&graph);
 
-    for &u in &nodes {
-        println!("{:?}", coordinates.position(u));
+    for &node in &nodes {
+        println!("{:?}", coordinates.position(node));
     }
 
     let kamada_kawai = KamadaKawai::new(&graph, &mut |_| 1.);
     kamada_kawai.run(&mut coordinates);
 
-    for &u in &nodes {
-        println!("{:?}", coordinates.position(u));
+    for &node in &nodes {
+        println!("{:?}", coordinates.position(node));
     }
 }

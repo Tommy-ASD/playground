@@ -1,4 +1,4 @@
-use ndarray::prelude::*;
+use ndarray::prelude::{Array, Array1, Array2};
 use petgraph::visit::{IntoNeighbors, IntoNodeIdentifiers};
 use std::{
     collections::{HashMap, VecDeque},

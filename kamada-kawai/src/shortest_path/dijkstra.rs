@@ -1,4 +1,4 @@
-use ndarray::prelude::*;
+use ndarray::prelude::{Array, Array1, Array2};
 use ordered_float::OrderedFloat;
 use petgraph::visit::{EdgeRef, IntoEdges, IntoNodeIdentifiers};
 use std::{

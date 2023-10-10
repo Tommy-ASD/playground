@@ -1,4 +1,4 @@
-use ndarray::prelude::*;
+use ndarray::prelude::{Array, Array2};
 use petgraph::visit::{EdgeRef, IntoEdges, IntoNodeIdentifiers};
 use std::{collections::HashMap, f32::INFINITY, hash::Hash};
 
