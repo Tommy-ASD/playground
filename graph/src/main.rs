@@ -177,21 +177,26 @@ impl Graph {
 }
 
 fn main() {
-    let mut graph = Graph::new_random(1000000, 10000000);
-    let source_id = graph.get_random_node();
-    let target_id = graph.get_random_node();
+    let mut graph = Graph::new_random(15, 20);
+    let _ = visualize_graph(&mut graph);
+    for _ in 0..10 {
+        let source_id = graph.get_random_node();
+        let target_id = graph.get_random_node();
 
-    println!("Running Dijkstra for {source_id}, {target_id}");
+        println!("Running Dijkstra for {source_id}, {target_id}");
 
-    let dijkstra = dijkstra(&graph, source_id, target_id);
+        let dijkstra = dijkstra(&graph, source_id, target_id);
 
-    println!("Dijkstra result: {dijkstra:?}");
+        println!("Dijkstra result: {dijkstra:?}");
+        println!(
+            "Dijkstra result: {dijkstra_json}",
+            dijkstra_json = serde_json::to_string_pretty(&dijkstra).unwrap()
+        );
+    }
 
     // println!("Dijkstra: {dijkstra:?}");
 
     // println!("Graph: {graph:#?}");
-
-    let _ = visualize_graph(&mut graph);
 
     println!(
         "{graph_json}",
