@@ -19,7 +19,7 @@ use plotters::{
 
 use ordered_float::OrderedFloat;
 
-use crate::shortest_path::dijkstra::dijkstra;
+use crate::shortest_path::{bfs::bfs_recursive, dijkstra::dijkstra};
 
 pub mod shortest_path;
 
@@ -177,20 +177,20 @@ impl Graph {
 }
 
 fn main() {
-    let mut graph = Graph::new_random(15, 20);
+    let mut graph = Graph::new_random(50, 75);
     let _ = visualize_graph(&mut graph);
     for _ in 0..10 {
         let source_id = graph.get_random_node();
         let target_id = graph.get_random_node();
 
-        println!("Running Dijkstra for {source_id}, {target_id}");
+        println!("Running Shortest Path for {source_id}, {target_id}");
 
-        let dijkstra = dijkstra(&graph, source_id, target_id);
+        let shortest = bfs_recursive(&graph, source_id);
 
-        println!("Dijkstra result: {dijkstra:?}");
+        println!("Shortest Path result: {shortest:?}");
         println!(
-            "Dijkstra result: {dijkstra_json}",
-            dijkstra_json = serde_json::to_string_pretty(&dijkstra).unwrap()
+            "Shortest Path result: {shortest_json}",
+            shortest_json = serde_json::to_string_pretty(&shortest).unwrap()
         );
     }
 
