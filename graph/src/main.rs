@@ -80,6 +80,7 @@ pub struct Graph {
 
     /// Mapping table from a node ID to the node's index in the Nodes vector
     pub node_lookup: HashMap<Uuid, usize>,
+    #[serde(with = "serde_with::rust::hashmap_as_tuple_list")]
     pub edge_lookup: HashMap<(Uuid, Uuid), usize>,
 }
 
