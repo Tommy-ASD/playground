@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 impl Graph {
     const REPULSION_STRENGTH: OrderedFloat<f64> = OrderedFloat(0.1);
-    const SPRING_STIFFNESS: OrderedFloat<f64> = OrderedFloat(0.0001);
+    const SPRING_STIFFNESS: OrderedFloat<f64> = OrderedFloat(0.1);
     const INITIAL_ALPHA: OrderedFloat<f64> = OrderedFloat(0.95);
     const ALPHA_DECREASE: OrderedFloat<f64> = OrderedFloat(0.005);
 
@@ -67,8 +67,8 @@ impl Graph {
             node_positions.insert(
                 node.id,
                 (
-                    rng.gen_range(OrderedFloat(0.0)..OrderedFloat(1.0)),
-                    rng.gen_range(OrderedFloat(0.0)..OrderedFloat(1.0)),
+                    rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
+                    rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
                 ),
             );
         }
@@ -80,8 +80,8 @@ impl Graph {
             old_pos.insert(
                 node.id,
                 (
-                    rng.gen_range(OrderedFloat(0.0)..OrderedFloat(1.0)),
-                    rng.gen_range(OrderedFloat(0.0)..OrderedFloat(1.0)),
+                    rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
+                    rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
                 ),
             );
         }
@@ -122,6 +122,8 @@ impl Graph {
         for (node_id, (x, y)) in node_positions.iter() {
             let node_index = self.node_lookup[node_id];
             self.nodes[node_index].meta.position = (*x, *y);
+            let id = self.nodes[node_index].id;
+            println!("Placed {id} at {x}, {y}");
         }
         println!("Ran {iterations} iterations of fdl");
     }
