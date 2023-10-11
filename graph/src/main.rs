@@ -3,6 +3,7 @@ use std::{
     ops::Range,
 };
 
+use json::any_key_map;
 use rand::Rng;
 
 use uuid::Uuid;
@@ -21,6 +22,7 @@ use ordered_float::OrderedFloat;
 
 use crate::shortest_path::{bfs::dfs, dijkstra::dijkstra};
 
+pub mod json;
 pub mod shortest_path;
 
 pub enum AddEdgeError {
@@ -80,7 +82,7 @@ pub struct Graph {
 
     /// Mapping table from a node ID to the node's index in the Nodes vector
     pub node_lookup: HashMap<Uuid, usize>,
-    #[serde(with = "serde_with::rust::hashmap_as_tuple_list")]
+    #[serde(with = "any_key_map")]
     pub edge_lookup: HashMap<(Uuid, Uuid), usize>,
 }
 
