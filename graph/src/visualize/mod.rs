@@ -1,7 +1,9 @@
 use plotters::{
+    coord::{types::RangedCoordf64, Shift},
     prelude::{
-        BitMapBackend, ChartBuilder, Circle, EmptyElement, IntoDrawingArea, LineSeries,
-        PointSeries, Text, BLACK, RED, WHITE,
+        BitMapBackend, Cartesian2d, ChartBuilder, ChartContext, Circle, CoordTranslate,
+        DrawingArea, DrawingBackend, EmptyElement, IntoDrawingArea, LineSeries, PointSeries, Text,
+        BLACK, RED, WHITE,
     },
     style::IntoFont,
 };
@@ -17,14 +19,35 @@ impl Graph {
         // Create a drawing area
         let root = BitMapBackend::new(path, (size as u32, size as u32)).into_drawing_area();
         root.fill(&WHITE)?;
-
+        self.draw_graph_on_backend(&root)?;
+        root.present()?;
+        Ok(())
+    }
+    pub fn draw_graph_on_backend<DB: DrawingBackend>(
+        &self,
+        root: &DrawingArea<DB, Shift>,
+    ) -> Result<(), Box<dyn std::error::Error>>
+    where
+        DB::ErrorType: 'static,
+    {
         // Create a chart context
-        let mut chart = ChartBuilder::on(&root)
+        let mut chart = ChartBuilder::on(root)
             .x_label_area_size(40)
             .y_label_area_size(40)
             .margin(5)
             .build_cartesian_2d(-1f64..1f64, -1f64..1f64)?;
 
+        self.draw_graph_on_chart(&mut chart)?;
+        // Export the plot as an image
+        Ok(())
+    }
+    pub fn draw_graph_on_chart<DB: DrawingBackend>(
+        &self,
+        chart: &mut ChartContext<'_, DB, Cartesian2d<RangedCoordf64, RangedCoordf64>>,
+    ) -> Result<(), Box<dyn std::error::Error>>
+    where
+        DB::ErrorType: 'static,
+    {
         // Plot nodes as scatter points
         for node in &self.nodes {
             let NodeMetaData { position: (x, y) } = node.meta;
@@ -62,7 +85,6 @@ impl Graph {
             chart.draw_series(LineSeries::new(vec![source_pos, target_pos], &BLACK))?;
         }
         // Export the plot as an image
-        root.present()?;
         Ok(())
     }
 }
