@@ -20,10 +20,16 @@ use plotters::{
 
 use ordered_float::OrderedFloat;
 
-use crate::shortest_path::{bfs::dfs, dijkstra::dijkstra};
+use crate::shortest_path::{
+    bfs::{all_to_all_shortest_path, bfs, dfs},
+    dijkstra::dijkstra,
+};
 
+pub mod force;
 pub mod json;
+pub mod math;
 pub mod shortest_path;
+pub mod visualize;
 
 pub enum AddEdgeError {
     TargetNodeMissing(Uuid),
@@ -43,11 +49,11 @@ impl std::fmt::Display for AddEdgeError {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeMetaData {
-    pub position: (i32, i32),
+    pub position: (OrderedFloat<f64>, OrderedFloat<f64>),
 }
 
 impl NodeMetaData {
-    pub fn new_random(range: Range<i32>) -> Self {
+    pub fn new_random(range: Range<OrderedFloat<f64>>) -> Self {
         let mut rng = rand::thread_rng();
         let x = rng.gen_range(range.clone());
         let y = rng.gen_range(range.clone());
@@ -101,7 +107,7 @@ impl Graph {
         if !self.node_lookup.contains_key(&id) {
             let node = GraphNode {
                 id,
-                meta: NodeMetaData::new_random(1..10),
+                meta: NodeMetaData::new_random(OrderedFloat(-1f64)..OrderedFloat(1f64)),
             };
             let index = self.nodes.len();
             self.nodes.push(node);
@@ -200,36 +206,36 @@ impl Graph {
 }
 
 fn main() {
-    let mut graph = Graph::new_random(10, 15);
+    let mut graph = Graph::new_random(25, 50);
+    graph.force_directed_layout(10000000);
     let _ = visualize_graph(&mut graph);
     for _ in 0..10 {
         let source_id = graph.get_random_node();
         let target_id = graph.get_random_node();
 
-        println!("Running Shortest Path for {source_id}, {target_id}");
+        // println!("Running Shortest Path for {source_id}, {target_id}");
 
-        let shortest = dfs(&graph, source_id);
+        let shortest = all_to_all_shortest_path(&graph);
 
-        println!("Shortest Path result: {shortest:?}");
-        println!(
-            "Shortest Path result: {shortest_json}",
-            shortest_json = serde_json::to_string_pretty(&shortest).unwrap()
-        );
+        // println!("Shortest Path result: {shortest:?}");
+        // println!(
+        //     "Shortest Path result: {shortest_json}",
+        //     shortest_json = serde_json::to_string_pretty(&shortest).unwrap()
+        // );
     }
 
     // println!("Dijkstra: {dijkstra:?}");
 
     // println!("Graph: {graph:#?}");
 
-    println!(
-        "{graph_json}",
-        graph_json = serde_json::to_string_pretty(&graph).unwrap()
-    );
+    // println!(
+    //     "{graph_json}",
+    //     graph_json = serde_json::to_string_pretty(&graph).unwrap()
+    // );
 }
 
 fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> {
     let size = 1000;
-    let mut rng = rand::thread_rng();
     // Create a drawing area
     let root = BitMapBackend::new("graph.png", (size as u32, size as u32)).into_drawing_area();
     root.fill(&WHITE)?;
@@ -239,17 +245,13 @@ fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> 
         .x_label_area_size(40)
         .y_label_area_size(40)
         .margin(5)
-        .build_cartesian_2d(0..size, 0..size)?;
+        .build_cartesian_2d(-1f64..1f64, -1f64..1f64)?;
 
     // Plot nodes as scatter points
     for node in &mut graph.nodes {
-        let x = rng.gen_range(0..size);
-        let y = rng.gen_range(0..size);
-
-        node.meta = NodeMetaData { position: (x, y) };
-
+        let NodeMetaData { position: (x, y) } = node.meta;
         chart.draw_series(PointSeries::of_element(
-            vec![(x, y)],
+            vec![(*x, *y)],
             5,
             &RED,
             &|c, s, st| {
@@ -277,6 +279,8 @@ fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> 
             .unwrap()
             .meta
             .position;
+        let source_pos = (*source_pos.0, *source_pos.1);
+        let target_pos = (*target_pos.0, *target_pos.1);
         chart.draw_series(LineSeries::new(vec![source_pos, target_pos], &BLACK))?;
     }
     // Export the plot as an image
