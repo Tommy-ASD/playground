@@ -208,7 +208,7 @@ impl Graph {
 fn main() {
     let mut graph = Graph::new_random(25, 50);
     graph.force_directed_layout(10000000);
-    let _ = visualize_graph(&mut graph);
+    let _ = graph.visualize();
     for _ in 0..10 {
         let source_id = graph.get_random_node();
         let target_id = graph.get_random_node();
@@ -232,58 +232,4 @@ fn main() {
     //     "{graph_json}",
     //     graph_json = serde_json::to_string_pretty(&graph).unwrap()
     // );
-}
-
-fn visualize_graph(graph: &mut Graph) -> Result<(), Box<dyn std::error::Error>> {
-    let size = 1000;
-    // Create a drawing area
-    let root = BitMapBackend::new("graph.png", (size as u32, size as u32)).into_drawing_area();
-    root.fill(&WHITE)?;
-
-    // Create a chart context
-    let mut chart = ChartBuilder::on(&root)
-        .x_label_area_size(40)
-        .y_label_area_size(40)
-        .margin(5)
-        .build_cartesian_2d(-1f64..1f64, -1f64..1f64)?;
-
-    // Plot nodes as scatter points
-    for node in &mut graph.nodes {
-        let NodeMetaData { position: (x, y) } = node.meta;
-        chart.draw_series(PointSeries::of_element(
-            vec![(*x, *y)],
-            5,
-            &RED,
-            &|c, s, st| {
-                return EmptyElement::at(c) // We want the point to be at (x, y)
-                        + Circle::new((0, 0), s, st.filled()) // And a circle that is 2 pixels large
-                        + Text::new(
-                        format!("{}", node.id), // Convert the UUID to a string and display it
-                        (0, 0), // Adjust the position to display below the point
-                        ("sans-serif", 25.0).into_font(),
-                    ); // Add text below the point
-            },
-        ))?;
-    }
-
-    for edge in &graph.edges {
-        let source_pos = graph
-            .nodes
-            .get(*graph.node_lookup.get(&edge.incoming).unwrap())
-            .unwrap()
-            .meta
-            .position;
-        let target_pos = graph
-            .nodes
-            .get(*graph.node_lookup.get(&edge.outgoing).unwrap())
-            .unwrap()
-            .meta
-            .position;
-        let source_pos = (*source_pos.0, *source_pos.1);
-        let target_pos = (*target_pos.0, *target_pos.1);
-        chart.draw_series(LineSeries::new(vec![source_pos, target_pos], &BLACK))?;
-    }
-    // Export the plot as an image
-    root.present()?;
-    Ok(())
 }

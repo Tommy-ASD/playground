@@ -11,19 +11,19 @@ use plotters::{
 use crate::{Graph, NodeMetaData};
 
 impl Graph {
-    pub fn visualize_graph(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.visualize_graph_with_path("graph.png")
+    pub fn visualize(&self) -> Result<(), Box<dyn std::error::Error>> {
+        self.visualize_with_path("graph.png")
     }
-    pub fn visualize_graph_with_path(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn visualize_with_path(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let size = 1000;
         // Create a drawing area
         let root = BitMapBackend::new(path, (size as u32, size as u32)).into_drawing_area();
         root.fill(&WHITE)?;
-        self.draw_graph_on_backend(&root)?;
+        self.draw_on_backend(&root)?;
         root.present()?;
         Ok(())
     }
-    pub fn draw_graph_on_backend<DB: DrawingBackend>(
+    pub fn draw_on_backend<DB: DrawingBackend>(
         &self,
         root: &DrawingArea<DB, Shift>,
     ) -> Result<(), Box<dyn std::error::Error>>
@@ -37,11 +37,11 @@ impl Graph {
             .margin(5)
             .build_cartesian_2d(-1f64..1f64, -1f64..1f64)?;
 
-        self.draw_graph_on_chart(&mut chart)?;
+        self.draw_on_chart(&mut chart)?;
         // Export the plot as an image
         Ok(())
     }
-    pub fn draw_graph_on_chart<DB: DrawingBackend>(
+    pub fn draw_on_chart<DB: DrawingBackend>(
         &self,
         chart: &mut ChartContext<'_, DB, Cartesian2d<RangedCoordf64, RangedCoordf64>>,
     ) -> Result<(), Box<dyn std::error::Error>>

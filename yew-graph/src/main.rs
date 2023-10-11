@@ -82,6 +82,7 @@ impl Component for App {
             update_plot();
             initialized_canvas = true;
         }
+
         true
     }
 
@@ -95,7 +96,7 @@ impl Component for App {
                 <main>
                     <h1>{"Plotters and Yew Demo"}</h1>
                     <div id={"coord"}></div>
-                    <canvas id={"canvas"} width={"600"} height={"400"} ref={state.canvas_ref}></canvas>
+                    <canvas id={"canvas"} width={"1000"} height={"1000"} ref={state.canvas_ref}></canvas>
                     <div id={"status"} ref={state.status_ref}>{"Loading Plotters..."}</div>
                     <div id={"control"}>
                         <label for={"plot-type"}>{"Demo: "}</label>
