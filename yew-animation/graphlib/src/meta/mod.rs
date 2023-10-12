@@ -68,4 +68,10 @@ impl Line {
         (OrderedFloat(0.0) <= t1 && t1 <= OrderedFloat(1.0))
             && (OrderedFloat(0.0) <= t2 && t2 <= OrderedFloat(1.0))
     }
+    fn crossing_any(&self, others: Vec<&Self>) -> bool {
+        others.iter().any(|other| self.crossing(other))
+    }
+    fn crossing_all(&self, others: Vec<&Self>) -> bool {
+        others.iter().all(|other| self.crossing(other))
+    }
 }
