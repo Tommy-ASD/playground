@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{canvas::inner::CanvasBackend, graph::Graph};
+use crate::Graph;
 
 use ordered_float::OrderedFloat;
 use plotters::prelude::IntoDrawingArea;

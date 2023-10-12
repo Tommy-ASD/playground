@@ -1,5 +1,5 @@
-use crate::canvas::inner::CanvasBackend;
-use crate::canvas::DrawResult;
+use crate::inner::CanvasBackend;
+use crate::DrawResult;
 use plotters::prelude::{ChartBuilder, HSLColor, IntoDrawingArea, BLACK, WHITE};
 use std::ops::Range;
 use web_sys::HtmlCanvasElement;
