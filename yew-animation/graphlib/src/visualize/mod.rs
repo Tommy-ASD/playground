@@ -40,7 +40,7 @@ impl Graph {
             let NodeMetaData { position: (x, y) } = node.meta;
             chart.draw_series(PointSeries::of_element(
                 vec![(*x, *y)],
-                5,
+                4,
                 &RED,
                 &|c, s, st| {
                     return EmptyElement::at(c) // We want the point to be at (x, y)
@@ -48,7 +48,7 @@ impl Graph {
                         + Text::new(
                         format!("{}", node.id), // Convert the UUID to a string and display it
                         (0, 0), // Adjust the position to display below the point
-                        ("sans-serif", 25.0).into_font(),
+                        ("sans-serif", 15.0).into_font(),
                     ); // Add text below the point
                 },
             ))?;

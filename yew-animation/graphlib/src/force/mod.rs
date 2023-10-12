@@ -7,15 +7,16 @@ use rand::Rng;
 use uuid::Uuid;
 
 impl Graph {
-    const REPULSION_STRENGTH: OrderedFloat<f64> = OrderedFloat(0.001);
-    const SPRING_STIFFNESS: OrderedFloat<f64> = OrderedFloat(0.0005);
-    const INITIAL_ALPHA: OrderedFloat<f64> = OrderedFloat(0.95);
+    // const REPULSION_STRENGTH: OrderedFloat<f64> = OrderedFloat(0.001);
+    // const SPRING_STIFFNESS: OrderedFloat<f64> = OrderedFloat(0.0005);
+    // const INITIAL_ALPHA: OrderedFloat<f64> = OrderedFloat(0.95);
     // const ALPHA_DECREASE: OrderedFloat<f64> = OrderedFloat(0.005);
 
     fn calculate_repulsion(
         &self,
         node_id: Uuid,
         nodes: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        rep_strength: OrderedFloat<f64>,
         alpha: OrderedFloat<f64>,
     ) {
         let (x1, y1) = self.nodes[self.node_lookup[&node_id]].meta.position;
@@ -26,7 +27,7 @@ impl Graph {
                 let dy = y1 - *y2;
                 let distance_squared = dx * dx + dy * dy;
                 if distance_squared > OrderedFloat(0.01) {
-                    let force = Graph::REPULSION_STRENGTH / distance_squared.sqrt() * alpha;
+                    let force = rep_strength / distance_squared.sqrt() * alpha;
                     *x2 += force * dx;
                     *y2 += force * dy;
                 }
@@ -39,6 +40,7 @@ impl Graph {
         source_id: Uuid,
         target_id: Uuid,
         nodes: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        spr_stiff: OrderedFloat<f64>,
         alpha: OrderedFloat<f64>,
     ) {
         let (x1, y1) = self.nodes[self.node_lookup[&source_id]].meta.position;
@@ -47,7 +49,7 @@ impl Graph {
         let dx = x1 - x2;
         let dy = y1 - y2;
         let distance = (dx * dx + dy * dy).sqrt();
-        let force = Graph::SPRING_STIFFNESS * (distance - 1.0) * alpha;
+        let force = spr_stiff * (distance - 1.0) * alpha;
         let force_x = force * dx / distance;
         let force_y = force * dy / distance;
 
@@ -101,7 +103,7 @@ impl Graph {
         }
 
         let mut iterations = 0;
-        let mut alpha = Self::INITIAL_ALPHA;
+        let mut alpha = OrderedFloat(0.95);
 
         self.fdl(
             &mut iterations,
@@ -123,7 +125,12 @@ impl Graph {
     ) {
         loop {
             // gloo::console::log!("10");
-            self.calculate_next_force_iteration(node_positions, alpha);
+            self.calculate_next_force_iteration(
+                node_positions,
+                OrderedFloat(0.001),
+                OrderedFloat(0.0005),
+                alpha,
+            );
             *iterations += 1;
             if *iterations > max_iterations {
                 // gloo::console::log!("Ran ", *iterations, " iterations");
@@ -142,24 +149,24 @@ impl Graph {
     pub fn calculate_next_force_iteration(
         &self,
         node_positions: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        rep_strength: OrderedFloat<f64>,
+        spr_stiff: OrderedFloat<f64>,
         alpha: &mut OrderedFloat<f64>,
     ) {
-        // alpha -= Self::ALPHA_DECREASE;
-
         // Calculate repulsion forces
         for node_id in self.node_lookup.keys() {
-            // println!("Calculating repulsion for {node_id}");
-            self.calculate_repulsion(*node_id, node_positions, *alpha);
+            self.calculate_repulsion(*node_id, node_positions, rep_strength, *alpha);
         }
 
         // Calculate attraction forces for edges
         for edge in &self.edges {
-            // println!(
-            //     "Calculating attraction between {source} and {target}",
-            //     source = edge.incoming,
-            //     target = edge.outgoing
-            // );
-            self.calculate_attraction(edge.incoming, edge.outgoing, node_positions, *alpha);
+            self.calculate_attraction(
+                edge.incoming,
+                edge.outgoing,
+                node_positions,
+                spr_stiff,
+                *alpha,
+            );
         }
     }
     pub fn apply_node_positions(
@@ -169,15 +176,6 @@ impl Graph {
         for (node_id, (x, y)) in node_positions.iter() {
             let node_index = self.node_lookup[node_id];
             self.nodes[node_index].meta.position = (*x, *y);
-            // let id = self.nodes[node_index].id;
-            // gloo::console::log!(
-            //     "Node",
-            //     id.to_string(),
-            //     "ended up at",
-            //     x.to_string(),
-            //     ", ",
-            //     y.to_string()
-            // );
         }
     }
 }
