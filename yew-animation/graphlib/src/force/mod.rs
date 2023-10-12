@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::Graph;
+use crate::{meta::Coordinate, Graph};
 
 use ordered_float::OrderedFloat;
 use rand::Rng;
@@ -13,7 +13,7 @@ impl Graph {
         nodes: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
         rep_strength: OrderedFloat<f64>,
     ) {
-        let (x1, y1) = self.nodes[self.node_lookup[&node_id]].meta.position;
+        let Coordinate { x: x1, y: y1 } = self.nodes[self.node_lookup[&node_id]].meta.coordinate;
 
         for (other_id, (x2, y2)) in nodes.iter_mut() {
             if *other_id != node_id {
@@ -36,8 +36,8 @@ impl Graph {
         nodes: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
         spr_stiff: OrderedFloat<f64>,
     ) {
-        let (x1, y1) = self.nodes[self.node_lookup[&source_id]].meta.position;
-        let (x2, y2) = self.nodes[self.node_lookup[&target_id]].meta.position;
+        let Coordinate { x: x1, y: y1 } = self.nodes[self.node_lookup[&source_id]].meta.coordinate;
+        let Coordinate { x: x2, y: y2 } = self.nodes[self.node_lookup[&target_id]].meta.coordinate;
 
         let dx = x1 - x2;
         let dy = y1 - y2;
@@ -155,7 +155,7 @@ impl Graph {
     ) {
         for (node_id, (x, y)) in node_positions.iter() {
             let node_index = self.node_lookup[node_id];
-            self.nodes[node_index].meta.position = (*x, *y);
+            self.nodes[node_index].meta.coordinate = Coordinate { x: *x, y: *y };
         }
     }
 }

@@ -4,6 +4,7 @@ use std::{
 };
 
 use json::any_key_map;
+use meta::{EdgeMetaData, NodeMetaData};
 use rand::Rng;
 
 use uuid::Uuid;
@@ -15,6 +16,7 @@ use ordered_float::OrderedFloat;
 pub mod force;
 pub mod json;
 // pub mod math;
+pub mod meta;
 pub mod shortest_path;
 pub mod visualize;
 
@@ -32,26 +34,6 @@ impl std::fmt::Display for AddEdgeError {
             AddEdgeError::BothNodesMissing(_, _) => write!(f, "BothNodesMissing"),
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct NodeMetaData {
-    pub position: (OrderedFloat<f64>, OrderedFloat<f64>),
-}
-
-impl NodeMetaData {
-    pub fn new_random(range: Range<OrderedFloat<f64>>) -> Self {
-        let mut rng = rand::thread_rng();
-        let x = rng.gen_range(range.clone());
-        let y = rng.gen_range(range.clone());
-
-        Self { position: (x, y) }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct EdgeMetaData {
-    pub weight: OrderedFloat<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]

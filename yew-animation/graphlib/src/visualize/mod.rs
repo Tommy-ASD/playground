@@ -7,7 +7,7 @@ use plotters::{
     style::IntoFont,
 };
 
-use crate::{Graph, NodeMetaData};
+use crate::{meta::Coordinate, Graph, NodeMetaData};
 
 impl Graph {
     pub fn draw_on_backend<DB: DrawingBackend>(
@@ -37,7 +37,9 @@ impl Graph {
     {
         // Plot nodes as scatter points
         for node in &self.nodes {
-            let NodeMetaData { position: (x, y) } = node.meta;
+            let NodeMetaData {
+                coordinate: Coordinate { x, y },
+            } = node.meta;
             chart.draw_series(PointSeries::of_element(
                 vec![(*x, *y)],
                 4,
@@ -55,20 +57,20 @@ impl Graph {
         }
 
         for edge in &self.edges {
-            let source_pos = self
+            let source_pos = &self
                 .nodes
                 .get(*self.node_lookup.get(&edge.incoming).unwrap())
                 .unwrap()
                 .meta
-                .position;
-            let target_pos = self
+                .coordinate;
+            let target_pos = &self
                 .nodes
                 .get(*self.node_lookup.get(&edge.outgoing).unwrap())
                 .unwrap()
                 .meta
-                .position;
-            let source_pos = (*source_pos.0, *source_pos.1);
-            let target_pos = (*target_pos.0, *target_pos.1);
+                .coordinate;
+            let source_pos = (*source_pos.x, *source_pos.y);
+            let target_pos = (*target_pos.x, *target_pos.y);
             chart.draw_series(LineSeries::new(vec![source_pos, target_pos], &BLACK))?;
         }
         // Export the plot as an image
