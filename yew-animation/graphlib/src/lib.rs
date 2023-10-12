@@ -10,24 +10,11 @@ use uuid::Uuid;
 
 use serde::{Deserialize, Serialize};
 
-use plotters::{
-    prelude::{
-        BitMapBackend, ChartBuilder, Circle, EmptyElement, IntoDrawingArea, LineSeries,
-        PointSeries, RGBColor, Text, BLACK, RED, WHITE,
-    },
-    style::IntoFont,
-};
-
 use ordered_float::OrderedFloat;
-
-use crate::shortest_path::{
-    bfs::{all_to_all_shortest_path, bfs, dfs},
-    dijkstra::dijkstra,
-};
 
 pub mod force;
 pub mod json;
-pub mod math;
+// pub mod math;
 pub mod shortest_path;
 pub mod visualize;
 
@@ -195,7 +182,7 @@ impl Graph {
         let mut neighbors = HashSet::new();
 
         // Find the index of the node with the given ID in the node vector
-        if let Some(&node_index) = self.node_lookup.get(&node_id) {
+        if let Some(&_) = self.node_lookup.get(&node_id) {
             // Iterate through the edges to find outgoing edges from the node
             for edge in &self.edges {
                 if edge.incoming == node_id {

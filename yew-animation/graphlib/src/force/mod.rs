@@ -3,16 +3,14 @@ use std::collections::HashMap;
 use crate::Graph;
 
 use ordered_float::OrderedFloat;
-use plotters::prelude::IntoDrawingArea;
 use rand::Rng;
 use uuid::Uuid;
-use web_sys::HtmlCanvasElement;
 
 impl Graph {
     const REPULSION_STRENGTH: OrderedFloat<f64> = OrderedFloat(0.001);
     const SPRING_STIFFNESS: OrderedFloat<f64> = OrderedFloat(0.0005);
     const INITIAL_ALPHA: OrderedFloat<f64> = OrderedFloat(0.95);
-    const ALPHA_DECREASE: OrderedFloat<f64> = OrderedFloat(0.005);
+    // const ALPHA_DECREASE: OrderedFloat<f64> = OrderedFloat(0.005);
 
     fn calculate_repulsion(
         &self,
@@ -68,11 +66,9 @@ impl Graph {
         // Calculate the step size for positioning nodes
         let step_x = OrderedFloat(2.0 / (num_columns as f64));
         let step_y = OrderedFloat(2.0 / (num_rows as f64));
-        gloo::console::log!("3");
 
         // Initialize node positions as a grid
         for (index, node) in self.nodes.iter().enumerate() {
-            gloo::console::log!("4");
             let row = index / num_columns;
             let col = index % num_columns;
 
@@ -85,11 +81,9 @@ impl Graph {
     }
 
     pub fn full_fdl(&mut self, max_iterations: i32) {
-        gloo::console::log!("1");
         let mut rng = rand::thread_rng();
         let mut node_positions = self.get_initial_positions();
         self.apply_node_positions(&node_positions);
-        gloo::console::log!("2");
 
         // Initialize node positions randomly
 
@@ -104,7 +98,6 @@ impl Graph {
                     rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
                 ),
             );
-            gloo::console::log!("6");
         }
 
         let mut iterations = 0;
@@ -118,7 +111,7 @@ impl Graph {
             &mut alpha,
         );
 
-        gloo::console::log!("Ran", iterations, "iterations of fdl");
+        // gloo::console::log!("Ran", iterations, "iterations of fdl");
     }
     fn fdl(
         &mut self,
@@ -129,15 +122,15 @@ impl Graph {
         alpha: &mut OrderedFloat<f64>,
     ) {
         loop {
-            gloo::console::log!("10");
+            // gloo::console::log!("10");
             self.calculate_next_force_iteration(node_positions, alpha);
             *iterations += 1;
             if *iterations > max_iterations {
-                gloo::console::log!("Ran ", *iterations, " iterations");
+                // gloo::console::log!("Ran ", *iterations, " iterations");
                 break;
             }
             if *iterations % 100000 == 0 {
-                gloo::console::log!("At ", *iterations);
+                // gloo::console::log!("At ", *iterations);
             }
             *old_pos = node_positions
                 .iter()
@@ -151,19 +144,16 @@ impl Graph {
         node_positions: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
         alpha: &mut OrderedFloat<f64>,
     ) {
-        gloo::console::log!("1");
         // alpha -= Self::ALPHA_DECREASE;
-        gloo::console::log!("2");
+
         // Calculate repulsion forces
         for node_id in self.node_lookup.keys() {
-            gloo::console::log!("3");
             // println!("Calculating repulsion for {node_id}");
             self.calculate_repulsion(*node_id, node_positions, *alpha);
         }
 
         // Calculate attraction forces for edges
         for edge in &self.edges {
-            gloo::console::log!("4");
             // println!(
             //     "Calculating attraction between {source} and {target}",
             //     source = edge.incoming,
@@ -171,7 +161,6 @@ impl Graph {
             // );
             self.calculate_attraction(edge.incoming, edge.outgoing, node_positions, *alpha);
         }
-        gloo::console::log!("5");
     }
     pub fn apply_node_positions(
         &mut self,
@@ -180,15 +169,15 @@ impl Graph {
         for (node_id, (x, y)) in node_positions.iter() {
             let node_index = self.node_lookup[node_id];
             self.nodes[node_index].meta.position = (*x, *y);
-            let id = self.nodes[node_index].id;
-            gloo::console::log!(
-                "Node",
-                id.to_string(),
-                "ended up at",
-                x.to_string(),
-                ", ",
-                y.to_string()
-            );
+            // let id = self.nodes[node_index].id;
+            // gloo::console::log!(
+            //     "Node",
+            //     id.to_string(),
+            //     "ended up at",
+            //     x.to_string(),
+            //     ", ",
+            //     y.to_string()
+            // );
         }
     }
 }

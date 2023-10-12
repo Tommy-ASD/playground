@@ -1,9 +1,8 @@
 use plotters::{
     coord::{types::RangedCoordf64, Shift},
     prelude::{
-        BitMapBackend, Cartesian2d, ChartBuilder, ChartContext, Circle, CoordTranslate,
-        DrawingArea, DrawingBackend, EmptyElement, IntoDrawingArea, LineSeries, PointSeries, Text,
-        BLACK, RED, WHITE,
+        Cartesian2d, ChartBuilder, ChartContext, Circle, DrawingArea, DrawingBackend, EmptyElement,
+        LineSeries, PointSeries, Text, BLACK, RED,
     },
     style::IntoFont,
 };
