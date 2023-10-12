@@ -10,12 +10,12 @@ impl Graph {
     fn calculate_repulsion(
         &self,
         node_id: Uuid,
-        nodes: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        nodes: &mut HashMap<Uuid, Coordinate>,
         rep_strength: OrderedFloat<f64>,
     ) {
         let Coordinate { x: x1, y: y1 } = self.nodes[self.node_lookup[&node_id]].meta.coordinate;
 
-        for (other_id, (x2, y2)) in nodes.iter_mut() {
+        for (other_id, Coordinate { x: x2, y: y2 }) in nodes.iter_mut() {
             if *other_id != node_id {
                 let dx = x1 - *x2;
                 let dy = y1 - *y2;
@@ -33,7 +33,7 @@ impl Graph {
         &self,
         source_id: Uuid,
         target_id: Uuid,
-        nodes: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        nodes: &mut HashMap<Uuid, Coordinate>,
         spr_stiff: OrderedFloat<f64>,
     ) {
         let Coordinate { x: x1, y: y1 } = self.nodes[self.node_lookup[&source_id]].meta.coordinate;
@@ -46,12 +46,12 @@ impl Graph {
         let force_x = force * dx / distance;
         let force_y = force * dy / distance;
 
-        nodes.get_mut(&source_id).unwrap().0 -= force_x;
-        nodes.get_mut(&source_id).unwrap().1 -= force_y;
-        nodes.get_mut(&target_id).unwrap().0 += force_x;
-        nodes.get_mut(&target_id).unwrap().1 += force_y;
+        nodes.get_mut(&source_id).unwrap().x -= force_x;
+        nodes.get_mut(&source_id).unwrap().y -= force_y;
+        nodes.get_mut(&target_id).unwrap().x += force_x;
+        nodes.get_mut(&target_id).unwrap().y += force_y;
     }
-    pub fn get_initial_positions(&self) -> HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)> {
+    pub fn get_initial_positions(&self) -> HashMap<Uuid, Coordinate> {
         let mut node_positions = HashMap::new();
         // Calculate the number of rows and columns in the grid
         let num_nodes = self.nodes.len();
@@ -70,7 +70,7 @@ impl Graph {
             let x = OrderedFloat(-1.0) + (step_x * col as f64);
             let y = OrderedFloat(1.0) - (step_y * row as f64);
 
-            node_positions.insert(node.id, (x, y));
+            node_positions.insert(node.id, Coordinate { x, y });
         }
         node_positions
     }
@@ -82,16 +82,16 @@ impl Graph {
 
         // Initialize node positions randomly
 
-        let mut old_pos: HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)> = HashMap::new();
+        let mut old_pos: HashMap<Uuid, Coordinate> = HashMap::new();
 
         // Initialize node positions randomly
         for node in &self.nodes {
             old_pos.insert(
                 node.id,
-                (
-                    rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
-                    rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
-                ),
+                Coordinate {
+                    x: rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
+                    y: rng.gen_range(OrderedFloat(-1f64)..OrderedFloat(1f64)),
+                },
             );
         }
 
@@ -108,8 +108,8 @@ impl Graph {
         &mut self,
         iterations: &mut i32,
         max_iterations: i32,
-        node_positions: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
-        old_pos: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        node_positions: &mut HashMap<Uuid, Coordinate>,
+        old_pos: &mut HashMap<Uuid, Coordinate>,
     ) {
         loop {
             // gloo::console::log!("10");
@@ -128,14 +128,14 @@ impl Graph {
             }
             *old_pos = node_positions
                 .iter()
-                .map(|(node_id, (x, y))| (*node_id, (*x, *y)))
+                .map(|(node_id, Coordinate { x, y })| (*node_id, Coordinate { x: *x, y: *y }))
                 .collect();
         }
         self.apply_node_positions(&node_positions);
     }
     pub fn calculate_next_force_iteration(
         &self,
-        node_positions: &mut HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
+        node_positions: &mut HashMap<Uuid, Coordinate>,
         rep_strength: OrderedFloat<f64>,
         spr_stiff: OrderedFloat<f64>,
     ) {
@@ -149,11 +149,8 @@ impl Graph {
             self.calculate_attraction(edge.incoming, edge.outgoing, node_positions, spr_stiff);
         }
     }
-    pub fn apply_node_positions(
-        &mut self,
-        node_positions: &HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>,
-    ) {
-        for (node_id, (x, y)) in node_positions.iter() {
+    pub fn apply_node_positions(&mut self, node_positions: &HashMap<Uuid, Coordinate>) {
+        for (node_id, Coordinate { x, y }) in node_positions.iter() {
             let node_index = self.node_lookup[node_id];
             self.nodes[node_index].meta.coordinate = Coordinate { x: *x, y: *y };
         }

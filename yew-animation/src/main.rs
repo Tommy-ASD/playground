@@ -9,7 +9,7 @@ use yew::{
 };
 use yew_hooks::{use_raf, use_raf_state, UseRafStateHandle};
 
-use graphlib::Graph;
+use graphlib::{meta::Coordinate, Graph};
 use yew_canvas::CanvasBackend;
 
 use ordered_float::OrderedFloat;
@@ -42,8 +42,16 @@ fn canvas_renderer() -> Html {
         let (rep_strength, spr_stiff) = (rep_strength.clone(), spr_stiff.clone());
         let mut node_positions = node_positions_state
             .iter()
-            .map(|(key, (v1, v2))| (key.clone(), (v1.clone(), v2.clone())))
-            .collect::<HashMap<Uuid, (OrderedFloat<f64>, OrderedFloat<f64>)>>();
+            .map(|(key, Coordinate { x, y })| {
+                (
+                    key.clone(),
+                    Coordinate {
+                        x: x.clone(),
+                        y: y.clone(),
+                    },
+                )
+            })
+            .collect::<HashMap<Uuid, Coordinate>>();
         let mut graph: Graph = Graph {
             nodes: graph_state.nodes.clone(),
             edges: graph_state.edges.clone(),
