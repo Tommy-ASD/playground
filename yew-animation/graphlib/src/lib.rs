@@ -4,7 +4,7 @@ use std::{
 };
 
 use json::any_key_map;
-use meta::{EdgeMetaData, NodeMetaData};
+use meta::{Coordinate, EdgeMetaData, NodeMetaData};
 use rand::Rng;
 
 use uuid::Uuid;
@@ -151,7 +151,7 @@ impl Graph {
         graph
     }
 
-    pub fn get_random_node(&self) -> Uuid {
+    pub fn get_random_node_id(&self) -> Uuid {
         let mut rng = rand::thread_rng();
         // Use the gen_range method to generate a random index
         let random_index = rng.gen_range(0..self.nodes.len());
@@ -179,5 +179,16 @@ impl Graph {
         }
 
         neighbors
+    }
+    pub fn get_node(&self, id: Uuid) -> Option<&GraphNode> {
+        self.node_lookup
+            .get(&id)
+            .map(|index| self.nodes.get(*index))
+            .unwrap_or(None)
+    }
+    pub fn get_coordinate_of_node(&self, id: Uuid) -> Option<&Coordinate> {
+        self.get_node(id)
+            .map(|node| Some(&node.meta.coordinate))
+            .unwrap_or(None)
     }
 }

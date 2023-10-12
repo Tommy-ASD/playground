@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use ordered_float::OrderedFloat;
 
+use crate::Graph;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Coordinate {
     pub x: OrderedFloat<f64>,
@@ -73,5 +75,47 @@ impl Line {
     }
     fn crossing_all(&self, others: Vec<&Self>) -> bool {
         others.iter().all(|other| self.crossing(other))
+    }
+}
+
+impl Graph {
+    pub fn get_edge_crossings(&self) -> Vec<((Uuid, Uuid), (Uuid, Uuid))> {
+        self.edges
+            .iter()
+            .map(|edge| {
+                let from = self.get_coordinate_of_node(edge.incoming).unwrap().clone();
+                let to = self.get_coordinate_of_node(edge.outgoing).unwrap().clone();
+                let line = Line { from, to };
+                {
+                    let edge = edge.clone();
+                    let edge2 = edge.clone();
+                    self.edges
+                        .iter()
+                        .filter(move |inner_edge| inner_edge != &&edge) // if same, skip
+                        .filter(|inner_edge| {
+                            let inner_from = self
+                                .get_coordinate_of_node(inner_edge.incoming)
+                                .unwrap()
+                                .clone();
+                            let inner_to = self
+                                .get_coordinate_of_node(inner_edge.outgoing)
+                                .unwrap()
+                                .clone();
+                            Line {
+                                from: inner_from,
+                                to: inner_to,
+                            }
+                            .crossing(&line)
+                        })
+                        .map(|confirmed_crossing| {
+                            (
+                                (edge2.incoming, edge2.outgoing),
+                                (confirmed_crossing.incoming, confirmed_crossing.outgoing),
+                            )
+                        })
+                        .collect::<Vec<((Uuid, Uuid), (Uuid, Uuid))>>()
+                }
+            })
+            .collect()
     }
 }
