@@ -4,7 +4,7 @@ use std::{
 };
 
 use json::any_key_map;
-use meta::{Coordinate, EdgeMetaData, NodeMetaData};
+use meta::{Coordinate, EdgeMetaData, Line, NodeMetaData};
 use rand::Rng;
 
 use uuid::Uuid;
@@ -189,6 +189,20 @@ impl Graph {
     pub fn get_coordinate_of_node(&self, id: Uuid) -> Option<&Coordinate> {
         self.get_node(id)
             .map(|node| Some(&node.meta.coordinate))
+            .unwrap_or(None)
+    }
+    pub fn get_line_of_edge(&self, edge: &Edge) -> Option<Line> {
+        self.get_coordinate_of_node(edge.incoming)
+            .map(|in_coordinate| {
+                self.get_coordinate_of_node(edge.outgoing)
+                    .map(|out_coordinate| {
+                        Some(Line {
+                            from: *in_coordinate,
+                            to: *out_coordinate,
+                        })
+                    })
+                    .unwrap_or(None)
+            })
             .unwrap_or(None)
     }
 }
