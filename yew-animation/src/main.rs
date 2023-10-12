@@ -58,7 +58,6 @@ fn canvas_renderer() -> Html {
             &mut node_positions,
             OrderedFloat(*rep_strength),
             OrderedFloat(*spr_stiff),
-            &mut OrderedFloat(1.0),
         );
         // gloo::console::log!(
         //     "Node positions after: ",
