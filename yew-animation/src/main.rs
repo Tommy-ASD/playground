@@ -6,7 +6,7 @@ use yew_hooks::use_raf;
 
 #[function_component(CanvasRenderer)]
 fn canvas_renderer() -> Html {
-    let _ = use_raf(1000, 10);
+    let _ = use_raf(1000, 100);
     let counter = use_state(|| 0);
     counter.set(*counter + 1);
     let val = *counter;
