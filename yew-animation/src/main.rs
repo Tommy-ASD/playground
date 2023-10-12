@@ -32,7 +32,7 @@ fn canvas_renderer() -> Html {
         val
     });
     let node_positions_state = use_raf_state(|| {
-        let val = graph_state.get_initial_positions();
+        let val = graph_state.get_circle_positions();
         val
     });
 

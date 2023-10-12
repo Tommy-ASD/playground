@@ -51,33 +51,10 @@ impl Graph {
         nodes.get_mut(&target_id).unwrap().x += force_x;
         nodes.get_mut(&target_id).unwrap().y += force_y;
     }
-    pub fn get_initial_positions(&self) -> HashMap<Uuid, Coordinate> {
-        let mut node_positions = HashMap::new();
-        // Calculate the number of rows and columns in the grid
-        let num_nodes = self.nodes.len();
-        let num_rows = (num_nodes as f64).sqrt().ceil() as usize;
-        let num_columns = (num_nodes + num_rows - 1) / num_rows;
-
-        // Calculate the step size for positioning nodes
-        let step_x = OrderedFloat(2.0 / (num_columns as f64));
-        let step_y = OrderedFloat(2.0 / (num_rows as f64));
-
-        // Initialize node positions as a grid
-        for (index, node) in self.nodes.iter().enumerate() {
-            let row = index / num_columns;
-            let col = index % num_columns;
-
-            let x = OrderedFloat(-1.0) + (step_x * col as f64);
-            let y = OrderedFloat(1.0) - (step_y * row as f64);
-
-            node_positions.insert(node.id, Coordinate { x, y });
-        }
-        node_positions
-    }
 
     pub fn full_fdl(&mut self, max_iterations: i32) {
         let mut rng = rand::thread_rng();
-        let mut node_positions = self.get_initial_positions();
+        let mut node_positions = self.get_grid_positions();
         self.apply_node_positions(&node_positions);
 
         // Initialize node positions randomly
@@ -147,12 +124,6 @@ impl Graph {
         // Calculate attraction forces for edges
         for edge in &self.edges {
             self.calculate_attraction(edge.incoming, edge.outgoing, node_positions, spr_stiff);
-        }
-    }
-    pub fn apply_node_positions(&mut self, node_positions: &HashMap<Uuid, Coordinate>) {
-        for (node_id, Coordinate { x, y }) in node_positions.iter() {
-            let node_index = self.node_lookup[node_id];
-            self.nodes[node_index].meta.coordinate = Coordinate { x: *x, y: *y };
         }
     }
 }
