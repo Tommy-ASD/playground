@@ -21,18 +21,10 @@ pub fn apply_repulsion_forceatlas2_2d_parallel(layout: &mut Layout) {
                         let vx = f * dx;
                         let vy = f * dy;
 
-                        {
-                            *n1.speed.get_mut(0).unwrap() -= vx
-                        };
-                        {
-                            *n1.speed.get_mut(1).unwrap() -= vy
-                        };
-                        {
-                            *n2.speed.get_mut(0).unwrap() += vx
-                        };
-                        {
-                            *n2.speed.get_mut(1).unwrap() += vy
-                        };
+                        *n1.speed.get_mut(0).unwrap() -= vx;
+                        *n1.speed.get_mut(1).unwrap() -= vy;
+                        *n2.speed.get_mut(0).unwrap() += vx;
+                        *n2.speed.get_mut(1).unwrap() += vy;
                     }
                 }
             }
@@ -62,24 +54,17 @@ pub fn apply_repulsion_forceatlas2_3d_parallel(layout: &mut Layout) {
                     let vy = f * dy;
                     let vz = f * dz;
 
-                    {
-                        *n1.speed.get_mut(0).unwrap() -= vx
-                    };
-                    {
-                        *n1.speed.get_mut(1).unwrap() -= vy
-                    };
-                    {
-                        *n1.speed.get_mut(2).unwrap() -= vz
-                    };
-                    {
-                        *n2.speed.get_mut(0).unwrap() += vx
-                    };
-                    {
-                        *n2.speed.get_mut(1).unwrap() += vy
-                    };
-                    {
-                        *n2.speed.get_mut(2).unwrap() += vz
-                    };
+                    *n1.speed.get_mut(0).unwrap() -= vx;
+
+                    *n1.speed.get_mut(1).unwrap() -= vy;
+
+                    *n1.speed.get_mut(2).unwrap() -= vz;
+
+                    *n2.speed.get_mut(0).unwrap() += vx;
+
+                    *n2.speed.get_mut(1).unwrap() += vy;
+
+                    *n2.speed.get_mut(2).unwrap() += vz;
                 }
             }
         });
@@ -152,18 +137,10 @@ pub fn apply_repulsion_force2_2d_parallel(layout: &mut Layout) {
                         let d3 = d2.sqrt() * d2;
                         let param = weight / d3;
 
-                        {
-                            *n1.speed.get_mut(0).unwrap() -= dx * param / n1_mass
-                        };
-                        {
-                            *n1.speed.get_mut(1).unwrap() -= dy * param / n1_mass
-                        };
-                        {
-                            *n2.speed.get_mut(0).unwrap() += dx * param / n2_mass
-                        };
-                        {
-                            *n2.speed.get_mut(1).unwrap() += dy * param / n2_mass
-                        };
+                        *n1.speed.get_mut(0).unwrap() -= dx * param / n1_mass;
+                        *n1.speed.get_mut(1).unwrap() -= dy * param / n1_mass;
+                        *n2.speed.get_mut(0).unwrap() += dx * param / n2_mass;
+                        *n2.speed.get_mut(1).unwrap() += dy * param / n2_mass;
                     }
                 }
             }
@@ -193,24 +170,12 @@ pub fn apply_repulsion_force2_3d_parallel(layout: &mut Layout) {
                         let d3 = d2.sqrt() * d2;
                         let param = weight / d3;
 
-                        {
-                            *n1.speed.get_mut(0).unwrap() -= dx * param / n1_mass
-                        };
-                        {
-                            *n1.speed.get_mut(1).unwrap() -= dy * param / n1_mass
-                        };
-                        {
-                            *n1.speed.get_mut(2).unwrap() -= dz * param / n1_mass
-                        };
-                        {
-                            *n2.speed.get_mut(0).unwrap() += dx * param / n2_mass
-                        };
-                        {
-                            *n2.speed.get_mut(1).unwrap() += dy * param / n2_mass
-                        };
-                        {
-                            *n2.speed.get_mut(2).unwrap() += dz * param / n2_mass
-                        };
+                        *n1.speed.get_mut(0).unwrap() -= dx * param / n1_mass;
+                        *n1.speed.get_mut(1).unwrap() -= dy * param / n1_mass;
+                        *n1.speed.get_mut(2).unwrap() -= dz * param / n1_mass;
+                        *n2.speed.get_mut(0).unwrap() += dx * param / n2_mass;
+                        *n2.speed.get_mut(1).unwrap() += dy * param / n2_mass;
+                        *n2.speed.get_mut(2).unwrap() += dz * param / n2_mass;
                     }
                 }
             }
@@ -234,18 +199,10 @@ pub fn apply_repulsion_fruchterman_2d_parallel(layout: &mut Layout) {
                     if d2 < max_distance2 {
                         let param = k2 / d2;
 
-                        {
-                            *n1.speed.get_mut(0).unwrap() -= dx * param
-                        };
-                        {
-                            *n1.speed.get_mut(1).unwrap() -= dy * param
-                        };
-                        {
-                            *n2.speed.get_mut(0).unwrap() += dx * param
-                        };
-                        {
-                            *n2.speed.get_mut(1).unwrap() += dy * param
-                        };
+                        *n1.speed.get_mut(0).unwrap() -= dx * param;
+                        *n1.speed.get_mut(1).unwrap() -= dy * param;
+                        *n2.speed.get_mut(0).unwrap() += dx * param;
+                        *n2.speed.get_mut(1).unwrap() += dy * param;
                     }
                 }
             }
@@ -270,24 +227,12 @@ pub fn apply_repulsion_fruchterman_3d_parallel(layout: &mut Layout) {
                     if d2 < max_distance2 {
                         let param = k2 / d2;
 
-                        {
-                            *n1.speed.get_mut(0).unwrap() -= dx * param
-                        };
-                        {
-                            *n1.speed.get_mut(1).unwrap() -= dy * param
-                        };
-                        {
-                            *n1.speed.get_mut(2).unwrap() -= dz * param
-                        };
-                        {
-                            *n2.speed.get_mut(0).unwrap() += dx * param
-                        };
-                        {
-                            *n2.speed.get_mut(1).unwrap() += dy * param
-                        };
-                        {
-                            *n2.speed.get_mut(2).unwrap() += dz * param
-                        };
+                        *n1.speed.get_mut(0).unwrap() -= dx * param;
+                        *n1.speed.get_mut(1).unwrap() -= dy * param;
+                        *n1.speed.get_mut(2).unwrap() -= dz * param;
+                        *n2.speed.get_mut(0).unwrap() += dx * param;
+                        *n2.speed.get_mut(1).unwrap() += dy * param;
+                        *n2.speed.get_mut(2).unwrap() += dz * param;
                     }
                 }
             }

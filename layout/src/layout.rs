@@ -1,5 +1,7 @@
 use crate::{iter::*, util::*};
 
+use graphlib::Graph;
+use itertools::Itertools;
 use rayon::prelude::*;
 use std::marker::PhantomData;
 
@@ -158,5 +160,57 @@ impl Layout {
                     }
                 })
         })
+    }
+
+    fn from_graph(graph: Graph) -> Self {
+        let grid_positions = graph.get_grid_positions();
+        let nodes = Nodes::Degree(graph.nodes.len());
+        let mut index_to_coordinate: Vec<(usize, (f32, f32))> = grid_positions
+            .iter()
+            .map(|(k, v)| {
+                let index = graph.node_lookup.get(k).unwrap();
+                (*index, ((*v.x) as f32, (*v.y) as f32))
+            })
+            .collect();
+        index_to_coordinate.sort_by(|a, b| a.0.cmp(&b.0));
+        let positions: Vec<f32> = index_to_coordinate
+            .iter()
+            .flat_map(|(_, v)| vec![v.0, v.1])
+            .collect();
+        let edges = graph
+            .edges
+            .iter()
+            .map(|edge| {
+                (
+                    graph.get_index_of_node_id(edge.incoming).unwrap(),
+                    graph.get_index_of_node_id(edge.outgoing).unwrap(),
+                )
+            })
+            .collect();
+        let weights = None;
+        // Create settings for the layout algorithm.
+        let settings = Settings {
+            name: LayoutType::ForceAtlas2,
+            // Set other layout parameters as needed
+            chunk_size: Some(256),
+            dimensions: 2,
+            // Set other parameters
+            distance_threshold_mode: DistanceThresholdMode::Average,
+            // Set other parameters
+            ..Default::default()
+        };
+        let mut layout = Layout::from_position_graph(edges, nodes, positions, weights, settings);
+        let num_iterations = 100; // Adjust as needed
+        for i in 0..num_iterations {
+            // Perform one iteration
+            let done = layout.iteration(i);
+
+            // You can check the 'done' flag to determine if the layout has converged.
+            if done {
+                println!("Layout converged after {} iterations", i);
+                break;
+            }
+        }
+        layout
     }
 }

@@ -26,19 +26,10 @@ pub fn apply_attraction_force2_2d(layout: &mut Layout) {
 
             let dis_x = dire_x * param;
             let dis_y = dire_y * param;
-
-            {
-                *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio
-            };
-            {
-                *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio
-            };
-            {
-                *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio
-            };
-            {
-                *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio
-            };
+            *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio;
+            *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio;
+            *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio;
+            *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio;
         }
     }
 }
@@ -70,25 +61,12 @@ pub fn apply_attraction_force2_3d(layout: &mut Layout) {
             let dis_x = dire_x * param;
             let dis_y = dire_y * param;
             let dis_z = dire_z * param;
-
-            {
-                *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio
-            };
-            {
-                *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio
-            };
-            {
-                *n1_speed.get_mut(2).unwrap() += dis_z * target_mass_ratio
-            };
-            {
-                *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio
-            };
-            {
-                *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio
-            };
-            {
-                *n2_speed.get_mut(2).unwrap() -= dis_z * source_mass_ratio
-            };
+            *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio;
+            *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio;
+            *n1_speed.get_mut(2).unwrap() += dis_z * target_mass_ratio;
+            *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio;
+            *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio;
+            *n2_speed.get_mut(2).unwrap() -= dis_z * source_mass_ratio;
         }
     }
 }
@@ -106,19 +84,10 @@ pub fn apply_attraction_fruchterman_2d(layout: &mut Layout) {
 
             let dist = (dx * dx + dy * dy).sqrt() + *kr;
             let f = dist / *k;
-
-            {
-                *n1_speed.get_mut(0).unwrap() += dx * f
-            };
-            {
-                *n1_speed.get_mut(1).unwrap() += dy * f
-            };
-            {
-                *n2_speed.get_mut(0).unwrap() -= dx * f
-            };
-            {
-                *n2_speed.get_mut(1).unwrap() -= dy * f
-            };
+            *n1_speed.get_mut(0).unwrap() += dx * f;
+            *n1_speed.get_mut(1).unwrap() += dy * f;
+            *n2_speed.get_mut(0).unwrap() -= dx * f;
+            *n2_speed.get_mut(1).unwrap() -= dy * f;
         }
     }
 }
@@ -137,25 +106,12 @@ pub fn apply_attraction_fruchterman_3d(layout: &mut Layout) {
 
             let dist = (dx * dx + dy * dy + dz * dz).sqrt() + *kr;
             let f = dist / *k;
-
-            {
-                *n1_speed.get_mut(0).unwrap() += dx * f
-            };
-            {
-                *n1_speed.get_mut(1).unwrap() += dy * f
-            };
-            {
-                *n1_speed.get_mut(2).unwrap() += dz * f
-            };
-            {
-                *n2_speed.get_mut(0).unwrap() -= dx * f
-            };
-            {
-                *n2_speed.get_mut(1).unwrap() -= dy * f
-            };
-            {
-                *n2_speed.get_mut(2).unwrap() -= dz * f
-            };
+            *n1_speed.get_mut(0).unwrap() += dx * f;
+            *n1_speed.get_mut(1).unwrap() += dy * f;
+            *n1_speed.get_mut(2).unwrap() += dz * f;
+            *n2_speed.get_mut(0).unwrap() -= dx * f;
+            *n2_speed.get_mut(1).unwrap() -= dy * f;
+            *n2_speed.get_mut(2).unwrap() -= dz * f;
         }
     }
 }
@@ -173,19 +129,10 @@ pub fn apply_attraction_forceatlas2_2d(layout: &mut Layout) {
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(n1, n2) {
             let dx = { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() } * weight;
             let dy = { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() } * weight;
-
-            {
-                *n1_speed.get_mut(0).unwrap() += dx
-            };
-            {
-                *n1_speed.get_mut(1).unwrap() += dy
-            };
-            {
-                *n2_speed.get_mut(0).unwrap() -= dx
-            };
-            {
-                *n2_speed.get_mut(1).unwrap() -= dy
-            };
+            *n1_speed.get_mut(0).unwrap() += dx;
+            *n1_speed.get_mut(1).unwrap() += dy;
+            *n2_speed.get_mut(0).unwrap() -= dx;
+            *n2_speed.get_mut(1).unwrap() -= dy;
         }
     }
 }
@@ -204,24 +151,17 @@ pub fn apply_attraction_forceatlas2_3d(layout: &mut Layout) {
             let dy = { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() } * weight;
             let dz = { *n2_pos.get(2).unwrap() - *n1_pos.get(2).unwrap() } * weight;
 
-            {
-                *n1_speed.get_mut(0).unwrap() += dx
-            };
-            {
-                *n1_speed.get_mut(1).unwrap() += dy
-            };
-            {
-                *n1_speed.get_mut(2).unwrap() += dz
-            };
-            {
-                *n2_speed.get_mut(0).unwrap() -= dx
-            };
-            {
-                *n2_speed.get_mut(1).unwrap() -= dy
-            };
-            {
-                *n2_speed.get_mut(2).unwrap() -= dz
-            };
+            *n1_speed.get_mut(0).unwrap() += dx;
+
+            *n1_speed.get_mut(1).unwrap() += dy;
+
+            *n1_speed.get_mut(2).unwrap() += dz;
+
+            *n2_speed.get_mut(0).unwrap() -= dx;
+
+            *n2_speed.get_mut(1).unwrap() -= dy;
+
+            *n2_speed.get_mut(2).unwrap() -= dz;
         }
     }
 }
