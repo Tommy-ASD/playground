@@ -7,12 +7,12 @@ pub fn apply_attraction_force2_2d(layout: &mut Layout) {
         let n1_pos = layout.points.get(*n1);
         let n2_pos = layout.points.get(*n2);
 
-        let n1_mass = unsafe { *layout.masses.get(*n1).unwrap() };
-        let n2_mass = unsafe { *layout.masses.get(*n2).unwrap() };
+        let n1_mass = { *layout.masses.get(*n1).unwrap() };
+        let n2_mass = { *layout.masses.get(*n2).unwrap() };
 
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(*n1, *n2) {
-            let dx = unsafe { *n1_pos.get(0).unwrap() - *n2_pos.get(0).unwrap() };
-            let dy = unsafe { *n1_pos.get(1).unwrap() - *n2_pos.get(1).unwrap() };
+            let dx = { *n1_pos.get(0).unwrap() - *n2_pos.get(0).unwrap() };
+            let dy = { *n1_pos.get(1).unwrap() - *n2_pos.get(1).unwrap() };
 
             let dist = (dx * dx + dy * dy).sqrt();
             let dire_x = dx / dist;
@@ -27,10 +27,18 @@ pub fn apply_attraction_force2_2d(layout: &mut Layout) {
             let dis_x = dire_x * param;
             let dis_y = dire_y * param;
 
-            unsafe { *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio };
-            unsafe { *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio };
-            unsafe { *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio };
-            unsafe { *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio };
+            {
+                *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio
+            };
+            {
+                *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio
+            };
+            {
+                *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio
+            };
+            {
+                *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio
+            };
         }
     }
 }
@@ -40,13 +48,13 @@ pub fn apply_attraction_force2_3d(layout: &mut Layout) {
         let n1_pos = layout.points.get(*n1);
         let n2_pos = layout.points.get(*n2);
 
-        let n1_mass = unsafe { *layout.masses.get(*n1).unwrap() };
-        let n2_mass = unsafe { *layout.masses.get(*n2).unwrap() };
+        let n1_mass = { *layout.masses.get(*n1).unwrap() };
+        let n2_mass = { *layout.masses.get(*n2).unwrap() };
 
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(*n1, *n2) {
-            let dx = unsafe { *n1_pos.get(0).unwrap() - *n2_pos.get(0).unwrap() };
-            let dy = unsafe { *n1_pos.get(1).unwrap() - *n2_pos.get(1).unwrap() };
-            let dz = unsafe { *n1_pos.get(2).unwrap() - *n2_pos.get(2).unwrap() };
+            let dx = { *n1_pos.get(0).unwrap() - *n2_pos.get(0).unwrap() };
+            let dy = { *n1_pos.get(1).unwrap() - *n2_pos.get(1).unwrap() };
+            let dz = { *n1_pos.get(2).unwrap() - *n2_pos.get(2).unwrap() };
 
             let dist = (dx * dx + dy * dy + dz * dz).sqrt();
             let dire_x = dx / dist;
@@ -63,12 +71,24 @@ pub fn apply_attraction_force2_3d(layout: &mut Layout) {
             let dis_y = dire_y * param;
             let dis_z = dire_z * param;
 
-            unsafe { *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio };
-            unsafe { *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio };
-            unsafe { *n1_speed.get_mut(2).unwrap() += dis_z * target_mass_ratio };
-            unsafe { *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio };
-            unsafe { *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio };
-            unsafe { *n2_speed.get_mut(2).unwrap() -= dis_z * source_mass_ratio };
+            {
+                *n1_speed.get_mut(0).unwrap() += dis_x * target_mass_ratio
+            };
+            {
+                *n1_speed.get_mut(1).unwrap() += dis_y * target_mass_ratio
+            };
+            {
+                *n1_speed.get_mut(2).unwrap() += dis_z * target_mass_ratio
+            };
+            {
+                *n2_speed.get_mut(0).unwrap() -= dis_x * source_mass_ratio
+            };
+            {
+                *n2_speed.get_mut(1).unwrap() -= dis_y * source_mass_ratio
+            };
+            {
+                *n2_speed.get_mut(2).unwrap() -= dis_z * source_mass_ratio
+            };
         }
     }
 }
@@ -81,16 +101,24 @@ pub fn apply_attraction_fruchterman_2d(layout: &mut Layout) {
         let n2_pos = layout.points.get(*n2);
 
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(*n1, *n2) {
-            let dx = unsafe { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() };
-            let dy = unsafe { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() };
+            let dx = { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() };
+            let dy = { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() };
 
             let dist = (dx * dx + dy * dy).sqrt() + *kr;
             let f = dist / *k;
 
-            unsafe { *n1_speed.get_mut(0).unwrap() += dx * f };
-            unsafe { *n1_speed.get_mut(1).unwrap() += dy * f };
-            unsafe { *n2_speed.get_mut(0).unwrap() -= dx * f };
-            unsafe { *n2_speed.get_mut(1).unwrap() -= dy * f };
+            {
+                *n1_speed.get_mut(0).unwrap() += dx * f
+            };
+            {
+                *n1_speed.get_mut(1).unwrap() += dy * f
+            };
+            {
+                *n2_speed.get_mut(0).unwrap() -= dx * f
+            };
+            {
+                *n2_speed.get_mut(1).unwrap() -= dy * f
+            };
         }
     }
 }
@@ -103,19 +131,31 @@ pub fn apply_attraction_fruchterman_3d(layout: &mut Layout) {
         let n2_pos = layout.points.get(*n2);
 
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(*n1, *n2) {
-            let dx = unsafe { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() };
-            let dy = unsafe { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() };
-            let dz = unsafe { *n2_pos.get(2).unwrap() - *n1_pos.get(2).unwrap() };
+            let dx = { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() };
+            let dy = { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() };
+            let dz = { *n2_pos.get(2).unwrap() - *n1_pos.get(2).unwrap() };
 
             let dist = (dx * dx + dy * dy + dz * dz).sqrt() + *kr;
             let f = dist / *k;
 
-            unsafe { *n1_speed.get_mut(0).unwrap() += dx * f };
-            unsafe { *n1_speed.get_mut(1).unwrap() += dy * f };
-            unsafe { *n1_speed.get_mut(2).unwrap() += dz * f };
-            unsafe { *n2_speed.get_mut(0).unwrap() -= dx * f };
-            unsafe { *n2_speed.get_mut(1).unwrap() -= dy * f };
-            unsafe { *n2_speed.get_mut(2).unwrap() -= dz * f };
+            {
+                *n1_speed.get_mut(0).unwrap() += dx * f
+            };
+            {
+                *n1_speed.get_mut(1).unwrap() += dy * f
+            };
+            {
+                *n1_speed.get_mut(2).unwrap() += dz * f
+            };
+            {
+                *n2_speed.get_mut(0).unwrap() -= dx * f
+            };
+            {
+                *n2_speed.get_mut(1).unwrap() -= dy * f
+            };
+            {
+                *n2_speed.get_mut(2).unwrap() -= dz * f
+            };
         }
     }
 }
@@ -131,13 +171,21 @@ pub fn apply_attraction_forceatlas2_2d(layout: &mut Layout) {
             layout.weights.as_ref().map_or(1.0, |weights| weights[edge]) * layout.settings.ka;
 
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(n1, n2) {
-            let dx = unsafe { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() } * weight;
-            let dy = unsafe { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() } * weight;
+            let dx = { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() } * weight;
+            let dy = { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() } * weight;
 
-            unsafe { *n1_speed.get_mut(0).unwrap() += dx };
-            unsafe { *n1_speed.get_mut(1).unwrap() += dy };
-            unsafe { *n2_speed.get_mut(0).unwrap() -= dx };
-            unsafe { *n2_speed.get_mut(1).unwrap() -= dy };
+            {
+                *n1_speed.get_mut(0).unwrap() += dx
+            };
+            {
+                *n1_speed.get_mut(1).unwrap() += dy
+            };
+            {
+                *n2_speed.get_mut(0).unwrap() -= dx
+            };
+            {
+                *n2_speed.get_mut(1).unwrap() -= dy
+            };
         }
     }
 }
@@ -152,16 +200,28 @@ pub fn apply_attraction_forceatlas2_3d(layout: &mut Layout) {
             layout.weights.as_ref().map_or(1.0, |weights| weights[edge]) * layout.settings.ka;
 
         if let Some((n1_speed, n2_speed)) = layout.speeds.get_2_mut(n1, n2) {
-            let dx = unsafe { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() } * weight;
-            let dy = unsafe { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() } * weight;
-            let dz = unsafe { *n2_pos.get(2).unwrap() - *n1_pos.get(2).unwrap() } * weight;
+            let dx = { *n2_pos.get(0).unwrap() - *n1_pos.get(0).unwrap() } * weight;
+            let dy = { *n2_pos.get(1).unwrap() - *n1_pos.get(1).unwrap() } * weight;
+            let dz = { *n2_pos.get(2).unwrap() - *n1_pos.get(2).unwrap() } * weight;
 
-            unsafe { *n1_speed.get_mut(0).unwrap() += dx };
-            unsafe { *n1_speed.get_mut(1).unwrap() += dy };
-            unsafe { *n1_speed.get_mut(2).unwrap() += dz };
-            unsafe { *n2_speed.get_mut(0).unwrap() -= dx };
-            unsafe { *n2_speed.get_mut(1).unwrap() -= dy };
-            unsafe { *n2_speed.get_mut(2).unwrap() -= dz };
+            {
+                *n1_speed.get_mut(0).unwrap() += dx
+            };
+            {
+                *n1_speed.get_mut(1).unwrap() += dy
+            };
+            {
+                *n1_speed.get_mut(2).unwrap() += dz
+            };
+            {
+                *n2_speed.get_mut(0).unwrap() -= dx
+            };
+            {
+                *n2_speed.get_mut(1).unwrap() -= dy
+            };
+            {
+                *n2_speed.get_mut(2).unwrap() -= dz
+            };
         }
     }
 }

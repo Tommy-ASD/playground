@@ -54,7 +54,7 @@ impl<'a> Iterator for NodeIter<'a> {
                         offset: next_offset,
                         _phantom: PhantomData::default(),
                     },
-                    pos: unsafe {
+                    pos: {
                         match layout.points.points.get(self.offset..next_offset) {
                             Some(val) => val,
                             None => return None,
@@ -96,7 +96,7 @@ impl<'a> Iterator for NodeIter2<'a> {
                     #[cfg(test)]
                     ind: self.offset / layout.settings.dimensions,
                     mass,
-                    pos: unsafe {
+                    pos: {
                         match layout.points.points.get(self.offset..next_offset) {
                             Some(val) => val,
                             None => return None,
@@ -177,7 +177,7 @@ mod parallel {
                     let ret = NodePar {
                         #[cfg(test)]
                         ind: self.ind,
-                        mass: unsafe {
+                        mass: {
                             match layout.masses.get(self.ind) {
                                 Some(val) => val,
                                 None => return None,
@@ -190,7 +190,7 @@ mod parallel {
                             offset: self.n2_start.max(next_offset),
                             _phantom: PhantomData::default(),
                         },
-                        pos: unsafe {
+                        pos: {
                             match layout.points.points.get(self.offset..next_offset) {
                                 Some(val) => val,
                                 None => return None,
@@ -231,13 +231,13 @@ mod parallel {
                     let ret = NodePar2 {
                         #[cfg(test)]
                         ind: self.ind,
-                        mass: unsafe {
+                        mass: {
                             match layout.masses.get(self.ind) {
                                 Some(val) => val,
                                 None => return None,
                             }
                         },
-                        pos: unsafe {
+                        pos: {
                             match layout.points.points.get(self.offset..next_offset) {
                                 Some(val) => val,
                                 None => return None,

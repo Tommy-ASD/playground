@@ -62,7 +62,7 @@ impl<'a> Iterator for PointIter<'a> {
         if self.offset >= self.list.len() {
             return None;
         }
-        let ret = unsafe {
+        let ret = {
             match self.list.get(self.offset..self.offset + self.dimensions) {
                 Some(val) => val,
                 None => return None,
@@ -86,7 +86,7 @@ impl<'a> Iterator for PointIterMut<'a> {
         if self.offset >= self.list.len() {
             return None;
         }
-        let ret: &'b mut [f32] = unsafe {
+        let ret: &'b mut [f32] = {
             match self
                 .list
                 .get_mut(self.offset..self.offset + self.dimensions)
@@ -131,7 +131,7 @@ impl<'a> PointList {
     pub fn get_2_mut(&mut self, n1: usize, n2: usize) -> Option<(&mut [f32], &mut [f32])> {
         let offset1 = n1 * self.dimensions;
         let offset2 = n2 * self.dimensions;
-        unsafe {
+        {
             let (s1, s2) = split_at_mut(&mut self.points, offset2);
             match (
                 s1.get_mut(offset1..offset1 + self.dimensions),
