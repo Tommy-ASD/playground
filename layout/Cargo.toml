@@ -10,3 +10,6 @@ itertools = "0.11.0"
 rayon = "1.5.1"
 
 graphlib = { path = "../graphlib" }
+ordered-float = "4.1.1"
+
+plotters = "0.3.5"

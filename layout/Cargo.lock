@@ -574,6 +574,8 @@ version = "0.1.0"
 dependencies = [
  "graphlib",
  "itertools",
+ "ordered-float",
+ "plotters",
  "rayon",
 ]
 

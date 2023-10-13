@@ -2,6 +2,7 @@ use crate::{iter::*, util::*};
 
 use graphlib::Graph;
 use itertools::Itertools;
+use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 use std::marker::PhantomData;
 
@@ -162,7 +163,7 @@ impl Layout {
         })
     }
 
-    fn from_graph(graph: Graph) -> Self {
+    pub fn from_graph(graph: &Graph) -> Self {
         let grid_positions = graph.get_grid_positions();
         let nodes = Nodes::Degree(graph.nodes.len());
         let mut index_to_coordinate: Vec<(usize, (f32, f32))> = grid_positions
@@ -190,18 +191,39 @@ impl Layout {
         let weights = None;
         // Create settings for the layout algorithm.
         let settings = Settings {
-            name: LayoutType::ForceAtlas2,
+            name: LayoutType::Force2,
             // Set other layout parameters as needed
             chunk_size: Some(256),
             dimensions: 2,
             // Set other parameters
             distance_threshold_mode: DistanceThresholdMode::Average,
-            // Set other parameters
-            ..Default::default()
+            ka: 0.01,
+            kg: 0.01,
+            kr: 0.01,
+            dissuade_hubs: false,
+            lin_log: false,
+            prevent_overlapping: None,
+            speed: 0.01,
+            strong_gravity: false,
+            link_distance: 1.0,
+            edge_strength: 1.0,
+            node_strength: 1.0,
+            coulomb_dis_scale: 1.0,
+            factor: 1.0,
+            damping: 1.0,
+            interval: 1.0,
+            center: vec![0.0; 2],
+            max_speed: 1.0,
+            min_movement: 0.0,
+            max_distance: 100.0,
         };
         let mut layout = Layout::from_position_graph(edges, nodes, positions, weights, settings);
-        let num_iterations = 100; // Adjust as needed
+        let num_iterations = 200; // Adjust as needed
+        let progress_update = 1;
         for i in 0..num_iterations {
+            if i % progress_update == 0 {
+                println!("Running iteration {i}");
+            }
             // Perform one iteration
             let done = layout.iteration(i);
 
@@ -212,5 +234,13 @@ impl Layout {
             }
         }
         layout
+    }
+
+    pub fn apply_to_graph(&self, graph: &mut Graph) {
+        for (node, position) in graph.nodes.iter_mut().zip(self.points.iter()) {
+            // Update the node's position based on the layout results
+            node.meta.coordinate.x = OrderedFloat(position[0] as f64);
+            node.meta.coordinate.y = OrderedFloat(position[1] as f64);
+        }
     }
 }
