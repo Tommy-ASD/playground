@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use plotters::{prelude::IntoDrawingArea, style::WHITE};
 use uuid::Uuid;
-use web_sys::{HtmlCanvasElement, HtmlInputElement};
+use web_sys::HtmlCanvasElement;
 use yew::{
     prelude::{function_component, html, Html},
-    use_node_ref, use_state, Callback, NodeRef,
+    use_node_ref, use_state, Callback,
 };
 use yew_hooks::{use_raf, use_raf_state, UseRafStateHandle};
 
