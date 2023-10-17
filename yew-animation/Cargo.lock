@@ -1145,10 +1145,7 @@ name = "graphlib"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "console_log",
  "futures",
- "gloo 0.10.0",
- "gloo-net 0.4.0",
  "js-sys",
  "lazy_static",
  "log",
@@ -1157,24 +1154,12 @@ dependencies = [
  "plotters",
  "plotters-backend",
  "rand",
- "reqwasm",
  "serde",
- "serde-wasm-bindgen 0.6.0",
  "serde_json",
  "strum",
  "thiserror",
  "tokio",
  "uuid",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "wasm-logger",
- "web-sys",
- "yew",
- "yew-agent",
- "yew-hooks",
- "yew-oauth2",
- "yew-router",
 ]
 
 [[package]]

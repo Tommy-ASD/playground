@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["graphlib", "yew-canvas"]
 
 [dependencies]
 yew-hooks = "0.3.0"
@@ -45,8 +44,8 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 ordered-float = { version = "4.1.1", features = ["rand", "serde"] }
 
-yew-canvas = { path = "./yew-canvas" }
-graphlib = { path = "./graphlib" }
+yew-canvas = { path = "../yew-canvas" }
+graphlib = { path = "../graphlib" }
 
 
 [dependencies.web-sys]
