@@ -280,7 +280,6 @@ dependencies = [
  "email_address",
  "env_logger",
  "form_urlencoded",
- "futures 0.1.31",
  "futures 0.3.28",
  "futures-util",
  "glob",
