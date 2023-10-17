@@ -7,7 +7,10 @@ use plotters::{
     style::IntoFont,
 };
 
-use crate::{meta::Coordinate, Graph, NodeMetaData};
+use crate::{
+    meta::{BaseMetaData, Coordinate},
+    Graph, NodeMetaData,
+};
 
 impl Graph {
     pub fn draw_on_backend<DB: DrawingBackend>(
@@ -39,6 +42,10 @@ impl Graph {
         for node in &self.nodes {
             let NodeMetaData {
                 coordinate: Coordinate { x, y },
+                base:
+                    BaseMetaData {
+                        time_created: _time_created,
+                    },
             } = node.meta;
             chart.draw_series(PointSeries::of_element(
                 vec![(*x, *y)],

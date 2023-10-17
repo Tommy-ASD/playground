@@ -46,6 +46,7 @@ ordered-float = { version = "4.1.1", features = ["rand", "serde"] }
 
 yew-canvas = { path = "../yew-canvas" }
 graphlib = { path = "../graphlib" }
+layout = { path = "../layout" }
 
 
 [dependencies.web-sys]

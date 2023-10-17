@@ -107,6 +107,8 @@ impl Default for Settings {
     }
 }
 
+// setters
+
 pub struct Layout {
     pub edges: Vec<Edge>,
     pub masses: Vec<f32>,

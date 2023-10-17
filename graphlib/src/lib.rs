@@ -3,8 +3,9 @@ use std::{
     ops::Range,
 };
 
+use chrono::Utc;
 use json::any_key_map;
-use meta::{Coordinate, EdgeMetaData, Line, NodeMetaData};
+use meta::{BaseMetaData, Coordinate, EdgeMetaData, Line, NodeMetaData};
 use rand::Rng;
 
 use uuid::Uuid;
@@ -99,6 +100,9 @@ impl Graph {
                     outgoing: target_id,
                     meta: EdgeMetaData {
                         weight: OrderedFloat(1.0),
+                        base: BaseMetaData {
+                            time_created: Utc::now().naive_local(),
+                        },
                     },
                 };
                 self.edges.push(edge);

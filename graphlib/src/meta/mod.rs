@@ -3,6 +3,7 @@ use std::{
     ops::Range,
 };
 
+use chrono::{NaiveDateTime, Utc};
 use rand::Rng;
 
 use uuid::Uuid;
@@ -14,6 +15,11 @@ use ordered_float::OrderedFloat;
 use crate::Graph;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub struct BaseMetaData {
+    pub time_created: NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub struct Coordinate {
     pub x: OrderedFloat<f64>,
     pub y: OrderedFloat<f64>,
@@ -22,6 +28,7 @@ pub struct Coordinate {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct NodeMetaData {
     pub coordinate: Coordinate,
+    pub base: BaseMetaData,
 }
 
 impl NodeMetaData {
@@ -32,6 +39,9 @@ impl NodeMetaData {
 
         Self {
             coordinate: Coordinate { x, y },
+            base: BaseMetaData {
+                time_created: Utc::now().naive_local(),
+            },
         }
     }
 }
@@ -39,6 +49,7 @@ impl NodeMetaData {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct EdgeMetaData {
     pub weight: OrderedFloat<f64>,
+    pub base: BaseMetaData,
 }
 
 pub struct Line {

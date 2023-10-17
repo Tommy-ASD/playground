@@ -83,7 +83,7 @@ fn canvas_renderer() -> Html {
 
     html! {
         <>
-            <canvas id={"my-canvas"} width={600} height={600} ref={reference} />
+            <canvas id="my-canvas" width=600 height=600 ref={reference} />
             <Slider label="Spring stiffness"
                 min=0.0 max=1.0
                 onchange={{
