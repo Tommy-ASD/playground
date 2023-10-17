@@ -1,4 +1,4 @@
-use macros::Setters;
+use macros::{Getters, GettersMut, Setters};
 
 fn main() {
     println!("Hello, world!");
@@ -21,7 +21,7 @@ pub enum LayoutType {
     Fruchterman,
 }
 
-#[derive(Setters)]
+#[derive(Setters, Getters, GettersMut)]
 pub struct Settings {
     pub name: LayoutType,
     /// Number of nodes computed by each thread
