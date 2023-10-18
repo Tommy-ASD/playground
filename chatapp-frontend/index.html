@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chatapp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #header {
+            background-color: #7289DA;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            width: 100%; 
+        }
+
+        #header #logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #header #user-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        #header #user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        #channels-sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #channels-sidebar li {
+            margin-bottom: 10px;
+        }
+
+        #channels-sidebar a {
+            text-decoration: none;
+            color: #fff;
+        }
+        
+        #container {
+            display: flex;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .message img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .message-content {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-name {
+            font-weight: bold;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: row;
+        }
+
+        #channels-sidebar {
+            background-color: #36393E;
+            color: #fff;
+            width: 250px;
+            padding: 10px;
+            padding-left: 20px;
+            min-height: 95vh;
+        }
+
+        #content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        #chat {
+            background-color: #f4f4f4;
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        #message-input {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        #message-input input {
+            flex-grow: 1;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        #message-input button {
+            background-color: #7289DA;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .timestamp {
+            padding-left: 10px;
+            font-size: 13px;
+            opacity: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <div id="user-profile">
+            <img src="https://source.unsplash.com/32x32/?avatar" alt="Your Avatar" width="32" height="32">
+            <span>Your Name</span>
+        </div>
+    </div>
+    <div id="container">
+        <!-- <div id="servers-sidebar">
+            <ul>
+                <li><a href="#">General</a></li>
+                <li><a href="#">Channel 1</a></li>
+                <li><a href="#">Channel 2</a></li>
+            </ul>
+        </div> -->
+        <div id="channels-sidebar">
+            <ul>
+                <li><a href="#">General</a></li>
+                <li><a href="#">Channel 1</a></li>
+                <li><a href="#">Channel 2</a></li>
+            </ul>
+        </div>
+        <div id="content">
+            <div id="chat">
+                <div class="message">
+                    <img src="https://source.unsplash.com/32x32/?avatar" alt="User Avatar" width="32" height="32">
+                    <div class="message-content">
+                        <span class="user-name">Username</span><span class="timestamp">Today at 4:20 PM</span>
+                        <p>Hello, this is a chat message.</p>
+                    </div>
+                </div>
+            </div>
+            <div id="message-input">
+                <input type="text" placeholder="Type your message...">
+                <button>Send</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
