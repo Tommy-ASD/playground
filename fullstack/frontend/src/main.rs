@@ -14,7 +14,8 @@ use common::Message;
 use crate::canvas::func_plot::draw;
 
 generate_state! {
-    pub static MESSAGE_CONTAINER_REF: NodeRef = NodeRef::default();
+    MESSAGE_CONTAINER_REF,
+    USERNAME_REF
 }
 
 #[derive(Debug, Clone)]
@@ -158,7 +159,6 @@ fn create_render_callback(link: &html::Scope<MessageList>) -> Callback<MouseEven
 }
 
 fn main() {
-    let message_container: NodeRef = State::get_message_container_ref();
     yew::Renderer::<MessageList>::new().render();
 }
 
