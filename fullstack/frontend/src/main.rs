@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use macros::generate_state;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlTextAreaElement;
@@ -49,9 +51,18 @@ impl From<ChangeTodoList> for JsValue {
     }
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties)]
 struct WsCallbacks {
-    pub on_message_recieved: Callback<ws::Message>,
+    pub on_message_recieved: Arc<Mutex<Callback<ws::Message, String>>>,
+}
+
+impl PartialEq for WsCallbacks {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::<Mutex<Callback<ws::Message, std::string::String>>>::ptr_eq(
+            &self.on_message_recieved,
+            &other.on_message_recieved,
+        )
+    }
 }
 
 #[derive(Properties, PartialEq)]
@@ -68,7 +79,19 @@ impl Component for MessageList {
     type Message = ChangeTodoList;
     type Properties = MessageListProps;
 
-    fn create(_ctx: &Context<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let link = ctx.link();
+        let mut cb = ctx.props().ws_callbacks.on_message_recieved.lock().unwrap();
+        *cb = Callback::from({
+            let link = link.clone();
+            move |name: ws::Message| {
+                link.callback(move |_event: MouseEvent| {
+                    gloo::console::log!("Received msg");
+                    ChangeTodoList::None
+                });
+                "test".to_string()
+            }
+        });
         Self { messages: vec![] }
     }
 
@@ -96,7 +119,7 @@ impl Component for MessageList {
         let link = ctx.link();
 
         let State {
-            message_container_ref,
+            message_container_ref: _,
             username_ref,
             joinbtn_ref,
             textarea_ref,
@@ -106,8 +129,8 @@ impl Component for MessageList {
             renderbtn_ref,
         } = State::get();
 
-        let send = create_send_callback(&link, &input_ref);
-        let join = create_join_callback(&link, &username_ref, &get_ws_client());
+        let send = create_send_callback(&link);
+        let join = create_join_callback(&link);
         let render = create_render_callback(&link);
 
         html! {
@@ -132,13 +155,8 @@ impl Component for MessageList {
     }
 }
 
-fn create_join_callback(
-    link: &html::Scope<MessageList>,
-    username_ref: &NodeRef,
-    client: &EventClient,
-) -> Callback<MouseEvent> {
-    let client: EventClient = client.clone();
-    let username_ref = username_ref.clone();
+fn create_join_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
+    let username_ref = State::get_username_ref();
     link.callback(move |_event: MouseEvent| {
         gloo::console::log!("Button pressed");
         let value = match username_ref.cast::<web_sys::HtmlInputElement>() {
@@ -148,16 +166,14 @@ fn create_join_callback(
                 return ChangeTodoList::None;
             }
         };
-        let _ = client.send_string(&value);
+
+        let _ = get_ws_client().send_string(&value);
         return ChangeTodoList::None;
     })
 }
 
-fn create_send_callback(
-    link: &html::Scope<MessageList>,
-    input_ref: &NodeRef,
-) -> Callback<MouseEvent> {
-    let input_ref = input_ref.clone();
+fn create_send_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
+    let input_ref = State::get_input_ref();
     link.callback(move |_event: MouseEvent| {
         gloo::console::log!("Button pressed");
         let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
@@ -183,14 +199,15 @@ fn create_render_callback(link: &html::Scope<MessageList>) -> Callback<MouseEven
 #[function_component(App)]
 fn app() -> Html {
     let mut client = get_ws_client();
-    let on_message_recieved: Callback<ws::Message> = Callback::from(move |name: ws::Message| {
-        let greeting = format!("Hey, {name:?}!");
-    });
+    let on_message_recieved: Arc<Mutex<Callback<ws::Message, String>>> =
+        Arc::new(Mutex::new(Callback::from(move |name: ws::Message| {
+            format!("Message! {name:?}!")
+        })));
     client.set_on_message({
         let on_message_recieved = on_message_recieved.clone();
         Some(Box::new(
             move |_client: &ws::EventClient, message: ws::Message| {
-                on_message_recieved.emit(message);
+                on_message_recieved.lock().unwrap().emit(message);
             },
         ))
     });
@@ -203,7 +220,10 @@ fn main() {
 }
 
 fn create_client() -> ws::EventClient {
-    let mut client: ws::EventClient =
-        ws::EventClient::new("ws://localhost:8081/websocket").unwrap();
-    client
+    let mut optional_ws = ws::EventClient::new("ws://localhost:8081/websocket");
+    while let Err(err) = optional_ws {
+        gloo::console::error!("Failed to connect to ws: ", format!("{}", err));
+        optional_ws = ws::EventClient::new("ws://localhost:8081/websocket");
+    }
+    optional_ws.unwrap()
 }
