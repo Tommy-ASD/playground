@@ -1,9 +1,7 @@
+use macros::generate_state;
 use wasm_bindgen::JsValue;
 use ws::EventClient;
-use yew::{
-    prelude::{html, Component, Context, Html},
-    Callback, MouseEvent, NodeRef,
-};
+use yew::prelude::{html, Callback, Component, Context, Html, MouseEvent, NodeRef};
 
 use serde_json::Value;
 
@@ -14,6 +12,10 @@ mod ws;
 use common::Message;
 
 use crate::canvas::func_plot::draw;
+
+generate_state! {
+    pub static MESSAGE_CONTAINER_REF: NodeRef = NodeRef::default();
+}
 
 #[derive(Debug, Clone)]
 enum ChangeTodoList {
@@ -156,6 +158,7 @@ fn create_render_callback(link: &html::Scope<MessageList>) -> Callback<MouseEven
 }
 
 fn main() {
+    let message_container: NodeRef = State::get_message_container_ref();
     yew::Renderer::<MessageList>::new().render();
 }
 
