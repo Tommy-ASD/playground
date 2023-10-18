@@ -25,7 +25,13 @@ log = "0.4.20"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
 tokio = { version = "1.32.0", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 traceback-derive = "0.1.1"
 traceback-error = "0.1.9"
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["serde", "serde_json", "env-filter"] }
+tracing-subscriber = { version = "0.3.17", features = [
+    "serde",
+    "serde_json",
+    "env-filter",
+] }

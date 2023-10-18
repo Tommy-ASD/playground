@@ -17,6 +17,8 @@ use common::Message;
 
 use crate::canvas::func_plot::draw;
 
+static BACKEND_URL: &str = "localhost:8081";
+
 generate_state! {
     message_container_ref,
     username_ref,
@@ -190,10 +192,10 @@ fn main() {
 }
 
 fn create_client() -> ws::EventClient {
-    let mut optional_ws = ws::EventClient::new("wss://703k4x5h-8081.euw.devtunnels.ms/websocket/");
+    let mut optional_ws = ws::EventClient::new(&format!("ws://{BACKEND_URL}/ws"));
     while let Err(err) = optional_ws {
         gloo::console::error!("Failed to connect to ws: ", format!("{}", err));
-        optional_ws = ws::EventClient::new("wss://703k4x5h-8081.euw.devtunnels.ms/websocket/");
+        optional_ws = ws::EventClient::new(&format!("ws://{BACKEND_URL}/ws"));
     }
     optional_ws.unwrap()
 }

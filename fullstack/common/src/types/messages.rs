@@ -1,6 +1,7 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use uuid::Uuid;
 use wasm_bindgen::JsValue;
 use yew::{html, Component, Context, Html};
 
@@ -10,17 +11,42 @@ pub struct User {
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub enum Sender {
+    System,
+    User(String), // refers to username
+}
+
+impl std::fmt::Display for Sender {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Sender::System => write!(f, "System"),
+            Sender::User(username) => write!(f, "User({})", username),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Message {
+    pub id: Uuid,
     pub content: Value,
-    pub sender: String, // refers to username
+    pub sender: Sender,
     pub sent_at: chrono::NaiveDateTime,
 }
 
 impl Message {
     pub fn new(content: Value, sender: &str) -> Self {
         Message {
+            id: Uuid::new_v4(),
             content,
-            sender: sender.to_string(),
+            sender: Sender::User(sender.to_string()),
+            sent_at: Utc::now().naive_local(),
+        }
+    }
+    pub fn new_system(content: Value) -> Self {
+        Message {
+            id: Uuid::new_v4(),
+            content,
+            sender: Sender::System,
             sent_at: Utc::now().naive_local(),
         }
     }
@@ -49,7 +75,8 @@ impl Component for Message {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            sender: "SYSTEM".to_string(),
+            id: Uuid::new_v4(),
+            sender: Sender::System,
             content: "Hello, world!".into(),
             sent_at: Utc::now().naive_local(),
         }

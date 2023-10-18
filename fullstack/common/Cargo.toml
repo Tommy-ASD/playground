@@ -25,7 +25,7 @@ gloo = "0.10.0"
 gloo-net = "0.4.0"
 
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
-uuid = { version = "1.4.1", features = ["serde"] }
+uuid = { version = "1.4.1", features = ["serde", "rand", "rng", "v4", "wasm-bindgen"] }
 
 reqwasm = "0.5.0"
 wasm-logger = "0.2"

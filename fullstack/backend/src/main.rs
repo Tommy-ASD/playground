@@ -23,6 +23,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::broadcast::{self, Receiver};
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    trace::TraceLayer,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use serde_json::{json, Value};
@@ -81,6 +85,7 @@ impl AppState {
     }
     #[traceback_derive::traceback]
     pub fn send(&self, message: Message) -> Result<(), TracebackError> {
+        tracing::debug!("Sending {message:?}");
         self.tx.send(message.clone())?;
         let mut messages = match self.messages.lock() {
             Ok(messages) => messages,
@@ -127,7 +132,9 @@ async fn main() {
     let app = Router::new()
         .route("/", get(index))
         .route("/websocket", get(websocket_handler))
+        .route("/ws", get(websocket_handler))
         .nest("/api", api)
+        .nest_service("/static", ServeDir::new("static"))
         .with_state(app_state);
     hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 8081)))
         .serve(app.into_make_service())
@@ -180,7 +187,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     let mut rx = state.tx.subscribe();
 
     // Now send the "joined" message to all subscribers.
-    let msg = Message::new(Value::String(format!("{username} joined.")), "SYSTEM");
+    let msg = Message::new_system(Value::String(format!("{username} joined.")));
     tracing::debug!("{msg:?}");
     let _ = state.send(msg);
 
@@ -208,6 +215,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(ws::Message::Text(text))) = receiver.next().await {
             let message = Message::new(Value::String(text), &name);
+            tracing::debug!("Recieved message {message:?}");
             // Add username before message.
             let _ = state_clone.send(message);
         }
@@ -219,8 +227,8 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
         _ = (&mut recv_task) => send_task.abort(),
     };
 
-    // Send "user left" message (similar to "joined" above).
-    let msg = Message::new(Value::String(format!("{username} left.")), "SYSTEM");
+    // Send "user left" message (similar to "joined" abovØe).
+    let msg = Message::new_system(Value::String(format!("{username} left.")));
     tracing::debug!("{msg:?}");
     let _ = state.send(msg);
 
