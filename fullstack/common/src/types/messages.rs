@@ -26,7 +26,7 @@ impl Message {
     }
     pub fn to_html(&self) -> Html {
         html! {
-            <p>{ "Messages have no implementation yet" }</p>
+            <p>{ format!("({timestamp})\n{sender}: {content}", timestamp = self.sent_at, sender = self.sender, content = self.content) }</p>
         }
     }
 }
@@ -60,9 +60,7 @@ impl Component for Message {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        html! {
-            <p>{ "Messages have no implementation yet" }</p>
-        }
+        self.to_html()
     }
 }
 
