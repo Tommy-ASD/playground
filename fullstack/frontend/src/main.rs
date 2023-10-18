@@ -1,7 +1,11 @@
 use macros::generate_state;
 use wasm_bindgen::JsValue;
+use web_sys::HtmlTextAreaElement;
 use ws::EventClient;
-use yew::prelude::{html, Callback, Component, Context, Html, MouseEvent, NodeRef, Properties};
+use yew::{
+    function_component,
+    prelude::{html, Callback, Component, Context, Html, MouseEvent, NodeRef, Properties},
+};
 
 use serde_json::Value;
 
@@ -24,6 +28,14 @@ generate_state! {
     renderbtn_ref,
 }
 
+thread_local! {
+    pub static WS_CLIENT: EventClient = create_client();
+}
+
+fn get_ws_client() -> EventClient {
+    WS_CLIENT.with(|inner| inner.clone())
+}
+
 #[derive(Debug, Clone)]
 enum ChangeTodoList {
     AddMessage(Message),
@@ -37,6 +49,16 @@ impl From<ChangeTodoList> for JsValue {
     }
 }
 
+#[derive(Properties, PartialEq)]
+struct WsCallbacks {
+    pub on_message_recieved: Callback<ws::Message>,
+}
+
+#[derive(Properties, PartialEq)]
+struct MessageListProps {
+    pub ws_callbacks: WsCallbacks,
+}
+
 #[derive(Properties, PartialEq, Default)]
 struct MessageList {
     messages: Vec<Message>,
@@ -44,7 +66,7 @@ struct MessageList {
 
 impl Component for MessageList {
     type Message = ChangeTodoList;
-    type Properties = ();
+    type Properties = MessageListProps;
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self { messages: vec![] }
@@ -84,9 +106,8 @@ impl Component for MessageList {
             renderbtn_ref,
         } = State::get();
 
-        let client = create_client(&link);
         let send = create_send_callback(&link, &input_ref);
-        let join = create_join_callback(&link, &username_ref, &client);
+        let join = create_join_callback(&link, &username_ref, &get_ws_client());
         let render = create_render_callback(&link);
 
         html! {
@@ -158,26 +179,31 @@ fn create_render_callback(link: &html::Scope<MessageList>) -> Callback<MouseEven
     })
 }
 
-fn main() {
-    yew::Renderer::<MessageList>::new().render();
+// Then supply the prop
+#[function_component(App)]
+fn app() -> Html {
+    let mut client = get_ws_client();
+    let on_message_recieved: Callback<ws::Message> = Callback::from(move |name: ws::Message| {
+        let greeting = format!("Hey, {name:?}!");
+    });
+    client.set_on_message({
+        let on_message_recieved = on_message_recieved.clone();
+        Some(Box::new(
+            move |_client: &ws::EventClient, message: ws::Message| {
+                on_message_recieved.emit(message);
+            },
+        ))
+    });
+
+    html! { <MessageList ws_callbacks={WsCallbacks {on_message_recieved}}/> }
 }
 
-fn create_client(link: &html::Scope<MessageList>) -> ws::EventClient {
+fn main() {
+    yew::Renderer::<App>::new().render();
+}
+
+fn create_client() -> ws::EventClient {
     let mut client: ws::EventClient =
         ws::EventClient::new("ws://localhost:8081/websocket").unwrap();
-    client.set_on_error(Some(Box::new(|error| {
-        gloo::console::error!(error);
-    })));
-    client.set_on_connection(Some(Box::new(|client: &ws::EventClient| {
-        gloo::console::log!(client.get_status());
-    })));
-    client.set_on_close(Some(Box::new(|_evt| {
-        gloo::console::log!("Connection closed");
-    })));
-    client.set_on_message(Some(Box::new(
-        |_client: &ws::EventClient, message: ws::Message| {
-            gloo::console::log!("New Message: ", message);
-        },
-    )));
     client
 }
