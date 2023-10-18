@@ -3,7 +3,6 @@ use std::str::FromStr;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemStatic};
 
 #[proc_macro]
 pub fn generate_state(input: TokenStream) -> TokenStream {
@@ -23,10 +22,12 @@ pub fn generate_state(input: TokenStream) -> TokenStream {
     let mut getters = vec![];
 
     for item in items {
+        if item.is_empty() {
+            continue;
+        }
         println!("Handling {item}");
-        let ident = proc_macro2::TokenStream::from_str(item).unwrap();
-        let ident_lower =
-            proc_macro2::TokenStream::from_str(&ident.to_string().to_lowercase()).unwrap();
+        let ident = proc_macro2::TokenStream::from_str(&item.to_uppercase()).unwrap();
+        let ident_lower = proc_macro2::TokenStream::from_str(&item.to_lowercase()).unwrap();
         let getter_name =
             proc_macro2::TokenStream::from_str(&format!("get_{ident_lower}")).unwrap();
         corrected_items.push(quote! { pub static #ident: NodeRef = NodeRef::default(); });

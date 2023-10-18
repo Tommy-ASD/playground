@@ -1,7 +1,7 @@
 use macros::generate_state;
 use wasm_bindgen::JsValue;
 use ws::EventClient;
-use yew::prelude::{html, Callback, Component, Context, Html, MouseEvent, NodeRef};
+use yew::prelude::{html, Callback, Component, Context, Html, MouseEvent, NodeRef, Properties};
 
 use serde_json::Value;
 
@@ -14,8 +14,14 @@ use common::Message;
 use crate::canvas::func_plot::draw;
 
 generate_state! {
-    MESSAGE_CONTAINER_REF,
-    USERNAME_REF
+    message_container_ref,
+    username_ref,
+    joinbtn_ref,
+    textarea_ref,
+    input_ref,
+    sendbtn_ref,
+    canvas_ref,
+    renderbtn_ref,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +37,7 @@ impl From<ChangeTodoList> for JsValue {
     }
 }
 
+#[derive(Properties, PartialEq, Default)]
 struct MessageList {
     messages: Vec<Message>,
 }
@@ -66,7 +73,8 @@ impl Component for MessageList {
         utilities::set_cookie("test", "value");
         let link = ctx.link();
 
-        let (
+        let State {
+            message_container_ref,
             username_ref,
             joinbtn_ref,
             textarea_ref,
@@ -74,15 +82,7 @@ impl Component for MessageList {
             sendbtn_ref,
             canvas_ref,
             renderbtn_ref,
-        ) = (
-            NodeRef::default(),
-            NodeRef::default(),
-            NodeRef::default(),
-            NodeRef::default(),
-            NodeRef::default(),
-            NodeRef::default(),
-            NodeRef::default(),
-        );
+        } = State::get();
 
         let client = create_client(&link);
         let send = create_send_callback(&link, &input_ref);
