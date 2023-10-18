@@ -21,12 +21,6 @@ thread_local! {
     pub static STATUS_REF: NodeRef = NodeRef::default();
 }
 
-enum UpgradeType {
-    Graph(i32),
-    Mandelbrot(usize),
-    Plot3d(f64, f64),
-}
-
 #[derive(Clone)]
 pub struct State {
     select_ref: NodeRef,
@@ -40,6 +34,28 @@ pub struct State {
     status_ref: NodeRef,
 }
 
+impl State {
+    pub fn get() -> Self {
+        Self {
+            select_ref: CANVAS_REF.with(|inner| inner.clone()),
+            canvas_ref: SELECT_REF.with(|inner| inner.clone()),
+            threed_ctrls_ref: THREED_CTRLS_REF.with(|inner| inner.clone()),
+            pitch_ref: PITCH_REF.with(|inner| inner.clone()),
+            yaw_ref: YAW_REF.with(|inner| inner.clone()),
+            mandelbrot_ctrls_ref: MANDELBROT_CTRLS_REF.with(|inner| inner.clone()),
+            iters_ref: ITERS_REF.with(|inner| inner.clone()),
+            iters_label_ref: ITERS_LABEL_REF.with(|inner| inner.clone()),
+            status_ref: STATUS_REF.with(|inner| inner.clone()),
+        }
+    }
+}
+
+enum UpgradeType {
+    Graph(i32),
+    Mandelbrot(usize),
+    Plot3d(f64, f64),
+}
+
 impl Component for App {
     type Message = ();
     type Properties = ();
@@ -49,7 +65,7 @@ impl Component for App {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        let state = get_state();
+        let state = State::get();
 
         html! {
             <>
@@ -93,7 +109,7 @@ impl Component for App {
 }
 
 fn update_mandelbrot_iterators<T>(_: T) {
-    let state = get_state();
+    let state = State::get();
     // handle label first
     let label = match state.iters_label_ref.cast::<HtmlLabelElement>() {
         Some(element) => element,
@@ -115,7 +131,7 @@ fn update_mandelbrot_iterators<T>(_: T) {
 }
 
 fn selection_callback<T>(_: T) {
-    let state = get_state();
+    let state = State::get();
     let select = match state.select_ref.cast::<HtmlSelectElement>() {
         Some(element) => element,
         None => {
@@ -162,7 +178,7 @@ fn update_plot_3d<T>(_: T) {
     let window = web_sys::window().unwrap();
     let performance = window.performance().unwrap();
     let start_time = performance.now();
-    let state = get_state();
+    let state = State::get();
     let pitch = match state.pitch_ref.cast::<HtmlInputElement>() {
         Some(element) => element.value_as_number(),
         None => {
@@ -194,7 +210,7 @@ fn update_plot(upgrade: UpgradeType) {
     let window = web_sys::window().unwrap();
     let performance = window.performance().unwrap();
     let start_time = performance.now();
-    let state = get_state();
+    let state = State::get();
 
     let canvas = match state.canvas_ref.cast::<HtmlCanvasElement>() {
         Some(element) => element,
@@ -249,39 +265,4 @@ fn update_plot(upgrade: UpgradeType) {
 
 fn main() {
     yew::Renderer::<App>::new().render();
-}
-
-fn get_state() -> State {
-    let (
-        select_ref,
-        canvas_ref,
-        threed_ctrls_ref,
-        pitch_ref,
-        yaw_ref,
-        mandelbrot_ctrls_ref,
-        iters_ref,
-        iters_label_ref,
-        status_ref,
-    ) = (
-        CANVAS_REF.with(|inner| inner.clone()),
-        SELECT_REF.with(|inner| inner.clone()),
-        THREED_CTRLS_REF.with(|inner| inner.clone()),
-        PITCH_REF.with(|inner| inner.clone()),
-        YAW_REF.with(|inner| inner.clone()),
-        MANDELBROT_CTRLS_REF.with(|inner| inner.clone()),
-        ITERS_REF.with(|inner| inner.clone()),
-        ITERS_LABEL_REF.with(|inner| inner.clone()),
-        STATUS_REF.with(|inner| inner.clone()),
-    );
-    State {
-        select_ref,
-        canvas_ref,
-        threed_ctrls_ref,
-        pitch_ref,
-        yaw_ref,
-        mandelbrot_ctrls_ref,
-        iters_ref,
-        iters_label_ref,
-        status_ref,
-    }
 }
