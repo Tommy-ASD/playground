@@ -23,8 +23,7 @@ impl Default for Life {
 impl Life {
     // if an index is here, it should be toggled
     // in other words, it should be removed from alive_cells if it was there
-    // and added if it wasn't
-    fn get_changed_state(&self) -> HashSet<Coordinate> {
+t    fn get_changed_state(&self) -> HashSet<t> {
         let (mut xs, mut ys): (Vec<i32>, Vec<i32>) = self
             .alive_cells
             .iter()
