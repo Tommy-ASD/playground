@@ -83,16 +83,13 @@ impl FileDownloadData {
         if let Some(inner_path) = path.strip_prefix("/") {
             path = inner_path;
         }
-        println!("Turning {self:?} into list element");
-        let res = format!(
+        format!(
             r#"
 <li class="file-item">
     <a href="/downloads/{path}" class="download-link" download>Download {name}</a>
 </li>"#,
-            name = self.name.replace("%20", " ")
-        );
-        println!("LI: {res}");
-        res
+            name = self.name
+        )
     }
 }
 
@@ -184,7 +181,7 @@ async fn accept_form(
     let mut save_path = None;
     while let Some(field) = multipart.next_field().await.unwrap() {
         if field.file_name().is_some() {
-            let file_name = field.file_name().unwrap().to_string().replace(" ", "%20");
+            let file_name = field.file_name().unwrap().to_string();
 
             // let name = field.name().unwrap_or_default();
             // let content_type = field.content_type().unwrap_or_default();
@@ -242,7 +239,7 @@ async fn accept_form(
     let file_name = format!("{timestamp}.{nanos}");
 
     let _ = std::fs::write(
-        format!("{logs}/{file_name}", logs = dotenv!("LOG_PATH")),
+        format!("{logs}/{file_name}", logs = dotenv!("LOG_PATH"),),
         log_entry.to_string(),
     );
 
