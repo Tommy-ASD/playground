@@ -8,7 +8,7 @@ use std::{
 use axum::{
     extract::ConnectInfo,
     extract::{DefaultBodyLimit, Multipart},
-    http::{StatusCode, header::HeaderMap},
+    http::{header::HeaderMap, StatusCode},
     response::{Html, Redirect},
     routing::get,
     routing::post,
@@ -218,10 +218,19 @@ async fn accept_form(
     }
 
     // log file uploaded and IP address of person uploading
-    let log_entry = json!({
-        "peer": addr,
-        "path": save_path
-    });
+
+    let log_entry = if let Some(real_ip) = headers.get("x-real-ip") {
+        json!({
+            "real-ip": real_ip.to_str().unwrap(),
+            "peer": addr,
+            "path": save_path
+        })
+    } else {
+        json!({
+            "peer": addr,
+            "path": save_path
+        })
+    };
 
     let _ = std::fs::write(
         format!(
