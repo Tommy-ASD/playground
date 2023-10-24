@@ -52,9 +52,6 @@ async fn main() {
         .nest_service("/downloads", ServeDir::new(dotenv!("STORAGE_PATH")))
         .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
         .layer(DefaultBodyLimit::disable())
-        .layer(RequestBodyLimitLayer::new(
-            250 * 1024 * 1024 * 1024, // 250gb
-        ))
         .layer(tower_http::trace::TraceLayer::new_for_http());
 
     let port = dotenv!("PORT").parse::<u16>().unwrap();
