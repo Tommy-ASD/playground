@@ -232,12 +232,14 @@ async fn accept_form(
         })
     };
 
+    let now = Utc::now().naive_local();
+    let timestamp = now.format("%Y-%m-%d.%H-%M-%S").to_string();
+    let nanos = now.timestamp_nanos_opt().unwrap_or(now.timestamp());
+
+    let file_name = format!("{timestamp}.{nanos}");
+
     let _ = std::fs::write(
-        format!(
-            "{logs}/{timestamp}",
-            logs = dotenv!("LOG_PATH"),
-            timestamp = Utc::now().naive_local()
-        ),
+        format!("{logs}/{file_name}", logs = dotenv!("LOG_PATH"),),
         log_entry.to_string(),
     );
 
