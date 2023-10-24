@@ -83,13 +83,16 @@ impl FileDownloadData {
         if let Some(inner_path) = path.strip_prefix("/") {
             path = inner_path;
         }
-        format!(
+        println!("Turning {self:?} into list element");
+        let res = format!(
             r#"
 <li class="file-item">
     <a href="/downloads/{path}" class="download-link" download>Download {name}</a>
 </li>"#,
             name = self.name.replace("%20", " ")
-        )
+        );
+        println!("LI: {res}");
+        res
     }
 }
 
