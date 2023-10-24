@@ -88,7 +88,7 @@ impl FileDownloadData {
 <li class="file-item">
     <a href="/downloads/{path}" class="download-link" download>Download {name}</a>
 </li>"#,
-            name = self.name
+            name = self.name.replace("%20", " ")
         )
     }
 }
@@ -239,7 +239,7 @@ async fn accept_form(
     let file_name = format!("{timestamp}.{nanos}");
 
     let _ = std::fs::write(
-        format!("{logs}/{file_name}", logs = dotenv!("LOG_PATH"),),
+        format!("{logs}/{file_name}", logs = dotenv!("LOG_PATH")),
         log_entry.to_string(),
     );
 
