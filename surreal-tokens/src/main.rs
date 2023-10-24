@@ -8,8 +8,13 @@ const EXPIRATION_TIME: i64 = 60 * 60; // 1 hour
 pub struct Claims {
     ns: String,
     db: String,
+    sc: String,
     tk: String,
     exp: i64,
+
+    name: String,
+    email: String,
+    password: String,
 }
 
 pub fn sign_token(claims: Claims, secret: &[u8]) -> Result<String, jsonwebtoken::errors::Error> {
@@ -39,8 +44,13 @@ async fn main() {
     let subject = Claims {
         ns: "test".to_string(),
         db: "test".to_string(),
+        sc: "user".to_string(),
         tk: "my_token".to_string(),
         exp: chrono::Utc::now().timestamp() + EXPIRATION_TIME,
+
+        name: "Tommy".to_string(),
+        email: "mail@tommyasd.com".to_string(),
+        password: "VerySecurePassword".to_string(),
     };
 
     // Create a JWT
@@ -55,4 +65,16 @@ async fn main() {
     println!("JWT: {jwt}");
 
     db.authenticate(jwt).await.unwrap();
+
+    let res = db
+        .query(
+            "
+SELECT * FROM $session;
+SELECT * FROM $token;
+SELECT * FROM $scope;
+SELECT * FROM $auth;",
+        )
+        .await
+        .unwrap();
+    println!("Res: {res:#?}");
 }
