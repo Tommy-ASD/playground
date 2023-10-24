@@ -8,7 +8,7 @@ use std::{
 use axum::{
     extract::ConnectInfo,
     extract::{DefaultBodyLimit, Multipart},
-    http::StatusCode,
+    http::{StatusCode, header::HeaderMap},
     response::{Html, Redirect},
     routing::get,
     routing::post,
@@ -53,7 +53,7 @@ async fn main() {
         .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(
-            250 * 1024 * 1024, // 250mb
+            250 * 1024 * 1024 * 1024, // 250gb
         ))
         .layer(tower_http::trace::TraceLayer::new_for_http());
 
@@ -169,8 +169,11 @@ async fn successfully_uploaded(
 
 async fn accept_form(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Redirect, Response<Body>> {
+    println!("Got addr {addr:?}");
+    println!("Got headers: {headers:?}");
     let int_serv_err = Err(Response::builder()
         .status(StatusCode::INTERNAL_SERVER_ERROR)
         .body(Body::empty())
