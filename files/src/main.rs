@@ -120,6 +120,9 @@ async fn show_form() -> Html<String> {
                 <link rel="stylesheet" type="text/css" href="/static/style.css">
             </head>
             <body>
+                <h1>Hiii :3</h1>
+                <h2>So if you're here, you probably know this website exists. Please do not make others aware of it as well.</h2>
+                <img src="https://tenor.com/view/ip-ip-address-address-swedish-cow-gif-22850446" alt="This website logs IP addresses when you upload or download anything">
                 <div id="file-upload">
                     <h2>Upload Files</h2>
                     <form action="/upload" method="post" enctype="multipart/form-data">
