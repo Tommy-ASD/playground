@@ -29,6 +29,7 @@ async fn main() {
     println!("{}", dotenv!("STATIC_PATH"));
     println!("{}", dotenv!("LOG_PATH"));
     println!("{}", dotenv!("URL"));
+    println!("{}", dotenv!("PORT"));
     dotenv::dotenv().ok();
     tracing_subscriber::registry()
         .with(
@@ -56,7 +57,9 @@ async fn main() {
         ))
         .layer(tower_http::trace::TraceLayer::new_for_http());
 
-    hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 8080)))
+    let port = dotenv!("PORT").parse::<u16>().unwrap();
+
+    hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], port)))
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
