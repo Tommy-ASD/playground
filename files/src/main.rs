@@ -70,16 +70,21 @@ struct FileDownloadData {
 
 impl FileDownloadData {
     pub fn to_list_element(&self) -> String {
+        let binding = self.path.to_string_lossy();
+        let mut path = binding
+            .strip_prefix(dotenv!("STORAGE_PATH"))
+            .unwrap_or(&self.name);
+        if let Some(inner_path) = path.strip_prefix("\\") {
+            path = inner_path;
+        }
+        if let Some(inner_path) = path.strip_prefix("/") {
+            path = inner_path;
+        }
         format!(
             r#"
 <li class="file-item">
     <a href="/downloads/{path}" class="download-link" download>Download {name}</a>
 </li>"#,
-            path = self
-                .path
-                .to_string_lossy()
-                .strip_prefix("./uploads\\")
-                .unwrap(),
             name = self.name
         )
     }
