@@ -122,6 +122,7 @@ async fn show_form() -> Html<String> {
             <body>
                 <h1>Hiii :3</h1>
                 <h2>So if you're here, you probably know this website exists. Please keep it to yourself.</h2>
+                <h3>Also stay legal</h3>
                 <img src="https://files.tommyasd.com/downloads/disclaimer.gif" alt="This website logs IP addresses when you upload or download anything">
                 <div id="file-upload">
                     <h2>Upload Files</h2>
