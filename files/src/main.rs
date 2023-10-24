@@ -181,7 +181,7 @@ async fn accept_form(
     let mut save_path = None;
     while let Some(field) = multipart.next_field().await.unwrap() {
         if field.file_name().is_some() {
-            let file_name = field.file_name().unwrap().to_string();
+            let file_name = field.file_name().unwrap().to_string().replace(" ", "%20");
 
             // let name = field.name().unwrap_or_default();
             // let content_type = field.content_type().unwrap_or_default();
