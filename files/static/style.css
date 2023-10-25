@@ -2,6 +2,8 @@ body {
     font-family: Arial, sans-serif;
     text-align: center;
     margin: 20px;
+    background-color: #f2f2f2;
+    /* Set a light background color */
 }
 h1 {
     font-size: 24px;
@@ -10,12 +12,15 @@ h1 {
     margin: 20px auto;
     width: 80%;
     padding: 20px;
-    background-color: #f2f2f2;
+    background-color: #fff;
+    /* White background for the upload section */
     border: 1px solid #ccc;
 }
 #file-download {
     margin: 20px auto;
     width: 80%;
+    background-color: #fff;
+    /* White background for the download section */
 }
 #file-list {
     list-style-type: none;
@@ -26,8 +31,31 @@ h1 {
 }
 .download-link {
     text-decoration: none;
-    background-color: #0074d9;
+    background-color: #777;
+    /* Gray background for file links */
     color: white;
     padding: 5px 10px;
     border-radius: 5px;
+    display: inline-block;
+    width: 200px;
+    /* Static width */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.directory-link {
+    text-decoration: none;
+    background-color: #ccc;
+    /* Light gray background for directory links */
+    color: #333;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-block;
+    width: 200px;
+    /* Static width */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

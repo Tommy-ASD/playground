@@ -15,13 +15,18 @@ use axum::{
     Router,
 };
 use chrono::Utc;
+use downloads::FileDownloadData;
 use hyper::{Body, Response};
 use serde_json::json;
 use tower_http::{limit::RequestBodyLimitLayer, services::ServeDir};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use crate::downloads::downloads_router;
+
 #[macro_use]
 extern crate dotenv_codegen;
+
+mod downloads;
 
 #[tokio::main]
 async fn main() {
@@ -49,6 +54,8 @@ async fn main() {
         .route("/", get(show_form))
         .route("/upload", post(accept_form))
         .route("/uploaded/:uri", get(successfully_uploaded))
+        .nest("/downloads_test", downloads_router())
+        .route("/downloads_test/", get(downloads::index)) // to support trailing slash for url
         .nest_service("/downloads", ServeDir::new(dotenv!("STORAGE_PATH")))
         .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
         .layer(DefaultBodyLimit::disable())
@@ -62,34 +69,6 @@ async fn main() {
         .unwrap();
 }
 
-#[derive(Debug)]
-struct FileDownloadData {
-    pub name: String,
-    pub path: PathBuf,
-}
-
-impl FileDownloadData {
-    pub fn to_list_element(&self) -> String {
-        let binding = self.path.to_string_lossy();
-        let mut path = binding
-            .strip_prefix(dotenv!("STORAGE_PATH"))
-            .unwrap_or(&self.name);
-        if let Some(inner_path) = path.strip_prefix("\\") {
-            path = inner_path;
-        }
-        if let Some(inner_path) = path.strip_prefix("/") {
-            path = inner_path;
-        }
-        format!(
-            r#"
-<li class="file-item">
-    <a href="/downloads/{path}" class="download-link" download>Download {name}</a>
-</li>"#,
-            name = self.name
-        )
-    }
-}
-
 fn get_all_files() -> Vec<FileDownloadData> {
     std::fs::read_dir(dotenv!("STORAGE_PATH"))
         .unwrap()
@@ -99,11 +78,32 @@ fn get_all_files() -> Vec<FileDownloadData> {
             let file_data = FileDownloadData {
                 name: file.file_name().to_str().unwrap().to_string(),
                 path: file.path().to_path_buf(),
+                filetype: file.path().to_path_buf().into(),
             };
             println!("Adding {file_data:?}");
             file_data
         })
         .collect()
+}
+
+fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
+    match std::fs::read_dir(format!("{}/{path}", dotenv!("STORAGE_PATH"))) {
+        Ok(dir) => Some(
+            dir.into_iter()
+                .filter_map(|opt_entry| opt_entry.ok())
+                .map(|file| {
+                    let file_data = FileDownloadData {
+                        name: file.file_name().to_str().unwrap().to_string(),
+                        path: file.path().to_path_buf(),
+                        filetype: file.path().to_path_buf().into(),
+                    };
+                    println!("Adding {file_data:?}");
+                    file_data
+                })
+                .collect(),
+        ),
+        Err(_) => None,
+    }
 }
 
 async fn show_form() -> Html<String> {
