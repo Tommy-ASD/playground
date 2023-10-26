@@ -97,11 +97,11 @@ pub async fn in_directory(
             (header::CONTENT_TYPE, mime),
             (
                 header::CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{:?}\"", filename),
+                format!("attachment; filename={:?}", filename),
             ),
         ];
 
-        dbg!();
+        dbg!(&headers);
         Ok((headers, body))
     };
     tokio::task::spawn(body).await.unwrap()
