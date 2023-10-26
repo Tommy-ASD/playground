@@ -58,33 +58,27 @@ async fn main() {
         .unwrap();
 }
 
-fn get_all_files() -> Vec<FileDownloadData> {
-    get_dir("").unwrap()
+async fn get_all_files() -> Vec<FileDownloadData> {
+    get_dir("").await.unwrap()
 }
 
-fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
-    match std::fs::read_dir(format!("{}/{path}", dotenv!("STORAGE_PATH"))) {
-        Ok(dir) => Some(
-            dir.into_iter()
-                .filter_map(|opt_entry| opt_entry.ok())
-                .map(|file| {
-                    let mime = match mime_guess::from_path(&file.path()).first_raw() {
-                        Some(mime) => mime.to_string(),
-                        None => "application/octet-stream".to_string(),
-                    };
-                    let file_data = FileDownloadData {
-                        name: file.file_name().to_str().unwrap().to_string(),
-                        path: file.path().to_path_buf(),
-                        filetype: file.path().to_path_buf().into(),
-                        mime_type: mime,
-                    };
-                    println!("Adding {file_data:?}");
-                    file_data
-                })
-                .collect(),
-        ),
-        Err(_) => None,
+async fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
+    let dir = match std::fs::read_dir(format!("{}/{path}", dotenv!("STORAGE_PATH"))) {
+        Ok(dir) => dir,
+        Err(_) => return None,
+    };
+    let mut data = vec![];
+    for opt_file in dir {
+        if opt_file.is_err() {
+            continue;
+        }
+        let file = opt_file.unwrap();
+
+        let file_data = FileDownloadData::from_file(file).await;
+        println!("Adding {file_data:?}");
+        data.push(file_data)
     }
+    Some(data)
 }
 
 async fn show_form() -> Html<String> {

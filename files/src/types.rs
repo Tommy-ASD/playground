@@ -1,4 +1,10 @@
-use std::{fs::Metadata, path::PathBuf};
+use std::{
+    fs::{Metadata, Permissions},
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use chrono::NaiveDateTime;
 
 #[derive(Debug)]
 pub enum FileType {
@@ -23,11 +29,20 @@ impl From<PathBuf> for FileType {
 }
 
 #[derive(Debug)]
+pub struct FileDownloadMetadata {
+    pub size: u64,
+    pub created_at: Option<u64>,
+    pub last_accessed: Option<u64>,
+    pub permissions: Option<Permissions>,
+}
+
+#[derive(Debug)]
 pub struct FileDownloadData {
     pub name: String,
     pub path: PathBuf,
     pub filetype: FileType,
     pub mime_type: String,
+    pub meta: Option<FileDownloadMetadata>,
 }
 
 impl FileDownloadData {
@@ -43,52 +58,95 @@ impl FileDownloadData {
             path = inner_path;
         }
 
-        let md: Result<Metadata, std::io::Error> = tokio::fs::metadata(binding.to_string()).await;
         match self.filetype {
-            FileType::File => self.render_file(path, md),
+            FileType::File => self.render_file(path),
             FileType::Directory => {
-                format!(
-                    r#"
-<li class="file-item">
-    <a href="/directory/{path}" class="directory-link" id={name}>{name}</a>
-</li>"#,
-                    name = self.name
-                )
+                self.render(path, "directory-link", "", "directory", Some("Unknown"))
             }
-            _ => self.render_file(path, md),
+            _ => self.render_file(path),
         }
     }
-    fn render_file(&self, path: &str, md: Result<Metadata, std::io::Error>) -> String {
-        match md {
-            Ok(md) => {
-                format!(
-                    r#"
-<li class="file-item">
-    <a href="/download/{path}" class="download-link" download>{name}</a>
-    <div class="file-metadata">
-        <span class="file-size">size: {size}</span><br/>
-        <span class="file-created">created: {created:?}</span><br/>
-        <span class="file-last-accessed">accessed: {last_accessed:?}</span><br/>
-        <span class="file-permissions">permissions: {permissions:?}</span><br/>
-    </div>
-</li>"#,
-                    name = self.name,
-                    size = format_bytes(md.len()),
-                    created = md.created().unwrap(),
-                    last_accessed = md.accessed().unwrap(),
-                    permissions = md.permissions()
-                )
+    fn render_file(&self, path: &str) -> String {
+        self.render(path, "download-link", "download", "download", None)
+    }
+
+    fn render(
+        &self,
+        path: &str,
+        class: &str,
+        anchor_attrs: &str,
+        endpoint: &str,
+        override_file_size: Option<&str>,
+    ) -> String {
+        let md = if let Some(md) = &self.meta {
+            md
+        } else {
+            &FileDownloadMetadata {
+                size: 0,
+                last_accessed: None,
+                created_at: None,
+                permissions: None,
             }
-            Err(e) => {
-                eprintln!("Metadata for file {path} failed: {e}");
-                format!(
-                    r#"
-<li class="file-item">
-    <a href="/download/{path}" class="download-link" download>{name}</a>
-</li>"#,
-                    name = self.name,
-                )
-            }
+        };
+
+        let rendered = format!(
+            r#"
+        <tr class="file-item">
+            <td><a href="/{endpoint}/{path}" class="{class}" {anchor_attrs}>{name}</a></td>
+            <td>{file_size}</td>
+            <td>{created_time}</td>
+            <td>{last_accessed_time}</td>
+        </tr>"#,
+            name = self.name,
+            file_size = override_file_size.unwrap_or(&format_bytes(md.size)),
+            created_time = NaiveDateTime::from_timestamp_millis(
+                (md.created_at.unwrap_or(0) * 1000).try_into().unwrap()
+            )
+            .unwrap(),
+            last_accessed_time = NaiveDateTime::from_timestamp_millis(
+                (md.last_accessed.unwrap_or(0) * 1000).try_into().unwrap()
+            )
+            .unwrap()
+        );
+        rendered
+    }
+
+    pub async fn from_file(value: std::fs::DirEntry) -> Self {
+        let md = tokio::fs::metadata(value.path())
+            .await
+            .and_then(|metadata| {
+                Ok(FileDownloadMetadata {
+                    size: metadata.len(),
+                    created_at: metadata
+                        .modified()
+                        .map(|ok| {
+                            ok.duration_since(UNIX_EPOCH)
+                                .expect("Time went backwards")
+                                .as_secs()
+                        })
+                        .ok(),
+                    last_accessed: metadata
+                        .accessed()
+                        .map(|ok| {
+                            ok.duration_since(UNIX_EPOCH)
+                                .expect("Time went backwards")
+                                .as_secs()
+                        })
+                        .ok(),
+                    permissions: Some(metadata.permissions()),
+                })
+            })
+            .ok();
+        let mime = match mime_guess::from_path(&value.path()).first_raw() {
+            Some(mime) => mime.to_string(),
+            None => "application/octet-stream".to_string(),
+        };
+        FileDownloadData {
+            name: value.file_name().to_str().unwrap().to_string(),
+            path: value.path().to_path_buf(),
+            filetype: value.path().to_path_buf().into(),
+            mime_type: mime,
+            meta: md,
         }
     }
 }

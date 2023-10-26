@@ -42,10 +42,18 @@ pub async fn in_directory(axum::extract::Path(uri): axum::extract::Path<String>)
 }
 
 pub async fn render_files_and_directories(uri: &str) -> Option<String> {
+    let intial = r#"
+<table class="downloads-table">
+    <tr>
+        <th>File Name</th>
+        <th>File Size</th>
+        <th>Created</th>
+        <th>Last Accessed</th>
+    </tr>"#;
     let mut directories: Vec<String> = Vec::new();
     let mut files: Vec<String> = Vec::new();
 
-    let dir = match get_dir(&uri) {
+    let dir = match get_dir(&uri).await {
         Some(dir) => dir,
         None => return None,
     };
@@ -69,7 +77,7 @@ pub async fn render_files_and_directories(uri: &str) -> Option<String> {
     let directories: String = directories.into_iter().collect::<String>();
     let files: String = files.into_iter().collect::<String>();
 
-    let contents = format!("{directories}{files}");
+    let contents = format!("{intial}{directories}{files}</table>");
 
     Some(contents)
 }
