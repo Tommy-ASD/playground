@@ -131,10 +131,13 @@
 
         // Add a drag-and-drop event listener to each directory link
         directoryLinks.forEach((link) => {
-                    link.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        link.classList.add('drag-over');
-                    });
+            let target = link.getAttribute("href").replace("/downloads", "");
+            console.log(target)
+
+            link.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                link.classList.add('drag-over');
+            });
 
             link.addEventListener('dragleave', () => {
                     link.classList.remove('drag-over');
@@ -156,7 +159,7 @@
 
                 // Send the files to the server using fetch or another AJAX method
                 try {
-                    const response = await fetch('/upload', {
+                    const response = await fetch(`/upload${target}`, {
                     method: 'POST',
                 body: formData,
                     });
