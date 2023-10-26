@@ -144,9 +144,7 @@ async fn main_page(uri: &str, header: &str) -> String {
                             
                 <div id="file-download">
                     <h2>Available Files</h2>
-                    <ul id="file-list">
                     {lis}
-                    </ul>
                 </div>
                 <script>
 const fileInput = document.getElementById('file-input');
