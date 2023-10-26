@@ -112,7 +112,8 @@ async fn main_page(uri: &str, header: &str) -> String {
     let back = split
         .iter()
         .map(|part| part.to_string())
-        .collect::<String>();
+        .collect::<Vec<String>>()
+        .join("/");
     println!("Back: {back}");
     let lis = render_files_and_directories(uri).await.unwrap();
     format!(
