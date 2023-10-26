@@ -106,14 +106,14 @@ async fn show_form() -> Html<String> {
 }
 
 async fn main_page(uri: &str, header: &str) -> String {
-    let binding = PathBuf::from(uri);
-    let back = binding
-        .ancestors()
-        .last()
-        .unwrap()
-        .as_os_str()
-        .to_str()
-        .unwrap();
+    let mut split = uri.split("/").into_iter().collect::<Vec<&str>>();
+    split.pop();
+    println!("Split: {split:?}");
+    let back = split
+        .iter()
+        .map(|part| part.to_string())
+        .collect::<String>();
+    println!("Back: {back}");
     let lis = render_files_and_directories(uri).await.unwrap();
     format!(
         r#"
@@ -126,7 +126,7 @@ async fn main_page(uri: &str, header: &str) -> String {
 {header}
                 <div id="file-upload">
                 <h1>You are currently at /{uri}</h1>
-                    <a href="{back}">Go up one</a>
+                    <a href="/directory/{back}">Go up one</a>
                     <h2>Upload Files</h2>
                     <form id="file-form" action="/upload/{uri}" method="post" enctype="multipart/form-data">
                         <input type="file" name="file" id="file-input" accept="*" multiple>
