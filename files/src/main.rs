@@ -5,7 +5,11 @@ use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use types::FileDownloadData;
 
-use crate::{directories::directories_router, downloads::downloads_router, uploads::accept_form};
+use crate::{
+    directories::{create_directories_router, get_directories_router},
+    downloads::downloads_router,
+    uploads::{accept_form_index, upload_router},
+};
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -34,16 +38,21 @@ async fn main() {
 
     // create the STORAGE_PATH directory if it doesn't exist
     if !Path::new(dotenv!("STORAGE_PATH")).exists() {
-        std::fs::create_dir(dotenv!("STORAGE_PATH")).unwrap();
+        tokio::fs::create_dir_all(dotenv!("STORAGE_PATH"))
+            .await
+            .unwrap();
     }
 
     // build our application with some routes
     let app = Router::new()
         .route("/", get(show_form))
-        .route("/upload", post(accept_form))
-        .route("/uploaded/:uri", get(successfully_uploaded))
-        .nest("/directory", directories_router())
+        .nest("/upload", upload_router())
+        .route("/upload/", post(accept_form_index))
+        .route("/uploaded/*uri", get(successfully_uploaded))
+        .nest("/directory", get_directories_router())
         .route("/directory/", get(directories::index)) // to support trailing slash for url
+        .nest("/create-dir", create_directories_router())
+        .route("/create-dir/", post(directories::create_directory_index))
         .nest("/download", downloads_router())
         .route("/download/", get(downloads::index)) // to support trailing slash for url
         .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
@@ -82,8 +91,20 @@ async fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
 }
 
 async fn show_form() -> Html<String> {
-    let lis = render_files_and_directories("").await.unwrap();
-    let rendered = format!(
+    let rendered = main_page(
+        "",
+        r#"
+                <h1>Hiii :3</h1>
+                <h2>So if you're here, you probably know this website exists. Please keep it to yourself.</h2>
+                <h3>Also stay legal</h3>
+                <img src="https://files.tommyasd.com/download/disclaimer.gif" alt="This website logs IP addresses when you upload or download anything">"#,
+    ).await;
+    Html(rendered)
+}
+
+async fn main_page(uri: &str, header: &str) -> String {
+    let lis = render_files_and_directories(uri).await.unwrap();
+    format!(
         r#"
         <!doctype html>
         <html>
@@ -91,15 +112,21 @@ async fn show_form() -> Html<String> {
                 <link rel="stylesheet" type="text/css" href="/static/style.css">
             </head>
             <body>
-                <h1>Hiii :3</h1>
-                <h2>So if you're here, you probably know this website exists. Please keep it to yourself.</h2>
-                <h3>Also stay legal</h3>
-                <img src="https://files.tommyasd.com/downloads/disclaimer.gif" alt="This website logs IP addresses when you upload or download anything"> 
+{header}
                 <div id="file-upload">
+                <h1>You are currently at /{uri}</h1>
                     <h2>Upload Files</h2>
-                    <form action="/upload" method="post" enctype="multipart/form-data">
-                        <input type="file" name="file">
+                    <form id="file-form" action="/upload/{uri}" method="post" enctype="multipart/form-data">
+                        <input type="file" name="file" id="file-input" accept="*" multiple>
+                        <label for="file-input" id="file-label">Choose a file</label>
                         <input type="submit" value="Upload">
+                    </form>
+                    <h2>Create Directory</h2>
+                    <form action="/create-dir/{uri}" method="post" id="createDirForm">
+                        <label for="directory_name">Directory Name:</label>
+                        <input type="text" id="directory_name" name="path">
+                        <br>
+                        <input type="submit" value="Create Directory">
                     </form>
                 </div>
                             
@@ -109,18 +136,55 @@ async fn show_form() -> Html<String> {
                     {lis}
                     </ul>
                 </div>
+                <script>
+const fileInput = document.getElementById('file-input');
+fileInput.addEventListener('dragover', (e) => {{
+    e.preventDefault();
+}});
+
+fileInput.addEventListener('dragenter', (e) => {{
+    e.preventDefault();
+}});
+
+// Handle file drop
+const dropArea = document.getElementById('drop-area');
+dropArea.addEventListener('dragover', (e) => {{
+    e.preventDefault();
+    dropArea.classList.add('drag-over');
+}});
+
+dropArea.addEventListener('dragleave', () => {{
+    dropArea.classList.remove('drag-over');
+}});
+
+dropArea.addEventListener('drop', (e) => {{
+    e.preventDefault();
+    dropArea.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+
+    // Clear any existing files
+    fileInput.files = new DataTransfer().files;
+
+    // Add the dropped files to the input
+    for (let i = 0; i < files.length; i++) {{
+        fileInput.files.add(files[i]);
+    }}
+
+    // Update the label to show the number of selected files
+    document.getElementById('file-label').textContent = `${{fileInput.files.length}} files selected`;
+}});
+                </script>
             </body>
         </html>
         "#,
-    );
-    Html(rendered)
+    )
 }
 
 async fn successfully_uploaded(
     axum::extract::Path(uri): axum::extract::Path<String>,
 ) -> Html<String> {
     let uri = uri.replace(" ", "%20");
-    let url = format!("{url}/downloads/{uri}", url = dotenv!("URL"));
+    let url = format!("{url}/download/{uri}", url = dotenv!("URL"));
     let rendered = format!(
         r#"
         <!doctype html>

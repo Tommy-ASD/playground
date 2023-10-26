@@ -1,8 +1,14 @@
-use axum::{response::Html, routing::get, Router};
+use axum::{
+    response::{Html, Redirect},
+    routing::{get, post},
+    Form, Router,
+};
+use hyper::HeaderMap;
+use serde::Deserialize;
 
-use crate::{get_dir, types::FileType};
+use crate::{get_dir, main_page, types::FileType};
 
-pub fn directories_router() -> Router {
+pub fn get_directories_router() -> Router {
     Router::new()
         .route("/", get(index))
         .route("/*uri", get(in_directory))
@@ -15,29 +21,7 @@ pub async fn index() -> Html<String> {
 pub async fn in_directory(axum::extract::Path(uri): axum::extract::Path<String>) -> Html<String> {
     println!("Got uri {uri}");
 
-    let contents = match render_files_and_directories(&uri).await {
-        Some(contents) => contents,
-        None => return Html::from("404 not found".to_string()),
-    };
-
-    let rendered = format!(
-        r#"
-        <!doctype html>
-        <html>
-            <head>
-                <link rel="stylesheet" type="text/css" href="/static/style.css">
-            </head>
-            <body>
-                <div id="file-download">
-                    <h2>Available Files</h2>
-                    <ul id="file-list">
-                    {contents}
-                    </ul>
-                </div>
-            </body>
-        </html>
-        "#,
-    );
+    let rendered = main_page(&uri, "").await;
     Html(rendered)
 }
 
@@ -80,4 +64,54 @@ pub async fn render_files_and_directories(uri: &str) -> Option<String> {
     let contents = format!("{intial}{directories}{files}</table>");
 
     Some(contents)
+}
+
+pub fn create_directories_router() -> Router {
+    Router::new()
+        .route("/", post(create_directory_index))
+        .route("/*uri", post(create_directory))
+        .route("/", get(create_directory_index))
+        .route("/*uri", get(create_directory))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CreateDirForm {
+    pub path: String,
+}
+
+pub async fn create_directory_index() -> Redirect {
+    create_directory(
+        axum::extract::Path("".to_string()),
+        axum::Form(CreateDirForm {
+            path: "".to_string(),
+        }),
+    )
+    .await
+}
+
+pub async fn create_directory(
+    axum::extract::Path(uri): axum::extract::Path<String>,
+    Form(input): Form<CreateDirForm>,
+) -> Redirect {
+    let uri = match uri.strip_suffix("input") {
+        Some(stripped) => stripped.to_string(),
+        None => uri,
+    };
+    println!("Form: {input:?}");
+    let path = input.path.clone();
+    println!("Making '{path}'");
+    println!("From uri '{uri}'");
+    let full_path = if uri.is_empty() {
+        format!("{}/{path}", dotenv!("STORAGE_PATH"))
+    } else {
+        format!("{}/{uri}/{path}", dotenv!("STORAGE_PATH"))
+    };
+    println!("Final path: {full_path}");
+    let _ = tokio::fs::create_dir_all(full_path.clone()).await;
+    let redirect = if uri.is_empty() {
+        format!("/directory/{path}")
+    } else {
+        format!("/directory/{uri}/{path}")
+    };
+    Redirect::to(&redirect)
 }
