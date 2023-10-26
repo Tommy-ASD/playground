@@ -1,6 +1,9 @@
 use axum::{extract::DefaultBodyLimit, response::Html, routing::get, routing::post, Router};
 use directories::render_files_and_directories;
-use std::{net::SocketAddr, path::Path};
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use types::FileDownloadData;
@@ -103,6 +106,14 @@ async fn show_form() -> Html<String> {
 }
 
 async fn main_page(uri: &str, header: &str) -> String {
+    let binding = PathBuf::from(uri);
+    let back = binding
+        .ancestors()
+        .last()
+        .unwrap()
+        .as_os_str()
+        .to_str()
+        .unwrap();
     let lis = render_files_and_directories(uri).await.unwrap();
     format!(
         r#"
@@ -115,6 +126,7 @@ async fn main_page(uri: &str, header: &str) -> String {
 {header}
                 <div id="file-upload">
                 <h1>You are currently at /{uri}</h1>
+                    <a href="{back}">Go up one</a>
                     <h2>Upload Files</h2>
                     <form id="file-form" action="/upload/{uri}" method="post" enctype="multipart/form-data">
                         <input type="file" name="file" id="file-input" accept="*" multiple>
