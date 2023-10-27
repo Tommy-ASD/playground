@@ -20,7 +20,7 @@ extern crate dotenv_codegen;
 
 mod directories;
 mod downloads;
-mod oauth;
+// mod oauth;
 mod types;
 mod uploads;
 mod zip;
