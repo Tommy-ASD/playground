@@ -7,8 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+chrono = { version = "0.4.31", features = ["serde"] }
 dotenv = "0.15.0"
 dotenv_codegen = "0.15.0"
+jsonwebtoken = "9.1.0"
 oauth = "0.0.1"
 oauth2 = "4.4.1"
 reqwest = "0.11.22"
