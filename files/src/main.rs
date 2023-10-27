@@ -11,7 +11,7 @@ use types::FileDownloadData;
 use crate::{
     directories::{create_directories_router, get_directories_router},
     downloads::downloads_router,
-    oauth::oauth_router,
+    // oauth::oauth_router,
     uploads::{accept_form_index, upload_router},
 };
 
@@ -60,7 +60,7 @@ async fn main() {
         .route("/create-dir/", post(directories::create_directory_index))
         .nest("/download", downloads_router())
         .route("/download/", get(downloads::index)) // to support trailing slash for url
-        .nest("/oauth", oauth_router())
+        // .nest("/oauth", oauth_router())
         .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
         .layer(DefaultBodyLimit::disable())
         .layer(tower_http::trace::TraceLayer::new_for_http());
