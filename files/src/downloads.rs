@@ -41,10 +41,12 @@ pub async fn in_directory(
             dotenv!("TEMP_PATH"),
             Uuid::new_v4().to_string()
         ));
+        let temp;
 
         let mime;
 
         if path.is_dir() {
+            temp = true;
             dbg!();
             mime = "application/zip".to_string();
             match zip_folder_to_file(&path, &temp_storage, zip::CompressionMethod::Stored) {
@@ -56,6 +58,7 @@ pub async fn in_directory(
             };
             dbg!();
         } else {
+            temp = false;
             dbg!();
             temp_storage = path.clone();
             mime = match mime_guess::from_path(&path).first_raw() {
@@ -90,7 +93,9 @@ pub async fn in_directory(
         // convert the `Stream` into an `axum::body::HttpBody`
         let body = StreamBody::new(stream);
 
-        let _ = tokio::fs::remove_file(temp_storage).await;
+        if temp {
+            let _ = tokio::fs::remove_file(temp_storage).await;
+        }
 
         dbg!();
         let headers = [
