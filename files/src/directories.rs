@@ -79,39 +79,40 @@ pub struct CreateDirForm {
     pub path: String,
 }
 
-pub async fn create_directory_index() -> Redirect {
-    create_directory(
-        axum::extract::Path("".to_string()),
-        axum::Form(CreateDirForm {
-            path: "".to_string(),
-        }),
-    )
-    .await
+pub async fn create_directory_index(form: Form<CreateDirForm>) -> Redirect {
+    dbg!();
+    create_directory(axum::extract::Path("".to_string()), form).await
 }
 
 pub async fn create_directory(
     axum::extract::Path(uri): axum::extract::Path<String>,
     Form(input): Form<CreateDirForm>,
 ) -> Redirect {
+    dbg!();
     let uri = match uri.strip_suffix("input") {
         Some(stripped) => stripped.to_string(),
         None => uri,
     };
+    dbg!();
     println!("Form: {input:?}");
     let path = input.path.clone();
     println!("Making '{path}'");
     println!("From uri '{uri}'");
+    dbg!();
     let full_path = if uri.is_empty() {
         format!("{}/{path}", dotenv!("STORAGE_PATH"))
     } else {
         format!("{}/{uri}/{path}", dotenv!("STORAGE_PATH"))
     };
+    dbg!();
     println!("Final path: {full_path}");
     let _ = tokio::fs::create_dir_all(full_path.clone()).await;
+    dbg!();
     let redirect = if uri.is_empty() {
         format!("/directory/{path}")
     } else {
         format!("/directory/{uri}/{path}")
     };
+    dbg!();
     Redirect::to(&redirect)
 }

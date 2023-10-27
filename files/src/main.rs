@@ -156,34 +156,6 @@ fileInput.addEventListener('dragover', (e) => {{
 fileInput.addEventListener('dragenter', (e) => {{
     e.preventDefault();
 }});
-
-// Handle file drop
-const dropArea = document.getElementById('drop-area');
-dropArea.addEventListener('dragover', (e) => {{
-    e.preventDefault();
-    dropArea.classList.add('drag-over');
-}});
-
-dropArea.addEventListener('dragleave', () => {{
-    dropArea.classList.remove('drag-over');
-}});
-
-dropArea.addEventListener('drop', (e) => {{
-    e.preventDefault();
-    dropArea.classList.remove('drag-over');
-    const files = e.dataTransfer.files;
-
-    // Clear any existing files
-    fileInput.files = new DataTransfer().files;
-
-    // Add the dropped files to the input
-    for (let i = 0; i < files.length; i++) {{
-        fileInput.files.add(files[i]);
-    }}
-
-    // Update the label to show the number of selected files
-    document.getElementById('file-label').textContent = `${{fileInput.files.length}} files selected`;
-}});
                 </script>
             </body>
         </html>
