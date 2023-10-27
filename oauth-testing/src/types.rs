@@ -1,3 +1,6 @@
+use chrono::{Duration, Utc};
+use dotenv_codegen::dotenv;
+use oauth2::Scope;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -96,4 +99,90 @@ pub struct JWT {
     pub user: UserType,
     pub iat: i64,
     pub exp: i64,
+}
+
+impl From<UserType> for JWT {
+    fn from(value: UserType) -> Self {
+        let current_time = Utc::now();
+        let expiration_time = current_time + Duration::days(30);
+
+        JWT {
+            user: value,
+            iat: current_time.timestamp(),
+            exp: expiration_time.timestamp(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct OAuth2Info {
+    pub client_id: String,
+    pub client_secret: String,
+    pub auth_url: String,
+    pub token_url: String,
+    pub redirect_url: String,
+}
+
+impl OAuth2Info {
+    pub fn github_default() -> Self {
+        let client_id = dotenv!("GITHUB_CLIENT_ID");
+        let client_secret = dotenv!("GITHUB_CLIENT_SECRET");
+        let auth_url = "https://github.com/login/oauth/authorize".to_string();
+        let token_url = "https://github.com/login/oauth/access_token".to_string();
+        OAuth2Info {
+            client_id: client_id.to_string(),
+            client_secret: client_secret.to_string(),
+            auth_url,
+            token_url,
+            redirect_url: "http://localhost:8080/oauth_callback".to_string(),
+        }
+    }
+    pub fn discord_default() -> Self {
+        let client_id = dotenv!("DISCORD_CLIENT_ID");
+        let client_secret = dotenv!("DISCORD_CLIENT_SECRET");
+        let auth_url = "https://discord.com/api/oauth2/authorize".to_string();
+        let token_url = "https://discord.com/api/oauth2/token".to_string();
+
+        OAuth2Info {
+            client_id: client_id.to_string(),
+            client_secret: client_secret.to_string(),
+            auth_url,
+            token_url,
+            redirect_url: "http://localhost:49103/oauth/callback/discord".to_string(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum OAuthType {
+    Standard,
+    Github,
+}
+
+#[derive(Clone, Debug)]
+pub struct OAuthParams {
+    pub provider_name: String,
+    pub general_info: OAuth2Info,
+    pub scopes: Vec<Scope>,
+    pub oauth_type: OAuthType,
+}
+
+impl OAuthParams {
+    pub fn discord_default() -> Self {
+        OAuthParams {
+            provider_name: "Discord".to_string(),
+            general_info: OAuth2Info::discord_default(),
+            scopes: vec![Scope::new("identify".to_string())],
+            oauth_type: OAuthType::Standard,
+        }
+    }
+    pub fn github_default() -> Self {
+        OAuthParams {
+            provider_name: "Github".to_string(),
+            general_info: OAuth2Info::github_default(),
+            scopes: vec![],
+            oauth_type: OAuthType::Github,
+        }
+    }
 }
