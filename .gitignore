@@ -7,3 +7,4 @@ errors
 config.toml
 
 *.secret
+*.pem
