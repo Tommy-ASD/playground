@@ -1,5 +1,6 @@
 use axum::{extract::DefaultBodyLimit, response::Html, routing::get, routing::post, Router};
 use directories::render_files_and_directories;
+use yew::html;
 use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
@@ -98,17 +99,21 @@ async fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
 
 async fn show_form() -> Html<String> {
     let rendered = main_page(
+        
         "",
-        r#"
-                <h1>Hiii :3</h1>
-                <h2>So if you're here, you probably know this website exists. Please keep it to yourself.</h2>
-                <h3>Also stay legal</h3>
-                <img src="https://files.tommyasd.com/download/disclaimer.gif" alt="This website logs IP addresses when you upload or download anything">"#,
+        html! {
+            <>
+                <h1>{"Hiii :3"}</h1>
+                <h2>{"So if you're here, you probably know this website exists. Please keep it to yourself."}</h2>
+                <h3>{"Also stay legal"}</h3>
+                <img src={"https://files.tommyasd.com/download/disclaimer.gif"} alt={"This website logs IP addresses when you upload or download anything"} />
+            </>
+        },
     ).await;
     Html(rendered)
 }
 
-async fn main_page(uri: &str, header: &str) -> String {
+async fn main_page(uri: &str, header: yew::Html) -> String {
     let mut split = uri.split("/").into_iter().collect::<Vec<&str>>();
     split.pop();
     println!("Split: {split:?}");
@@ -119,51 +124,42 @@ async fn main_page(uri: &str, header: &str) -> String {
         .join("/");
     println!("Back: {back}");
     let lis = render_files_and_directories(uri).await.unwrap();
-    format!(
-        r#"
-        <!doctype html>
+    html! {
+        <>
         <html>
             <head>
-                <link rel="stylesheet" type="text/css" href="/static/style.css">
+                <link rel={"stylesheet"} type={"text/css"} href={"/static/style.css"} />
             </head>
             <body>
-{header}
-                <div id="file-upload">
-                <h1>You are currently at /{uri}</h1>
-                    <a href="/directory/{back}">Go up one</a>
-                    <h2>Upload Files</h2>
-                    <form id="file-form" action="/upload/{uri}" method="post" enctype="multipart/form-data">
-                        <input type="file" name="file" id="file-input" accept="*" multiple>
-                        <label for="file-input" id="file-label">Choose a file</label>
-                        <input type="submit" value="Upload">
+                <div>
+                    { header }
+                </div>
+                <div id={"file-upload"}>
+                <h1>{ format!("You are currently at /{uri}") }</h1>
+                    <a href={format!("/directory/{back}")}>{"Go up one"}</a>
+                    <h2>{"Upload Files"}</h2>
+                    <form id={"file-form"} action={format!("/upload/{uri}")} method={"post"} enctype={"multipart/form-data"}>
+                        <input type={"file"} name={"file"} id={"file-input"} accept={"*"} multiple=true />
+                        <label for={"file-input"} id={"file-label"}>{"Choose a file"}</label>
+                        <input type={"submit"} value={"Upload"} />
                     </form>
-                    <h2>Create Directory</h2>
+                    <h2>{"Create Directory"}</h2>
                     <form action="/create-dir/{uri}" method="post" id="createDirForm">
-                        <label for="directory_name">Directory Name:</label>
-                        <input type="text" id="directory_name" name="path">
-                        <br>
-                        <input type="submit" value="Create Directory">
+                        <label for="directory_name">{"Directory Name:"}</label>
+                        <input type={"text"} id={"directory_name"} name={"path"} />
+                        <br />
+                        <input type={"submit"} value={"Create Directory"} />
                     </form>
                 </div>
                             
                 <div id="file-download">
-                    <h2>Available Files</h2>
+                    <h2>{"Available Files"}</h2>
                     {lis}
                 </div>
-                <script>
-const fileInput = document.getElementById('file-input');
-fileInput.addEventListener('dragover', (e) => {{
-    e.preventDefault();
-}});
-
-fileInput.addEventListener('dragenter', (e) => {{
-    e.preventDefault();
-}});
-                </script>
             </body>
         </html>
-        "#,
-    )
+        </>
+}
 }
 
 async fn successfully_uploaded(
