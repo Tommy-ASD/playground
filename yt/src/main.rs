@@ -2,7 +2,7 @@ use rusty_ytdl::Video;
 
 #[tokio::main]
 async fn main() {
-    let video_url = "https://www.youtube.com/watch?v=FZ8BxMU3BYc"; // FZ8BxMU3BYc works too!
+    let video_url = "https://www.youtube.com/watch?v=0dsLxqiSrKI"; // FZ8BxMU3BYc works too!
     let video = Video::new(video_url).unwrap();
 
     // let stream = video.stream().await.unwrap();

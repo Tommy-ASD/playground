@@ -5,6 +5,7 @@ use axum::{
 };
 use hyper::HeaderMap;
 use serde::Deserialize;
+use yew::html;
 
 use crate::{get_dir, main_page, types::FileType};
 
@@ -21,7 +22,7 @@ pub async fn index() -> Html<String> {
 pub async fn in_directory(axum::extract::Path(uri): axum::extract::Path<String>) -> Html<String> {
     println!("Got uri {uri}");
 
-    let rendered = main_page(&uri, "").await;
+    let rendered = main_page(&uri, html! {}).await;
     Html(rendered)
 }
 

@@ -50,3 +50,4 @@ url = "2.4.0"
 
 utils = { git = "https://github.com/Tommy-ASD/utils.git" }
 axum-extra = { version = "0.8.0", features = ["cookie", "cookie-private", "cookie-signed", "form", "query", "multipart", "async-read-body"] }
+yew = { version = "0.21.0", features = ["ssr", "csr"] }
