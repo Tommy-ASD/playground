@@ -22,7 +22,7 @@ pub async fn index() -> Html<String> {
 pub async fn in_directory(axum::extract::Path(uri): axum::extract::Path<String>) -> Html<String> {
     println!("Got uri {uri}");
 
-    let rendered = main_page(&uri, html! {}).await;
+    let rendered = main_page(&uri, "").await;
     Html(rendered)
 }
 

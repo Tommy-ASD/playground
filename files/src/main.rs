@@ -1,6 +1,5 @@
 use axum::{extract::DefaultBodyLimit, response::Html, routing::get, routing::post, Router};
 use directories::render_files_and_directories;
-use yew::html;
 use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
@@ -8,10 +7,12 @@ use std::{
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use types::FileDownloadData;
+use yew::html;
 
 use crate::{
     directories::{create_directories_router, get_directories_router},
     downloads::downloads_router,
+    initialize_download::{initialize_download_index, initialize_download_router},
     // oauth::oauth_router,
     uploads::{accept_form_index, upload_router},
 };
@@ -21,6 +22,7 @@ extern crate dotenv_codegen;
 
 mod directories;
 mod downloads;
+mod initialize_download;
 // mod oauth;
 mod types;
 mod uploads;
@@ -61,6 +63,8 @@ async fn main() {
         .route("/create-dir/", post(directories::create_directory_index))
         .nest("/download", downloads_router())
         .route("/download/", get(downloads::index)) // to support trailing slash for url
+        .nest("/initialize_download", initialize_download_router())
+        .route("/initialize_download/", post(initialize_download_index))
         // .nest("/oauth", oauth_router())
         .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
         .layer(DefaultBodyLimit::disable())
@@ -99,21 +103,17 @@ async fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
 
 async fn show_form() -> Html<String> {
     let rendered = main_page(
-        
         "",
-        html! {
-            <>
-                <h1>{"Hiii :3"}</h1>
-                <h2>{"So if you're here, you probably know this website exists. Please keep it to yourself."}</h2>
-                <h3>{"Also stay legal"}</h3>
-                <img src={"https://files.tommyasd.com/download/disclaimer.gif"} alt={"This website logs IP addresses when you upload or download anything"} />
-            </>
-        },
+        r#"
+                <h1>Hiii :3</h1>
+                <h2>So if you're here, you probably know this website exists. Please keep it to yourself.</h2>
+                <h3>Also stay legal</h3>
+                <img src="https://files.tommyasd.com/download/disclaimer.gif" alt="This website logs IP addresses when you upload or download anything">"#,
     ).await;
     Html(rendered)
 }
 
-async fn main_page(uri: &str, header: yew::Html) -> String {
+async fn main_page(uri: &str, header: &str) -> String {
     let mut split = uri.split("/").into_iter().collect::<Vec<&str>>();
     split.pop();
     println!("Split: {split:?}");
@@ -124,42 +124,51 @@ async fn main_page(uri: &str, header: yew::Html) -> String {
         .join("/");
     println!("Back: {back}");
     let lis = render_files_and_directories(uri).await.unwrap();
-    html! {
-        <>
+    format!(
+        r#"
+        <!doctype html>
         <html>
             <head>
-                <link rel={"stylesheet"} type={"text/css"} href={"/static/style.css"} />
+                <link rel="stylesheet" type="text/css" href="/static/style.css">
             </head>
             <body>
-                <div>
-                    { header }
-                </div>
-                <div id={"file-upload"}>
-                <h1>{ format!("You are currently at /{uri}") }</h1>
-                    <a href={format!("/directory/{back}")}>{"Go up one"}</a>
-                    <h2>{"Upload Files"}</h2>
-                    <form id={"file-form"} action={format!("/upload/{uri}")} method={"post"} enctype={"multipart/form-data"}>
-                        <input type={"file"} name={"file"} id={"file-input"} accept={"*"} multiple=true />
-                        <label for={"file-input"} id={"file-label"}>{"Choose a file"}</label>
-                        <input type={"submit"} value={"Upload"} />
+{header}
+                <div id="file-upload">
+                <h1>You are currently at /{uri}</h1>
+                    <a href="/directory/{back}">Go up one</a>
+                    <h2>Upload Files</h2>
+                    <form id="file-form" action="/upload/{uri}" method="post" enctype="multipart/form-data">
+                        <input type="file" name="file" id="file-input" accept="*" multiple>
+                        <label for="file-input" id="file-label">Choose a file</label>
+                        <input type="submit" value="Upload">
                     </form>
-                    <h2>{"Create Directory"}</h2>
+                    <h2>Create Directory</h2>
                     <form action="/create-dir/{uri}" method="post" id="createDirForm">
-                        <label for="directory_name">{"Directory Name:"}</label>
-                        <input type={"text"} id={"directory_name"} name={"path"} />
-                        <br />
-                        <input type={"submit"} value={"Create Directory"} />
+                        <label for="directory_name">Directory Name:</label>
+                        <input type="text" id="directory_name" name="path">
+                        <br>
+                        <input type="submit" value="Create Directory">
                     </form>
                 </div>
                             
                 <div id="file-download">
-                    <h2>{"Available Files"}</h2>
+                    <h2>Available Files</h2>
                     {lis}
                 </div>
+                <script>
+const fileInput = document.getElementById('file-input');
+fileInput.addEventListener('dragover', (e) => {{
+    e.preventDefault();
+}});
+
+fileInput.addEventListener('dragenter', (e) => {{
+    e.preventDefault();
+}});
+                </script>
             </body>
         </html>
-        </>
-}
+        "#,
+    )
 }
 
 async fn successfully_uploaded(

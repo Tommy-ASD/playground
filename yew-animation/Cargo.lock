@@ -1505,6 +1505,7 @@ dependencies = [
  "itertools 0.11.0",
  "ordered-float 4.1.1",
  "plotters",
+ "rand",
  "rayon",
 ]
 

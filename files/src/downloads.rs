@@ -54,7 +54,12 @@ pub async fn in_directory(
                 Err(ZipError::FileNotFound) => {
                     return Err((StatusCode::NOT_FOUND, format!("File not found")))
                 }
-                Err(_) => return Err((StatusCode::NOT_FOUND, format!("Unknown error occured"))),
+                Err(_) => {
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unknown error occured"),
+                    ))
+                }
             };
             dbg!();
         } else {
