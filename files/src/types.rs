@@ -60,9 +60,13 @@ impl FileDownloadData {
 
         match self.filetype {
             FileType::File => self.render_file(path),
-            FileType::Directory => {
-                self.render(path, "directory-link", "", "directory", Some("Unknown"))
-            }
+            FileType::Directory => self.render(
+                path,
+                "directory-link",
+                "",
+                "directory",
+                Some("<button>Calculate</button>"),
+            ),
             _ => self.render_file(path),
         }
     }

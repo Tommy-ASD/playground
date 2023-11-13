@@ -58,8 +58,8 @@ use dotenv_codegen::dotenv;
 
 use crate::types::{DiscordIdentity, GithubIdentity, OAuthType, UserType, JWT};
 
-const PRIVATE_KEY: &[u8] = include_bytes!("../private_key.pem");
-const PUBLIC_KEY: &[u8] = include_bytes!("../public_key.pem");
+const PRIVATE_KEY: &[u8] = include_bytes!("../private-key.pem");
+const PUBLIC_KEY: &[u8] = include_bytes!("../public-key.pem");
 
 pub mod types;
 
@@ -284,8 +284,8 @@ where
 
 #[tokio::main]
 async fn main() {
-    let token = oauth(OAuthParams::discord_default()).await.unwrap();
-    let user = get_discord_info(&token).await.unwrap();
+    let token = oauth(OAuthParams::github_default()).await.unwrap();
+    let user = get_github_info(&token).await.unwrap();
     let jwt: JWT = user.into();
 
     let algorithm = Algorithm::RS512;
