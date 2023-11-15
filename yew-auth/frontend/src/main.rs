@@ -5,7 +5,7 @@ use yew::{
 };
 
 use yew_oauth2::{
-    agent::{Client, OAuth2Operations},
+    agent::{Client, OAuth2Operations, LoginOptions},
     components::{Authenticated, NotAuthenticated},
     oauth2::{use_auth_agent, Config, OAuth2},
 };
@@ -17,7 +17,9 @@ fn Inner() -> Html {
     let login = {
         let agent = agent.clone();
         Callback::from(move |_| {
-            let _ = agent.start_login();
+            let _ = agent.start_login_opts(LoginOptions {
+                query
+            });
         })
     };
     let logout = Callback::from(move |_| {

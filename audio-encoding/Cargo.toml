@@ -1,0 +1,13 @@
+[package]
+name = "audio-encoding"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+clap = "4.4.8"
+cpal = { version = "0.15.2", features = ["jack"] }
+hound = "3.5.1"
+lame = "0.1.3"

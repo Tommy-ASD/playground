@@ -1,10 +1,6 @@
 #![windows_subsystem = "windows"]
 
 use rodio::decoder::DecoderError;
-use rodio::{Decoder, OutputStream};
-use std::fs::File;
-use std::io::BufReader;
-use std::thread;
 
 #[tokio::main]
 async fn main() {
