@@ -716,6 +716,7 @@ dependencies = [
  "strum",
  "thiserror",
  "tokio",
+ "url",
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3418,8 +3419,7 @@ dependencies = [
 [[package]]
 name = "yew-oauth2"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c18c03d48d35247fe8871f0ff9b70947327c8e9dd7c0def9d537055a9ab2dd91"
+source = "git+https://github.com/Tommy-ASD/yew-oauth2#d0c1ee61f111a49aabca35d010b38bb2eb5094ce"
 dependencies = [
  "async-trait",
  "gloo-storage 0.3.0",

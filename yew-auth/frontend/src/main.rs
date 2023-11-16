@@ -5,7 +5,7 @@ use yew::{
 };
 
 use yew_oauth2::{
-    agent::{Client, OAuth2Operations, LoginOptions},
+    agent::{Client, LoginOptions, OAuth2Operations},
     components::{Authenticated, NotAuthenticated},
     oauth2::{use_auth_agent, Config, OAuth2},
 };
@@ -13,13 +13,13 @@ use yew_oauth2::{
 #[function_component]
 fn Inner() -> Html {
     let agent = use_auth_agent().expect(":(");
-    
+
     let login = {
         let agent = agent.clone();
         Callback::from(move |_| {
-            let _ = agent.start_login_opts(LoginOptions {
-                query
-            });
+            let _ = agent.start_login_opts(LoginOptions::new().with_redirect_url(
+                url::Url::parse("http://localhost:8080/api/oauth_callback/github").unwrap(),
+            ));
         })
     };
     let logout = Callback::from(move |_| {
@@ -46,7 +46,7 @@ fn Main() -> Html {
     let config = Config {
         client_id: "17edc016503e272418b0".into(),
         auth_url: "https://github.com/login/oauth/authorize".into(),
-        token_url: "https://github.com/login/oauth/access_token".into(),
+        token_url: "http://localhost:8080/api/oauth_callback/github".into(),
     };
 
     html! {

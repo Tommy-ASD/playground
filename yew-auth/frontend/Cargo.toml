@@ -22,7 +22,10 @@ wasm-logger = "0.2"
 wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4"
 tokio = { version = "1.32.0", features = ["macros", "rt"] }
-yew-oauth2 = { version = "0.7.0", features = ["openid", "router"] }
+yew-oauth2 = { git = "https://github.com/Tommy-ASD/yew-oauth2", features = [
+    "openid",
+    "router",
+] }
 
 futures = "0.3.28"
 console_log = { version = "1.0.0", features = ["color", "wasm-bindgen"] }
@@ -37,6 +40,7 @@ wasm-bindgen-test = "^0.3.17"
 wee_alloc = "0.4.5"
 
 gloo-timers = "0.3.0"
+url = { version = "2.4.1", features = ["serde"] }
 
 [dependencies.web-sys]
 version = "0.3.64"
