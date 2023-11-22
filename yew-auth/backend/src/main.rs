@@ -1,4 +1,4 @@
-use std::net::{Ipv6Addr, SocketAddr, SocketAddrV6};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 use axum::{extract::Query, response::Redirect, routing::get, Json, Router};
 use tower_http::services::ServeDir;
@@ -38,26 +38,18 @@ use dotenv_codegen::dotenv;
 async fn main() {
     // you can also have two `ServeDir`s nested at different paths
     let index = ServeDir::new("./dist");
-
     let router: Router = Router::new()
         .nest("/api", api())
         .nest("/authorized", authorized())
         .nest_service("/", index);
     println!("Localhost: {:?}", Ipv6Addr::LOCALHOST);
-    let binding_addresses = vec![
-        SocketAddr::from(([127, 0, 0, 1], 8080)),
-        SocketAddrV6::new(Ipv6Addr::LOCALHOST, 8080, 0, 0).into(),
+    let binding_addresses: Vec<SocketAddr> = vec![
+        SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 8080).into(),
+        SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, 8080, 0, 0).into(),
     ];
     binding_addresses.iter().for_each(|address| {
         tokio::task::spawn(hyper::Server::bind(address).serve(router.clone().into_make_service()));
     });
-    tokio::task::spawn(
-        hyper::Server::bind(&[
-            SocketAddr::from(([127, 0, 0, 1], 8080)),
-            SocketAddrV6::new(Ipv6Addr::LOCALHOST, 8080, 0, 0).into(),
-        ])
-        .serve(router.clone().into_make_service()),
-    );
     loop {}
 }
 
