@@ -17,12 +17,14 @@ axum = { version = "0.6.20", features = [
 chrono = { version = "0.4.31", features = ["serde"] }
 
 dotenv = "0.15.0"
+dotenv_codegen = "0.15.0"
 env_logger = "0.10.0"
 futures = "0.3.28"
 hyper = "0.14.27"
 jsonwebtoken = "9.1.0"
 log = "0.4.20"
 oauth2 = "4.4.2"
+reqwest = "0.11.22"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.108"
 tokio = { version = "1.32.0", features = ["full"] }
@@ -36,3 +38,4 @@ tracing-subscriber = { version = "0.3.17", features = [
     "serde_json",
     "env-filter",
 ] }
+url = { version = "2.4.1", features = ["serde"] }
