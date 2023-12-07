@@ -15,8 +15,6 @@ mod ws;
 
 use common::Message;
 
-use crate::canvas::func_plot::draw;
-
 static BACKEND_URL: &str = "localhost:8081";
 
 generate_state! {
@@ -26,8 +24,6 @@ generate_state! {
     textarea_ref,
     input_ref,
     sendbtn_ref,
-    canvas_ref,
-    renderbtn_ref,
 }
 
 thread_local! {
@@ -111,13 +107,10 @@ impl Component for MessageList {
             textarea_ref,
             input_ref,
             sendbtn_ref,
-            canvas_ref,
-            renderbtn_ref,
         } = State::get();
 
         let send = create_send_callback(&link);
         let join = create_join_callback(&link);
-        let render = create_render_callback(&link);
 
         html! {
             <>
@@ -134,8 +127,6 @@ impl Component for MessageList {
                 </table>
                 <input ref={input_ref} id={"input"} style={"display:block; width:600px; box-sizing: border-box"} type={"text"} placeholder={"chat"} />
                 <button ref={sendbtn_ref} id={"send-message"} type={"button"} onclick={send}>{ "Send Message" }</button>
-                <canvas ref={canvas_ref} id={"canvas"} />
-                <button ref={renderbtn_ref} type={"button"} onclick={render}>{ "Render canvas" }</button>
             </>
         }
     }
@@ -169,15 +160,8 @@ fn create_send_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent>
                 return ChangeTodoList::None;
             }
         };
+        gloo::console::log!("Got message ", &value);
         ChangeTodoList::AddMessage(Message::new(Value::String(value), "test"))
-    })
-}
-
-fn create_render_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
-    link.callback(move |_event: MouseEvent| {
-        gloo::console::log!("Button pressed");
-        let _ = draw("canvas", 0);
-        ChangeTodoList::None
     })
 }
 
