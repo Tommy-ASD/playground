@@ -33,21 +33,21 @@ use serde_json::{json, Value};
 
 use traceback_error::{traceback, TracebackError};
 
-use common::{Message, User};
+use common::{Message, Payload, User};
 
 #[derive(Clone)]
 pub struct Sender {
-    inner: broadcast::Sender<Message>,
+    inner: broadcast::Sender<Payload>,
 }
 
 impl Sender {
     #[traceback_derive::traceback]
-    fn send(&self, message: Message) -> Result<(), TracebackError> {
-        self.inner.send(message)?;
+    fn send(&self, payload: Payload) -> Result<(), TracebackError> {
+        self.inner.send(payload)?;
 
         Ok(())
     }
-    pub fn subscribe(&self) -> Receiver<Message> {
+    pub fn subscribe(&self) -> Receiver<Payload> {
         self.inner.subscribe()
     }
 }
@@ -56,10 +56,10 @@ impl Sender {
 pub struct AppState {
     // We require unique usernames. This tracks which usernames have been taken.
     user_set: Mutex<HashSet<User>>,
-    // Channel used to send messages to all connected clients.
+    // Channel used to send payloads to all connected clients.
     tx: Sender,
-    // store messages
-    messages: Mutex<Vec<Message>>,
+    // store payloads
+    payloads: Mutex<Vec<Payload>>,
 }
 
 impl AppState {
@@ -84,11 +84,11 @@ impl AppState {
         None
     }
     #[traceback_derive::traceback]
-    pub fn send(&self, message: Message) -> Result<(), TracebackError> {
-        tracing::debug!("Sending {message:?}");
-        self.tx.send(message.clone())?;
-        let mut messages = match self.messages.lock() {
-            Ok(messages) => messages,
+    pub fn send(&self, payload: Payload) -> Result<(), TracebackError> {
+        tracing::debug!("Sending {payload:?}");
+        self.tx.send(payload.clone())?;
+        let mut payloads = match self.payloads.lock() {
+            Ok(payloads) => payloads,
             Err(e) => {
                 return Err(
                     TracebackError::new(String::from(""), file!().to_string(), line!())
@@ -98,7 +98,7 @@ impl AppState {
                 );
             }
         };
-        messages.push(message.clone());
+        payloads.push(payload.clone());
 
         Ok(())
     }
@@ -119,12 +119,12 @@ async fn main() {
     // Set up application state for use with with_state().
     let user_set = Mutex::new(HashSet::new());
     let (tx, _rx) = broadcast::channel(100);
-    let messages = Mutex::new(Vec::new());
+    let payloads = Mutex::new(Vec::new());
 
     let app_state = Arc::new(AppState {
         user_set,
         tx: Sender { inner: tx },
-        messages,
+        payloads,
     });
 
     let api = make_router();
@@ -136,10 +136,10 @@ async fn main() {
         .nest("/api", api)
         .nest_service("/static", ServeDir::new("static"))
         .with_state(app_state);
-    hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 8081)))
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    tokio::spawn(
+        hyper::Server::bind(&SocketAddr::from(([0, 0, 0, 0], 8081))).serve(app.into_make_service()),
+    );
+    loop {}
 }
 
 async fn websocket_handler(
@@ -187,7 +187,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     let mut rx = state.tx.subscribe();
 
     // Now send the "joined" message to all subscribers.
-    let msg = Message::new_system(Value::String(format!("{username} joined.")));
+    let msg = Payload::new_joined(&username);
     tracing::debug!("{msg:?}");
     let _ = state.send(msg);
 
@@ -214,7 +214,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     // name, and sends them to all broadcast subscribers.
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(ws::Message::Text(text))) = receiver.next().await {
-            let message = Message::new(Value::String(text), &name);
+            let message = Payload::new_message(&name, Value::String(text));
             tracing::debug!("Recieved message {message:?}");
             // Add username before message.
             let _ = state_clone.send(message);
@@ -228,7 +228,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     };
 
     // Send "user left" message (similar to "joined" abovØe).
-    let msg = Message::new_system(Value::String(format!("{username} left.")));
+    let msg = Payload::new_left(&username);
     tracing::debug!("{msg:?}");
     let _ = state.send(msg);
 

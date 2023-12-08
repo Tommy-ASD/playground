@@ -9,11 +9,14 @@ use yew::{
 
 use serde_json::Value;
 
-mod canvas;
 mod utilities;
 mod ws;
 
-use common::Message;
+use common::{Message, Payload, UserInfo};
+use std::{
+    ops::DerefMut,
+    sync::{Mutex, MutexGuard},
+};
 
 static BACKEND_URL: &str = "localhost:8081";
 
@@ -28,6 +31,26 @@ generate_state! {
 
 thread_local! {
     pub static WS_CLIENT: EventClient = create_client();
+    pub static USERNAME: Mutex<Option<String>> = Mutex::new(None);
+}
+
+fn get_username() -> Option<String> {
+    USERNAME.with(|inner| {
+        inner
+            .lock()
+            .ok()
+            .and_then(|mut opt| Some(opt.deref_mut().clone()))
+            .flatten()
+    })
+}
+
+fn set_username(name: String) {
+    USERNAME.with(|inner| {
+        inner.lock().ok().map(|mut mutguard_opt| {
+            let opt = mutguard_opt.deref_mut();
+            *opt = Some(name);
+        });
+    });
 }
 
 fn get_ws_client() -> EventClient {
@@ -35,14 +58,15 @@ fn get_ws_client() -> EventClient {
 }
 
 #[derive(Debug, Clone)]
-enum ChangeTodoList {
+enum PayloadHandler {
+    UserJoined(UserInfo),
     AddMessage(Message),
     RemoveItem(usize),
     None,
 }
 
-impl From<ChangeTodoList> for JsValue {
-    fn from(value: ChangeTodoList) -> Self {
+impl From<PayloadHandler> for JsValue {
+    fn from(value: PayloadHandler) -> Self {
         JsValue::from_str(&format!("{:?}", value))
     }
 }
@@ -53,14 +77,27 @@ struct MessageList {
 }
 
 impl Component for MessageList {
-    type Message = ChangeTodoList;
+    type Message = PayloadHandler;
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
         let mut client = get_ws_client();
         let link = ctx.link();
         let on_ws_msg = link.callback(|msg: ws::Message| {
-            ChangeTodoList::AddMessage(common::Message::new(
+            match msg {
+                ws::Message::Text(txtmsg) => {
+                    gloo::console::log!("Recieved text message from WS: ", &txtmsg);
+                    let parsed: Payload = serde_json::from_str(&txtmsg).unwrap();
+
+                    match parsed.inner {
+                        _ => gloo::console::error!("Unhandled PayloadInner variant"),
+                    }
+                }
+                _ => {
+                    gloo::console::error!("Got unexpected message format")
+                }
+            };
+            PayloadHandler::AddMessage(common::Message::new(
                 serde_json::Value::String("Test".to_string()),
                 "Test",
             ))
@@ -80,7 +117,8 @@ impl Component for MessageList {
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         gloo::console::log!("Recieved message: ", msg.clone());
         match msg {
-            ChangeTodoList::AddMessage(item) => {
+            PayloadHandler::UserJoined(info) => false,
+            PayloadHandler::AddMessage(item) => {
                 self.messages.push(item);
                 gloo::console::log!("Messages: ");
                 self.messages
@@ -88,11 +126,11 @@ impl Component for MessageList {
                     .for_each(|message| gloo::console::log!(message.clone()));
                 true
             }
-            ChangeTodoList::RemoveItem(index) => {
+            PayloadHandler::RemoveItem(index) => {
                 self.messages.remove(index);
                 true
             }
-            ChangeTodoList::None => false,
+            PayloadHandler::None => false,
         }
     }
 
@@ -140,28 +178,34 @@ fn create_join_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent>
             Some(element) => element.value(),
             None => {
                 gloo::console::log!("No input was provided");
-                return ChangeTodoList::None;
+                return PayloadHandler::None;
             }
         };
 
         let _ = get_ws_client().send_string(&value);
-        return ChangeTodoList::None;
+        set_username(value);
+        return PayloadHandler::None;
     })
 }
 
 fn create_send_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
     let input_ref = State::get_input_ref();
     link.callback(move |_event: MouseEvent| {
+        let name = get_username();
+        if name.is_none() {
+            return PayloadHandler::None;
+        }
+        let name = name.unwrap();
         gloo::console::log!("Button pressed");
         let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
             Some(element) => element.value(),
             None => {
                 gloo::console::log!("No input was provided");
-                return ChangeTodoList::None;
+                return PayloadHandler::None;
             }
         };
         gloo::console::log!("Got message ", &value);
-        ChangeTodoList::AddMessage(Message::new(Value::String(value), "test"))
+        PayloadHandler::AddMessage(Message::new(Value::String(value), &name))
     })
 }
 
