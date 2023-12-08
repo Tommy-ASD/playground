@@ -33,7 +33,7 @@ use serde_json::{json, Value};
 
 use traceback_error::{traceback, TracebackError};
 
-use common::{Message, Payload, User};
+use common::{Message, Payload, PayloadInner, User};
 
 #[derive(Clone)]
 pub struct Sender {
@@ -102,6 +102,13 @@ impl AppState {
 
         Ok(())
     }
+    #[traceback_derive::traceback]
+    pub fn get_payload_list(&self) -> Result<Vec<Payload>, TracebackError> {
+        match self.payloads.lock() {
+            Ok(pl) => Ok(pl.iter().map(|pl| pl.clone()).collect::<Vec<Payload>>()),
+            Err(e) => Err(traceback!().with_extra_data(json!({"error": e.to_string()}))),
+        }
+    }
 }
 
 pub mod api;
@@ -156,40 +163,16 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     // By splitting, we can send and receive at the same time.
     let (mut sender, mut receiver) = stream.split();
 
-    // Username gets set in the receive loop, if it's valid.
-    let mut new_user = None;
-    // Loop until a text message is found.
-    while let Some(Ok(message)) = receiver.next().await {
-        if let ws::Message::Text(name) = message {
-            // If username that is sent by client is not taken, fill username string.
-            new_user = state.add_user(&name);
-
-            // If not empty we want to quit the loop else we want to quit function.
-            if new_user.is_some() {
-                break;
-            } else {
-                // Only send our client that username is taken.
-                let _ = sender
-                    .send(ws::Message::Text(String::from("Username already taken.")))
-                    .await;
-
-                return;
-            }
-        } else {
-            println!("Recieved message: {message:?}");
-        }
-    }
-
-    let username = new_user.unwrap().username;
-
     // We subscribe *before* sending the "joined" message, so that we will also
     // display it to our client.
     let mut rx = state.tx.subscribe();
 
-    // Now send the "joined" message to all subscribers.
-    let msg = Payload::new_joined(&username);
-    tracing::debug!("{msg:?}");
-    let _ = state.send(msg);
+    let pls = Payload::new(PayloadInner::PayloadList(state.get_payload_list().unwrap()));
+
+    sender
+        .send(ws::Message::Text(serde_json::to_string(&pls).unwrap()))
+        .await
+        .unwrap();
 
     // Spawn the first task that will receive broadcast messages and send text
     // messages over the websocket to our client.
@@ -206,18 +189,23 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
         }
     });
 
-    // Clone things we want to pass (move) to the receiving task.
-    let name = username.clone();
     let state_clone = state.clone();
 
     // Spawn a task that takes messages from the websocket, prepends the user
     // name, and sends them to all broadcast subscribers.
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(ws::Message::Text(text))) = receiver.next().await {
-            let message = Payload::new_message(&name, Value::String(text));
-            tracing::debug!("Recieved message {message:?}");
+            tracing::debug!("Recieved message {text}");
+            let parsed: Payload = match serde_json::from_str(&text) {
+                Ok(p) => p,
+                Err(e) => {
+                    println!("Failed to parse payload: {e}");
+                    continue;
+                }
+            };
+            tracing::debug!("Parsed message {parsed:?}");
             // Add username before message.
-            let _ = state_clone.send(message);
+            let _ = state_clone.send(parsed);
         }
     });
 
@@ -226,19 +214,6 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
-
-    // Send "user left" message (similar to "joined" abovØe).
-    let msg = Payload::new_left(&username);
-    tracing::debug!("{msg:?}");
-    let _ = state.send(msg);
-
-    let mut user_set = state.user_set.lock().unwrap();
-
-    // Remove username from map so new clients can take it again.
-    if let Some(user) = user_set.iter().find(|user| user.username == username) {
-        let user = user.clone();
-        user_set.remove(&user);
-    }
 }
 
 // Include utf-8 file at **compile** time.

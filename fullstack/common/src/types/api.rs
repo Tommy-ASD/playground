@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 use wasm_bindgen::JsValue;
-use yew::{html, Html};
+use yew::{html, virtual_dom::VNode, Html};
 
 use crate::Message;
 
@@ -25,6 +25,7 @@ pub enum PayloadInner {
     Joined(UserInfo),
     Left(LeaveInfo),
     Message(MessageInfo),
+    PayloadList(Vec<Payload>),
 }
 
 impl PayloadInner {
@@ -48,6 +49,14 @@ impl PayloadInner {
             PayloadInner::Message(msg) => {
                 format!("{name}: {msg}", name = msg.sender, msg = msg.content)
             }
+            PayloadInner::PayloadList(list) => list
+                .iter()
+                .map(|pl| match pl.to_html() {
+                    VNode::VRaw(raw) => raw.html.to_string(),
+                    _ => unimplemented!(),
+                })
+                .collect::<Vec<String>>()
+                .join("\n"),
         }
     }
 }
@@ -74,6 +83,12 @@ pub struct Payload {
 }
 
 impl Payload {
+    pub fn new(inner: PayloadInner) -> Self {
+        Self {
+            inner,
+            meta: PayloadMeta::new(),
+        }
+    }
     pub fn new_joined(username: &str) -> Self {
         Self {
             inner: PayloadInner::new_joined(username),

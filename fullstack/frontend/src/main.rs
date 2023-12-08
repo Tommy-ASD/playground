@@ -12,7 +12,7 @@ use serde_json::Value;
 mod utilities;
 mod ws;
 
-use common::{Message, Payload, UserInfo};
+use common::{Message, Payload, PayloadInner, UserInfo};
 use std::{
     ops::DerefMut,
     sync::{Mutex, MutexGuard},
@@ -111,7 +111,10 @@ impl Component for PayloadList {
         gloo::console::log!("Recieved message: ", msg.clone());
         match msg {
             PayloadHandler::AddPayload(item) => {
-                self.payloads.push(item);
+                match item.inner {
+                    PayloadInner::PayloadList(pls) => self.payloads.extend(pls),
+                    _ => self.payloads.push(item),
+                };
                 gloo::console::log!("Messages: ");
                 self.payloads
                     .iter()
@@ -170,7 +173,9 @@ fn create_join_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent>
             }
         };
 
-        let _ = get_ws_client().send_string(&value);
+        let pl = serde_json::to_string(&Payload::new_joined(&value)).unwrap();
+
+        let _ = get_ws_client().send_string(&pl);
         set_username(value);
         return PayloadHandler::None;
     })
@@ -193,7 +198,9 @@ fn create_send_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent>
             }
         };
         gloo::console::log!("Got message ", &value);
-        PayloadHandler::AddPayload(Payload::new_message(&name, Value::String(value)))
+        let pl = serde_json::to_string(&Payload::new_message(&name, Value::String(value))).unwrap();
+        let _ = get_ws_client().send_string(&pl);
+        return PayloadHandler::None;
     })
 }
 
