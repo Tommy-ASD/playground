@@ -59,9 +59,7 @@ fn get_ws_client() -> EventClient {
 
 #[derive(Debug, Clone)]
 enum PayloadHandler {
-    UserJoined(UserInfo),
-    AddMessage(Message),
-    RemoveItem(usize),
+    AddPayload(Payload),
     None,
 }
 
@@ -72,11 +70,11 @@ impl From<PayloadHandler> for JsValue {
 }
 
 #[derive(Properties, PartialEq, Default)]
-struct MessageList {
-    messages: Vec<Message>,
+struct PayloadList {
+    payloads: Vec<Payload>,
 }
 
-impl Component for MessageList {
+impl Component for PayloadList {
     type Message = PayloadHandler;
     type Properties = ();
 
@@ -89,18 +87,13 @@ impl Component for MessageList {
                     gloo::console::log!("Recieved text message from WS: ", &txtmsg);
                     let parsed: Payload = serde_json::from_str(&txtmsg).unwrap();
 
-                    match parsed.inner {
-                        _ => gloo::console::error!("Unhandled PayloadInner variant"),
-                    }
+                    return PayloadHandler::AddPayload(parsed);
                 }
                 _ => {
                     gloo::console::error!("Got unexpected message format")
                 }
             };
-            PayloadHandler::AddMessage(common::Message::new(
-                serde_json::Value::String("Test".to_string()),
-                "Test",
-            ))
+            PayloadHandler::None
         });
         client.set_on_message({
             let on_ws_msg = on_ws_msg.clone();
@@ -111,23 +104,18 @@ impl Component for MessageList {
             ))
         });
 
-        Self { messages: vec![] }
+        Self { payloads: vec![] }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         gloo::console::log!("Recieved message: ", msg.clone());
         match msg {
-            PayloadHandler::UserJoined(info) => false,
-            PayloadHandler::AddMessage(item) => {
-                self.messages.push(item);
+            PayloadHandler::AddPayload(item) => {
+                self.payloads.push(item);
                 gloo::console::log!("Messages: ");
-                self.messages
+                self.payloads
                     .iter()
                     .for_each(|message| gloo::console::log!(message.clone()));
-                true
-            }
-            PayloadHandler::RemoveItem(index) => {
-                self.messages.remove(index);
                 true
             }
             PayloadHandler::None => false,
@@ -157,9 +145,9 @@ impl Component for MessageList {
                 <table ref={textarea_ref} id={"chat"} style={"display:block; width:600px; height:400px; box-sizing: border-box"} cols={"30"} rows={"10"}>
                 {
                     self
-                        .messages
+                        .payloads
                         .iter()
-                        .map(|message| message.to_html())
+                        .map(|payload| payload.to_html())
                         .collect::<Vec<Html>>()
                 }
                 </table>
@@ -170,7 +158,7 @@ impl Component for MessageList {
     }
 }
 
-fn create_join_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
+fn create_join_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent> {
     let username_ref = State::get_username_ref();
     link.callback(move |_event: MouseEvent| {
         gloo::console::log!("Button pressed");
@@ -188,7 +176,7 @@ fn create_join_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent>
     })
 }
 
-fn create_send_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent> {
+fn create_send_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent> {
     let input_ref = State::get_input_ref();
     link.callback(move |_event: MouseEvent| {
         let name = get_username();
@@ -205,14 +193,14 @@ fn create_send_callback(link: &html::Scope<MessageList>) -> Callback<MouseEvent>
             }
         };
         gloo::console::log!("Got message ", &value);
-        PayloadHandler::AddMessage(Message::new(Value::String(value), &name))
+        PayloadHandler::AddPayload(Payload::new_message(&name, Value::String(value)))
     })
 }
 
 // Then supply the prop
 #[function_component(App)]
 fn app() -> Html {
-    html! { <MessageList /> }
+    html! { <PayloadList /> }
 }
 
 fn main() {

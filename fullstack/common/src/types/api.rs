@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
+use wasm_bindgen::JsValue;
 use yew::{html, Html};
 
 use crate::Message;
@@ -100,5 +101,11 @@ impl Payload {
         html! {
             <p>{ format!("({timestamp})\n{contents}") }</p>
         }
+    }
+}
+
+impl From<Payload> for JsValue {
+    fn from(value: Payload) -> Self {
+        JsValue::from_serde(&value).unwrap()
     }
 }
