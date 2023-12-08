@@ -18,7 +18,7 @@ fn Inner() -> Html {
         let agent = agent.clone();
         Callback::from(move |_| {
             let _ = agent.start_login_opts(LoginOptions::new().with_redirect_url(
-                url::Url::parse("http://localhost:8080/api/oauth_callback/github").unwrap(),
+                url::Url::parse("http://localhost:8080/authorized/github").unwrap(),
             ));
         })
     };
