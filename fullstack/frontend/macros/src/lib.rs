@@ -31,7 +31,7 @@ pub fn generate_state(input: TokenStream) -> TokenStream {
         let getter_name =
             proc_macro2::TokenStream::from_str(&format!("get_{ident_lower}")).unwrap();
         corrected_items.push(quote! { pub static #ident: NodeRef = NodeRef::default(); });
-        struct_fields.push(quote! { #ident_lower: NodeRef });
+        struct_fields.push(quote! { pub #ident_lower: NodeRef });
         with_block.push(quote! { #ident_lower: #ident.with(|inner| inner.clone()), });
         getters.push(quote! { pub fn #getter_name() -> NodeRef {
             #ident.with(|inner| inner.clone())

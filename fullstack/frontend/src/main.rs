@@ -1,61 +1,20 @@
-use macros::generate_state;
 use wasm_bindgen::JsValue;
-use web_sys::HtmlTextAreaElement;
-use ws::EventClient;
+use ws_client::{get_ws_client, setup_client};
 use yew::{
     function_component,
-    prelude::{html, Callback, Component, Context, Html, MouseEvent, NodeRef, Properties},
+    prelude::{html, Component, Context, Html, Properties},
 };
 
-use serde_json::Value;
+use common::{Payload, PayloadInner};
 
+use crate::{state::State, ws_client::callbacks};
+
+mod state;
 mod utilities;
 mod ws;
-
-use common::{Message, Payload, PayloadInner, UserInfo};
-use std::{
-    ops::DerefMut,
-    sync::{Mutex, MutexGuard},
-};
+mod ws_client;
 
 static BACKEND_URL: &str = "localhost:8081";
-
-generate_state! {
-    message_container_ref,
-    username_ref,
-    joinbtn_ref,
-    textarea_ref,
-    input_ref,
-    sendbtn_ref,
-}
-
-thread_local! {
-    pub static WS_CLIENT: EventClient = create_client();
-    pub static USERNAME: Mutex<Option<String>> = Mutex::new(None);
-}
-
-fn get_username() -> Option<String> {
-    USERNAME.with(|inner| {
-        inner
-            .lock()
-            .ok()
-            .and_then(|mut opt| Some(opt.deref_mut().clone()))
-            .flatten()
-    })
-}
-
-fn set_username(name: String) {
-    USERNAME.with(|inner| {
-        inner.lock().ok().map(|mut mutguard_opt| {
-            let opt = mutguard_opt.deref_mut();
-            *opt = Some(name);
-        });
-    });
-}
-
-fn get_ws_client() -> EventClient {
-    WS_CLIENT.with(|inner| inner.clone())
-}
 
 #[derive(Debug, Clone)]
 enum PayloadHandler {
@@ -79,30 +38,8 @@ impl Component for PayloadList {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        let mut client = get_ws_client();
         let link = ctx.link();
-        let on_ws_msg = link.callback(|msg: ws::Message| {
-            match msg {
-                ws::Message::Text(txtmsg) => {
-                    gloo::console::log!("Recieved text message from WS: ", &txtmsg);
-                    let parsed: Payload = serde_json::from_str(&txtmsg).unwrap();
-
-                    return PayloadHandler::AddPayload(parsed);
-                }
-                _ => {
-                    gloo::console::error!("Got unexpected message format")
-                }
-            };
-            PayloadHandler::None
-        });
-        client.set_on_message({
-            let on_ws_msg = on_ws_msg.clone();
-            Some(Box::new(
-                move |_client: &ws::EventClient, message: ws::Message| {
-                    on_ws_msg.emit(message);
-                },
-            ))
-        });
+        setup_client(link);
 
         Self { payloads: vec![] }
     }
@@ -138,8 +75,8 @@ impl Component for PayloadList {
             sendbtn_ref,
         } = State::get();
 
-        let send = create_send_callback(&link);
-        let join = create_join_callback(&link);
+        let send = callbacks::send(&link);
+        let join = callbacks::join(&link);
 
         html! {
             <>
@@ -161,49 +98,6 @@ impl Component for PayloadList {
     }
 }
 
-fn create_join_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent> {
-    let username_ref = State::get_username_ref();
-    link.callback(move |_event: MouseEvent| {
-        gloo::console::log!("Button pressed");
-        let value = match username_ref.cast::<web_sys::HtmlInputElement>() {
-            Some(element) => element.value(),
-            None => {
-                gloo::console::log!("No input was provided");
-                return PayloadHandler::None;
-            }
-        };
-
-        let pl = Payload::new_joined(&value);
-
-        let _ = get_ws_client().send_payload(&pl);
-        set_username(value);
-        return PayloadHandler::None;
-    })
-}
-
-fn create_send_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent> {
-    let input_ref = State::get_input_ref();
-    link.callback(move |_event: MouseEvent| {
-        let name = get_username();
-        if name.is_none() {
-            return PayloadHandler::None;
-        }
-        let name = name.unwrap();
-        gloo::console::log!("Button pressed");
-        let value = match input_ref.cast::<web_sys::HtmlInputElement>() {
-            Some(element) => element.value(),
-            None => {
-                gloo::console::log!("No input was provided");
-                return PayloadHandler::None;
-            }
-        };
-        gloo::console::log!("Got message ", &value);
-        let pl = Payload::new_message(&name, Value::String(value));
-        let _ = get_ws_client().send_payload(&pl);
-        return PayloadHandler::None;
-    })
-}
-
 // Then supply the prop
 #[function_component(App)]
 fn app() -> Html {
@@ -212,13 +106,4 @@ fn app() -> Html {
 
 fn main() {
     yew::Renderer::<App>::new().render();
-}
-
-fn create_client() -> ws::EventClient {
-    let mut optional_ws = ws::EventClient::new(&format!("ws://{BACKEND_URL}/ws"));
-    while let Err(err) = optional_ws {
-        gloo::console::error!("Failed to connect to ws: ", format!("{}", err));
-        optional_ws = ws::EventClient::new(&format!("ws://{BACKEND_URL}/ws"));
-    }
-    optional_ws.unwrap()
 }
