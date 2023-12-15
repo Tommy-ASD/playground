@@ -84,6 +84,7 @@
 //!     fn setInterval(closure: &Closure<dyn Fn()>, time: u32) -> i32;
 //! }
 //! ```
+use common::Payload;
 use log::{error, trace};
 use std::rc::Rc;
 use std::{cell::RefCell, fmt::Display};
@@ -206,20 +207,6 @@ impl PollingClient {
     /// ```
     pub fn status(&self) -> ConnectionStatus {
         self.status.borrow().clone()
-    }
-    /// Send a text message to the server
-    /// ```
-    /// client.send_string("Hello server!")?;
-    /// ```
-    pub fn send_string(&self, message: &str) -> Result<(), JsValue> {
-        self.event_client.send_string(message)
-    }
-    /// Send a binary message to the server
-    /// ```
-    /// client.send_binary(vec![0x2, 0xF])?;
-    /// ```
-    pub fn send_binary(&self, message: Vec<u8>) -> Result<(), JsValue> {
-        self.event_client.send_binary(message)
     }
 
     /// Close the connection
@@ -456,22 +443,10 @@ impl EventClient {
         *self.on_close.borrow_mut() = f;
     }
 
-    /// Send a text message to the server
-    /// ```
-    /// client.send_string("Hello server!")?;
-    /// ```
-    pub fn send_string(&self, message: &str) -> Result<(), JsValue> {
-        gloo::console::log!("Sending ", message, " to ws");
-        self.connection.borrow().send_with_str(message)
-    }
-    /// Send a binary message to the server
-    /// ```
-    /// client.send_binary(vec![0x2, 0xF])?;
-    /// ```
-    pub fn send_binary(&self, message: Vec<u8>) -> Result<(), JsValue> {
-        self.connection
-            .borrow()
-            .send_with_u8_array(message.as_slice())
+    pub fn send_payload(&self, payload: &Payload) -> Result<(), JsValue> {
+        let json = payload.to_string();
+        gloo::console::log!("Sending ", &json, " to ws");
+        self.connection.borrow().send_with_str(&json.to_string())
     }
 
     /// Close the connection

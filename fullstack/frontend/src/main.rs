@@ -173,9 +173,9 @@ fn create_join_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent>
             }
         };
 
-        let pl = serde_json::to_string(&Payload::new_joined(&value)).unwrap();
+        let pl = Payload::new_joined(&value);
 
-        let _ = get_ws_client().send_string(&pl);
+        let _ = get_ws_client().send_payload(&pl);
         set_username(value);
         return PayloadHandler::None;
     })
@@ -198,8 +198,9 @@ fn create_send_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent>
             }
         };
         gloo::console::log!("Got message ", &value);
-        let pl = serde_json::to_string(&Payload::new_message(&name, Value::String(value))).unwrap();
-        let _ = get_ws_client().send_string(&pl);
+        let pl = Payload::new_joined(&value);
+
+        let _ = get_ws_client().send_payload(&pl);
         return PayloadHandler::None;
     })
 }
