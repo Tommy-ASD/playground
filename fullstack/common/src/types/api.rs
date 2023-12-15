@@ -117,6 +117,9 @@ impl Payload {
             <p>{ format!("({timestamp})\n{contents}") }</p>
         }
     }
+    pub fn to_string(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
 }
 
 impl From<Payload> for JsValue {
