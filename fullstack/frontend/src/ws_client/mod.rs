@@ -3,7 +3,7 @@ use yew::prelude::html;
 
 use common::Payload;
 
-use crate::{state::WS_CLIENT, ws, PayloadHandler, PayloadList, BACKEND_URL};
+use crate::{payload::PayloadHandler, payload::PayloadList, state::WS_CLIENT, ws, BACKEND_URL};
 
 pub mod callbacks;
 

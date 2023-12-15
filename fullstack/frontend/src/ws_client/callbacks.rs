@@ -5,7 +5,8 @@ use serde_json::Value;
 use common::Payload;
 
 use crate::{
-    get_ws_client, state::get_username, state::set_username, PayloadHandler, PayloadList, State,
+    get_ws_client, payload::PayloadHandler, payload::PayloadList, state::get_username,
+    state::set_username, State,
 };
 
 pub fn join(link: &html::Scope<PayloadList>) -> Callback<MouseEvent> {
