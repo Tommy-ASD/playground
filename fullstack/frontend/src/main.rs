@@ -198,8 +198,7 @@ fn create_send_callback(link: &html::Scope<PayloadList>) -> Callback<MouseEvent>
             }
         };
         gloo::console::log!("Got message ", &value);
-        let pl = Payload::new_joined(&value);
-
+        let pl = Payload::new_message(&name, Value::String(value));
         let _ = get_ws_client().send_payload(&pl);
         return PayloadHandler::None;
     })
