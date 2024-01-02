@@ -1,3 +1,4 @@
+use futures::future::join_all;
 use std::{collections::HashSet, sync::Mutex};
 use tokio::sync::broadcast::{self, Receiver};
 
@@ -35,21 +36,22 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn username_is_unique(&self, name: &str) -> bool {
-        return self
-            .user_set
-            .lock()
-            .unwrap()
-            .iter()
-            .find(|user| user.username == name)
-            .is_none();
+    pub async fn username_is_unique(&self, name: &str) -> bool {
+        let res = join_all(
+            self.user_set
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|user| async move { user.get_username().await == name }),
+        )
+        .await;
+
+        res.into_iter().any(|found| found)
     }
     /// Returns none if username is already taken
-    pub fn add_user(&self, name: &str) -> Option<User> {
-        if self.username_is_unique(name) {
-            let user = User {
-                username: name.to_string(),
-            };
+    pub async fn add_user(&self, name: &str) -> Option<User> {
+        if self.username_is_unique(name).await {
+            let user = User::new(name);
             self.user_set.lock().unwrap().insert(user.clone());
             return Some(user);
         }
