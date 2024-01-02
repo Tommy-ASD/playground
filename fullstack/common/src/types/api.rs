@@ -16,8 +16,8 @@ pub struct LeaveInfo(pub String);
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct MessageInfo {
-    pub content: Value,
-    pub sender: String,
+    content: Value,
+    sender: String,
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]

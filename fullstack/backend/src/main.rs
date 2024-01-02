@@ -9,12 +9,8 @@
 use api::make_router;
 use axum::{response::Html, routing::get, Router};
 use state::{AppState, Sender};
-use std::{
-    collections::HashSet,
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
-use tokio::sync::broadcast::{self};
+use std::{collections::HashSet, net::SocketAddr, sync::Arc};
+use tokio::sync::{broadcast, Mutex};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use ws::websocket_handler;

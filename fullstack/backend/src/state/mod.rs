@@ -1,6 +1,9 @@
 use futures::future::join_all;
-use std::{collections::HashSet, sync::Mutex};
-use tokio::sync::broadcast::{self, Receiver};
+use std::collections::HashSet;
+use tokio::sync::{
+    broadcast::{self, Receiver},
+    Mutex,
+};
 
 use serde_json::json;
 
@@ -40,7 +43,7 @@ impl AppState {
         let res = join_all(
             self.user_set
                 .lock()
-                .unwrap()
+                .await
                 .iter()
                 .map(|user| async move { user.get_username().await == name }),
         )
@@ -52,35 +55,28 @@ impl AppState {
     pub async fn add_user(&self, name: &str) -> Option<User> {
         if self.username_is_unique(name).await {
             let user = User::new(name);
-            self.user_set.lock().unwrap().insert(user.clone());
+            self.user_set.lock().await.insert(user.clone());
             return Some(user);
         }
         None
     }
     #[traceback_derive::traceback]
-    pub fn send(&self, payload: Payload) -> Result<(), TracebackError> {
+    pub async fn send(&self, payload: Payload) -> Result<(), TracebackError> {
         tracing::debug!("Sending {payload:?}");
+        println!("Sending and adding {payload:?}");
         self.tx.send(payload.clone())?;
-        let mut payloads = match self.payloads.lock() {
-            Ok(payloads) => payloads,
-            Err(e) => {
-                return Err(
-                    TracebackError::new(String::from(""), file!().to_string(), line!())
-                        .with_extra_data(json!({
-                            "error": e.to_string()
-                        })),
-                );
-            }
-        };
+        let mut payloads = self.payloads.lock().await;
         payloads.push(payload.clone());
 
         Ok(())
     }
     #[traceback_derive::traceback]
-    pub fn get_payload_list(&self) -> Result<Vec<Payload>, TracebackError> {
-        match self.payloads.lock() {
-            Ok(pl) => Ok(pl.iter().map(|pl| pl.clone()).collect::<Vec<Payload>>()),
-            Err(e) => Err(traceback!().with_extra_data(json!({"error": e.to_string()}))),
-        }
+    pub async fn get_payload_list(&self) -> Vec<Payload> {
+        self.payloads
+            .lock()
+            .await
+            .iter()
+            .map(|pl| pl.clone())
+            .collect::<Vec<Payload>>()
     }
 }
