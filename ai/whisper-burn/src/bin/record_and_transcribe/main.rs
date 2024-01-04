@@ -1,10 +1,27 @@
-fn main() {
+cfg_if::cfg_if! {
+    if #[cfg(feature = "wgpu-backend")] {
+        type Backend = WgpuBackend<AutoGraphicsApi, f32, i32>;
+    } else if #[cfg(feature = "torch-backend")] {
+        type Backend = TchBackend<f32>;
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let model_name = "tiny_en";
+
+    let whisper = Arc::new(load_whisper(model_name));
+
+    record_and_transcribe(Arc::clone(&whisper)).await;
+}
+
+async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
     let bitrate = 16000;
     let duration = 10; // Duration in seconds
     let channels = 1;
     let dest = "recording.wav";
 
-    let mut child = std::process::Command::new("arecord")
+    let mut child = tokio::process::Command::new("arecord")
         .args([
             "-f",
             "cd",
@@ -23,10 +40,11 @@ fn main() {
         ])
         .spawn()
         .unwrap();
-    child.wait().unwrap();
+    child.wait().await.unwrap();
 
-    transcribe(dest);
+    transcribe(dest, Arc::clone(&whisper));
 }
+
 use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
@@ -41,11 +59,13 @@ cfg_if::cfg_if! {
     }
 }
 
-use burn::{config::Config, module::Module, tensor::backend::Backend};
+use burn::{config::Config, module::Module};
 
 use hound::{self, SampleFormat};
 
-fn load_audio_waveform<B: Backend>(filename: &str) -> hound::Result<(Vec<f32>, usize)> {
+fn load_audio_waveform<B: burn::tensor::backend::Backend>(
+    filename: &str,
+) -> hound::Result<(Vec<f32>, usize)> {
     let reader = hound::WavReader::open(filename)?;
     let spec = reader.spec();
 
@@ -75,7 +95,7 @@ use whisper::token::Gpt2Tokenizer;
 
 use burn::record::{DefaultRecorder, Recorder, RecorderError};
 
-fn load_whisper_model_file<B: Backend>(
+fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
     config: &WhisperConfig,
     filename: &str,
 ) -> Result<Whisper<B>, RecorderError> {
@@ -84,17 +104,9 @@ fn load_whisper_model_file<B: Backend>(
         .map(|record| config.init().load_record(record))
 }
 
-use std::{env, fs, process};
+use std::{fs, process, sync::Arc};
 
-fn transcribe(wav_file: &str) {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "wgpu-backend")] {
-            type Backend = WgpuBackend<AutoGraphicsApi, f32, i32>;
-        } else if #[cfg(feature = "torch-backend")] {
-            type Backend = TchBackend<f32>;
-        }
-    }
-    let model_name = "tiny_en";
+fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
     let lang_str = "en";
     let text_file = "transcript.txt";
 
@@ -123,9 +135,8 @@ fn transcribe(wav_file: &str) {
         }
     };
 
-    let whisper = load_whisper(model_name);
-
-    let (text, _tokens) = match waveform_to_text(&whisper, &bpe, lang, waveform, sample_rate) {
+    let (text, _tokens) = match waveform_to_text(&model.as_ref(), &bpe, lang, waveform, sample_rate)
+    {
         Ok((text, tokens)) => (text, tokens),
         Err(e) => {
             eprintln!("Error during transcription: {}", e);
@@ -144,10 +155,8 @@ fn transcribe(wav_file: &str) {
 fn load_whisper(model_name: &str) -> whisper::model::Whisper<TchBackend<f32>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "wgpu-backend")] {
-            type Backend = WgpuBackend<AutoGraphicsApi, f32, i32>;
             let device = WgpuDevice::BestAvailable;
         } else if #[cfg(feature = "torch-backend")] {
-            type Backend = TchBackend<f32>;
             let device = TchDevice::Cpu;
         }
     }
