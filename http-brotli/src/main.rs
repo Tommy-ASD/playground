@@ -25,7 +25,6 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-
     // create the STORAGE_PATH directory if it doesn't exist
     if !Path::new(dotenv!("STORAGE_PATH")).exists() {
         tokio::fs::create_dir_all(dotenv!("STORAGE_PATH"))
@@ -40,6 +39,7 @@ async fn main() {
         .layer(tower_http::trace::TraceLayer::new_for_http());
 
     let port = dotenv!("PORT").parse::<u16>().unwrap();
+
     hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], port)))
         .serve(
             app.clone()
