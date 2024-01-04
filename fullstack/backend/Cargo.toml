@@ -35,3 +35,5 @@ tracing-subscriber = { version = "0.3.17", features = [
     "serde_json",
     "env-filter",
 ] }
+
+surrealdb = "1.0.2"

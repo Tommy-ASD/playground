@@ -7,7 +7,18 @@ use yew::{html, Component, Context, Html};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Debug)]
 pub struct User {
-    pub username: String,
+    username: String,
+}
+
+impl User {
+    pub fn new(name: &str) -> Self {
+        User {
+            username: name.to_string(),
+        }
+    }
+    pub async fn get_username(&self) -> String {
+        self.username.to_string()
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
@@ -27,10 +38,10 @@ impl std::fmt::Display for Sender {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Message {
-    pub id: Uuid,
-    pub content: Value,
-    pub sender: Sender,
-    pub sent_at: chrono::NaiveDateTime,
+    id: Uuid,
+    content: Value,
+    sender: Sender,
+    sent_at: chrono::NaiveDateTime,
 }
 
 impl Message {

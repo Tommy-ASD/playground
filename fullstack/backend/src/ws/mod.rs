@@ -30,8 +30,12 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     // "reciever" recieves messages from the user
     let (mut sender, receiver) = stream.split();
 
-    let plst = Payload::new(PayloadInner::PayloadList(state.get_payload_list().unwrap()));
+    // get all existing payloads
+    let plst = Payload::new(PayloadInner::PayloadList(state.get_payload_list().await));
 
+    println!("Got payload: {plst:?}");
+
+    // send payloads to user
     sender
         .send(ws::Message::Text(serde_json::to_string(&plst).unwrap()))
         .await
@@ -39,14 +43,12 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
 
     let state_clone = state.clone();
 
-    // Spawn the first task that will receive broadcast messages and send text
-    // messages over the websocket to our client.
+    // Manager which sends all messages received on state.tx to user
     let mut send_task = tokio::spawn(ws_send_task(sender, state_clone));
 
     let state_clone = state.clone();
 
-    // Spawn a task that takes messages from the websocket, prepends the user
-    // name, and sends them to all broadcast subscribers.
+    // Manager which takes all payloads sent from user and sends them to all others using state.send()
     let mut recv_task = tokio::spawn(ws_recv_task(receiver, state_clone));
 
     // If any one of the tasks run to completion, we abort the other.
@@ -68,7 +70,10 @@ async fn ws_recv_task(mut receiver: SplitStream<WebSocket>, state: Arc<AppState>
         };
         tracing::debug!("Parsed message {parsed:?}");
         // Add username before message.
-        let _ = state.send(parsed);
+        match state.send(parsed).await {
+            Ok(_) => {}
+            Err(_) => {}
+        };
     }
 }
 
