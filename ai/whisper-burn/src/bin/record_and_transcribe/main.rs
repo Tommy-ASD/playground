@@ -1,3 +1,32 @@
+fn main() {
+    let bitrate = 16000;
+    let duration = 10; // Duration in seconds
+    let channels = 1;
+    let dest = "recording.wav";
+
+    let mut child = std::process::Command::new("arecord")
+        .args([
+            "-f",
+            "cd",
+            "-t",
+            "wav",
+            "-D",
+            "default",
+            "-r",
+            &format!("{bitrate}"),
+            "-d",
+            &format!("{duration}"),
+            "-c",
+            &format!("{channels}"),
+            "-i",
+            dest,
+        ])
+        .spawn()
+        .unwrap();
+    child.wait().unwrap();
+
+    transcribe(dest);
+}
 use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
@@ -57,31 +86,18 @@ fn load_whisper_model_file<B: Backend>(
 
 use std::{env, fs, process};
 
-fn main() {
+fn transcribe(wav_file: &str) {
     cfg_if::cfg_if! {
         if #[cfg(feature = "wgpu-backend")] {
             type Backend = WgpuBackend<AutoGraphicsApi, f32, i32>;
-            let device = WgpuDevice::BestAvailable;
         } else if #[cfg(feature = "torch-backend")] {
             type Backend = TchBackend<f32>;
-            let device = TchDevice::Cpu;
         }
     }
+    let model_name = "tiny_en";
+    let lang_str = "en";
+    let text_file = "transcript.txt";
 
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 5 {
-        eprintln!(
-            "Usage: {} <model name> <audio file> <lang> <transcription file>",
-            args[0]
-        );
-        process::exit(1);
-    }
-
-    let wav_file = &args[2];
-    let text_file = &args[4];
-
-    let lang_str = &args[3];
     let lang = match Language::iter().find(|lang| lang.as_str() == lang_str) {
         Some(lang) => lang,
         None => {
@@ -89,8 +105,6 @@ fn main() {
             process::exit(1);
         }
     };
-
-    let model_name = &args[1];
 
     println!("Loading waveform...");
     let (waveform, sample_rate) = match load_audio_waveform::<Backend>(wav_file) {
@@ -109,6 +123,35 @@ fn main() {
         }
     };
 
+    let whisper = load_whisper(model_name);
+
+    let (text, _tokens) = match waveform_to_text(&whisper, &bpe, lang, waveform, sample_rate) {
+        Ok((text, tokens)) => (text, tokens),
+        Err(e) => {
+            eprintln!("Error during transcription: {}", e);
+            process::exit(1);
+        }
+    };
+
+    fs::write(text_file, text).unwrap_or_else(|e| {
+        eprintln!("Error writing transcription file: {}", e);
+        process::exit(1);
+    });
+
+    println!("Transcription finished.");
+}
+
+fn load_whisper(model_name: &str) -> whisper::model::Whisper<TchBackend<f32>> {
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "wgpu-backend")] {
+            type Backend = WgpuBackend<AutoGraphicsApi, f32, i32>;
+            let device = WgpuDevice::BestAvailable;
+        } else if #[cfg(feature = "torch-backend")] {
+            type Backend = TchBackend<f32>;
+            let device = TchDevice::Cpu;
+        }
+    }
+
     let whisper_config = match WhisperConfig::load(&format!("{}.cfg", model_name)) {
         Ok(config) => config,
         Err(e) => {
@@ -126,20 +169,7 @@ fn main() {
         }
     };
 
-    let whisper = whisper.to_device(&device);
+    let whisper: Whisper<_> = whisper.to_device(&device);
 
-    let (text, _tokens) = match waveform_to_text(&whisper, &bpe, lang, waveform, sample_rate) {
-        Ok((text, tokens)) => (text, tokens),
-        Err(e) => {
-            eprintln!("Error during transcription: {}", e);
-            process::exit(1);
-        }
-    };
-
-    fs::write(text_file, text).unwrap_or_else(|e| {
-        eprintln!("Error writing transcription file: {}", e);
-        process::exit(1);
-    });
-
-    println!("Transcription finished.");
+    whisper
 }
