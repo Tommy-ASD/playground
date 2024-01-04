@@ -10,16 +10,29 @@ cfg_if::cfg_if! {
 async fn main() {
     let model_name = "tiny_en";
 
+    let mut interval = interval(Duration::from_secs(5));
+
     let whisper = Arc::new(load_whisper(model_name));
 
-    record_and_transcribe(Arc::clone(&whisper)).await;
+    loop {
+        interval.tick().await;
+
+        let whisper_clone = Arc::clone(&whisper);
+
+        // Spawn a new Tokio task in a separate thread
+        tokio::spawn(async move {
+            // Your task logic goes here
+            record_and_transcribe(whisper_clone).await;
+        });
+    }
 }
 
 async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
     let bitrate = 16000;
     let duration = 10; // Duration in seconds
     let channels = 1;
-    let dest = "recording.wav";
+    let id = uuid::Uuid::new_v4();
+    let dest = &format!("{id}.wav");
 
     let mut child = tokio::process::Command::new("arecord")
         .args([
@@ -45,6 +58,7 @@ async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
     transcribe(dest, Arc::clone(&whisper));
 }
 
+use tokio::time::interval;
 use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
@@ -104,7 +118,7 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
         .map(|record| config.init().load_record(record))
 }
 
-use std::{fs, process, sync::Arc};
+use std::{fs, process, sync::Arc, time::Duration};
 
 fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
     let lang_str = "en";
