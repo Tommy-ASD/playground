@@ -56,6 +56,8 @@ async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
     child.wait().await.unwrap();
 
     transcribe(dest, Arc::clone(&whisper));
+
+    tokio::fs::remove_file(dest).await.unwrap();
 }
 
 use tokio::time::interval;
