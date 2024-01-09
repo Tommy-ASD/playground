@@ -6,6 +6,8 @@ use std::{net::SocketAddr, sync::Arc};
 mod endpoint;
 mod load_whisper;
 mod transcribe;
+mod types;
+mod utils;
 
 use crate::load_whisper::load_whisper;
 

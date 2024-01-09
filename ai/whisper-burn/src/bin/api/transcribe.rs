@@ -15,7 +15,10 @@ use crate::Backend;
 fn load_audio_waveform<B: burn::tensor::backend::Backend>(
     filename: &str,
 ) -> hound::Result<(Vec<f32>, usize)> {
-    let reader = hound::WavReader::open(filename)?;
+    let reader = match hound::WavReader::open(filename) {
+        Ok(r) => r,
+        Err(e) => return Err(e),
+    };
     let spec = reader.spec();
 
     let _duration = reader.duration() as usize;
@@ -40,12 +43,24 @@ fn load_audio_waveform<B: burn::tensor::backend::Backend>(
     return Ok((floats, sample_rate));
 }
 
-pub fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>, lang_str: &str) -> String {
+#[derive(Debug)]
+pub enum TranscriptionError {
+    InvalidLanguage(String),
+    LoadWaveform(hound::Error),
+    LoadTokenizer(Box<dyn std::error::Error + Send + Sync>),
+    TranscriptingError(Box<dyn std::error::Error + Send + Sync>),
+}
+
+pub fn transcribe(
+    wav_file: &str,
+    model: Arc<Whisper<Backend>>,
+    lang_str: &str,
+) -> Result<String, TranscriptionError> {
     let lang = match Language::iter().find(|lang| lang.as_str() == lang_str) {
         Some(lang) => lang,
         None => {
             eprintln!("Invalid language abbreviation: {}", lang_str);
-            process::exit(1);
+            return Err(TranscriptionError::InvalidLanguage(lang_str.to_string()));
         }
     };
 
@@ -54,7 +69,7 @@ pub fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>, lang_str: &str) 
         Ok((w, sr)) => (w, sr),
         Err(e) => {
             eprintln!("Failed to load audio file: {}", e);
-            process::exit(1);
+            return Err(TranscriptionError::LoadWaveform(e));
         }
     };
 
@@ -62,7 +77,7 @@ pub fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>, lang_str: &str) 
         Ok(bpe) => bpe,
         Err(e) => {
             eprintln!("Failed to load tokenizer: {}", e);
-            process::exit(1);
+            return Err(TranscriptionError::LoadTokenizer(e));
         }
     };
 
@@ -71,9 +86,9 @@ pub fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>, lang_str: &str) 
         Ok((text, tokens)) => (text, tokens),
         Err(e) => {
             eprintln!("Error during transcription: {}", e);
-            process::exit(1);
+            return Err(TranscriptionError::TranscriptingError(e));
         }
     };
 
-    text
+    Ok(text)
 }
