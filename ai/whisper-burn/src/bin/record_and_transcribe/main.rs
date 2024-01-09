@@ -10,9 +10,9 @@ cfg_if::cfg_if! {
 async fn main() {
     let model_name = "tiny_en";
 
-    let mut interval = interval(Duration::from_secs(5));
-
     let whisper = Arc::new(load_whisper(model_name));
+
+    let mut interval = interval(Duration::from_secs(5));
 
     loop {
         interval.tick().await;
@@ -51,9 +51,9 @@ async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
             "-i",
             dest,
         ])
-        .spawn()
+        .output()
+        .await
         .unwrap();
-    child.wait().await.unwrap();
 
     transcribe(dest, Arc::clone(&whisper));
 
@@ -134,7 +134,7 @@ fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
         }
     };
 
-    println!("Loading waveform...");
+    // println!("Loading waveform...");
     let (waveform, sample_rate) = match load_audio_waveform::<Backend>(wav_file) {
         Ok((w, sr)) => (w, sr),
         Err(e) => {
@@ -165,7 +165,7 @@ fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
         process::exit(1);
     });
 
-    println!("Transcription finished.");
+    // println!("Transcription finished.");
 }
 
 fn load_whisper(model_name: &str) -> whisper::model::Whisper<TchBackend<f32>> {

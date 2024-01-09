@@ -225,7 +225,7 @@ fn mels_to_text<B: Backend>(
     )).to_device(&device);*/
 
     let beam_size = 5;
-    let max_depth = 100;
+    let max_depth = 50;
 
     let beamsearch_is_finished = |toks: &[BeamSearchToken]| {
         if let Some(btok) = toks.last() {
