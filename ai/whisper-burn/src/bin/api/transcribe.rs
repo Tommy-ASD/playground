@@ -56,7 +56,7 @@ pub fn transcribe(
     model: Arc<Whisper<Backend>>,
     lang_str: &str,
 ) -> Result<String, TranscriptionError> {
-    let lang = match Language::iter().find(|lang| lang.as_str() == lang_str) {
+    let lang = match Language::iter().find(|lang| lang.as_alpha2() == lang_str) {
         Some(lang) => lang,
         None => {
             eprintln!("Invalid language abbreviation: {}", lang_str);

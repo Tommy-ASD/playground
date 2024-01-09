@@ -126,7 +126,7 @@ fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
     let lang_str = "en";
     let text_file = "transcript.txt";
 
-    let lang = match Language::iter().find(|lang| lang.as_str() == lang_str) {
+    let lang = match Language::iter().find(|lang| lang.as_alpha2() == lang_str) {
         Some(lang) => lang,
         None => {
             eprintln!("Invalid language abbreviation: {}", lang_str);

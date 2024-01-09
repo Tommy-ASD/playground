@@ -161,7 +161,7 @@ pub enum Language {
 }
 
 impl Language {
-    pub fn as_str(&self) -> &str {
+    pub fn as_alpha2(&self) -> &str {
         match self {
             Language::English => "en",
             Language::Chinese => "zh",
@@ -288,7 +288,7 @@ impl ToString for SpecialToken {
             SpecialToken::StartofPrev => "<|startofprev|>".into(),
             SpecialToken::NoSpeech => "<|nospeech|>".into(),
             SpecialToken::NoTimeStamps => "<|notimestamps|>".into(),
-            SpecialToken::Language(lang) => format!("<|{}|>", lang.as_str()),
+            SpecialToken::Language(lang) => format!("<|{}|>", lang.as_alpha2()),
             SpecialToken::Timestamp(val) => format!("<|{:.2}|>", val),
         }
     }

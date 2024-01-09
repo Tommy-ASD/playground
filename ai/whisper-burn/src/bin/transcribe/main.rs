@@ -82,7 +82,7 @@ fn main() {
     let text_file = &args[4];
 
     let lang_str = &args[3];
-    let lang = match Language::iter().find(|lang| lang.as_str() == lang_str) {
+    let lang = match Language::iter().find(|lang| lang.as_alpha2() == lang_str) {
         Some(lang) => lang,
         None => {
             eprintln!("Invalid language abbreviation: {}", lang_str);
