@@ -9,10 +9,13 @@ use crate::Message;
 // Represents username
 // Will remain as a struct for later flexibility
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-pub struct UserInfo(pub String);
+pub struct UserInfo(pub Uuid, pub String);
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-pub struct LeaveInfo(pub String);
+pub struct LeaveInfo(pub Uuid);
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub struct JoinAck(pub Uuid);
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct MessageInfo {
@@ -22,18 +25,22 @@ pub struct MessageInfo {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum PayloadInner {
-    Joined(UserInfo),
+    Joined(JoinAck),
+    LoginProvided(UserInfo),
     Left(LeaveInfo),
     Message(MessageInfo),
     PayloadList(Vec<Payload>),
 }
 
 impl PayloadInner {
-    pub fn new_joined(username: &str) -> Self {
-        Self::Joined(UserInfo(username.to_string()))
+    pub fn new_login(id: Uuid, username: &str) -> Self {
+        Self::LoginProvided(UserInfo(id, username.to_string()))
     }
-    pub fn new_left(username: &str) -> Self {
-        Self::Left(LeaveInfo(username.to_string()))
+    pub fn new_joined(id: Uuid) -> Self {
+        Self::Joined(JoinAck(id))
+    }
+    pub fn new_left(id: Uuid) -> Self {
+        Self::Left(LeaveInfo(id))
     }
     pub fn new_message(sender: &str, content: Value) -> Self {
         Self::Message(MessageInfo {
@@ -44,8 +51,11 @@ impl PayloadInner {
 
     pub fn display(&self) -> String {
         match self {
-            PayloadInner::Joined(info) => format!("{name} joined", name = info.0),
-            PayloadInner::Left(name) => format!("{name} joined", name = name.0),
+            PayloadInner::Joined(id) => format!("{id} joined", id = id.0),
+            PayloadInner::LoginProvided(info) => {
+                format!("{id} logged in as {name}", id = info.0, name = info.1)
+            }
+            PayloadInner::Left(id) => format!("{id} joined", id = id.0),
             PayloadInner::Message(msg) => {
                 format!("{name}: {msg}", name = msg.sender, msg = msg.content)
             }
@@ -89,15 +99,21 @@ impl Payload {
             meta: PayloadMeta::new(),
         }
     }
-    pub fn new_joined(username: &str) -> Self {
+    pub fn new_login(id: Uuid, username: &str) -> Self {
         Self {
-            inner: PayloadInner::new_joined(username),
+            inner: PayloadInner::new_login(id, username),
             meta: PayloadMeta::new(),
         }
     }
-    pub fn new_left(username: &str) -> Self {
+    pub fn new_joined(id: Uuid) -> Self {
         Self {
-            inner: PayloadInner::new_left(username),
+            inner: PayloadInner::new_joined(id),
+            meta: PayloadMeta::new(),
+        }
+    }
+    pub fn new_left(id: Uuid) -> Self {
+        Self {
+            inner: PayloadInner::new_left(id),
             meta: PayloadMeta::new(),
         }
     }

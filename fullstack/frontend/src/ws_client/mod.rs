@@ -1,9 +1,14 @@
 use ws::EventClient;
 use yew::prelude::html;
 
-use common::Payload;
+use common::{Payload, PayloadInner};
 
-use crate::{payload::PayloadHandler, payload::PayloadList, state::WS_CLIENT, ws, BACKEND_URL};
+use crate::{
+    payload::PayloadHandler,
+    payload::PayloadList,
+    state::{set_id, WS_CLIENT},
+    ws, BACKEND_URL,
+};
 
 pub mod callbacks;
 
@@ -15,6 +20,13 @@ pub fn setup_client(link: &html::Scope<PayloadList>) {
             ws::Message::Text(txtmsg) => {
                 gloo::console::log!("Recieved text message from WS: ", &txtmsg);
                 let parsed: Payload = serde_json::from_str(&txtmsg).unwrap();
+
+                match parsed.inner.clone() {
+                    PayloadInner::Joined(id) => {
+                        set_id(id.0);
+                    }
+                    _ => {}
+                }
 
                 return PayloadHandler::AddPayload(parsed);
             }
@@ -41,6 +53,7 @@ pub fn create_client() -> ws::EventClient {
         gloo::console::error!("Failed to connect to ws: ", format!("{}", err));
         optional_ws = ws::EventClient::new(&format!("ws://{BACKEND_URL}/ws"));
     }
+    gloo::console::log!("Created client");
     optional_ws.unwrap()
 }
 

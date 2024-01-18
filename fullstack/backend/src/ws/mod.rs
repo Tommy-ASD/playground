@@ -12,12 +12,13 @@ use futures::{
 };
 use std::sync::Arc;
 
-use common::{Payload, PayloadInner};
+use common::{reexports::uuid::Uuid, JoinAck, Payload, PayloadInner};
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
+    println!("Websocket handler called");
     ws.on_upgrade(|socket| websocket(socket, state))
 }
 
@@ -29,6 +30,15 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     // "sender" sends messages to the user
     // "reciever" recieves messages from the user
     let (mut sender, receiver) = stream.split();
+
+    let session_id = Uuid::new_v4();
+
+    sender
+        .send(ws::Message::Text(
+            serde_json::to_string(&Payload::new_joined(session_id)).unwrap(),
+        ))
+        .await
+        .unwrap();
 
     // get all existing payloads
     let plst = Payload::new(PayloadInner::PayloadList(state.get_payload_list().await));
