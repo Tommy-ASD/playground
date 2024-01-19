@@ -12,18 +12,24 @@ async fn main() {
 
     let whisper = Arc::new(load_whisper(model_name));
 
-    let mut interval = interval(Duration::from_secs(5));
+    let mut interval = interval(Duration::from_secs(2));
 
-    loop {
-        interval.tick().await;
+    let (task_sender, mut task_receiver) = tokio::sync::mpsc::channel(usize::MAX);
+    task_receiver.recv().await.map(|fut| fut).flatten();
+    tokio::select! {
+        _ = interval.tick() => {
+            let whisper_clone = Arc::clone(&whisper);
 
-        let whisper_clone = Arc::clone(&whisper);
-
-        // Spawn a new Tokio task in a separate thread
-        tokio::spawn(async move {
+            // Spawn a new Tokio task in a separate thread
             // Your task logic goes here
-            record_and_transcribe(whisper_clone).await;
-        });
+            match task_sender.send(record_and_transcribe(whisper_clone)).await {
+                Ok(_) => {},
+                Err(e) => {
+                    dbg!(e);
+                }
+            };
+        }
+
     }
 }
 
