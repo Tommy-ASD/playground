@@ -16,6 +16,7 @@ pub fn waveform_to_text<B: Backend>(
     lang: Language,
     waveform: Vec<f32>,
     sample_rate: usize,
+    idx: u32,
 ) -> token::Result<(String, Vec<usize>)> {
     let device = whisper.devices()[0].clone();
 
@@ -55,7 +56,7 @@ pub fn waveform_to_text<B: Backend>(
         //tokens.extend(new_tokens);
 
         text = bpe.decode(&tokens[..], true)?;
-        println!("Chunk {}: {}\n", i, text);
+        println!("Chunk {i} idx {idx}: {text}\n");
 
         //text += &new_text;
     }

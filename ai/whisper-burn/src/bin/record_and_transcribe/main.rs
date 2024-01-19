@@ -18,33 +18,43 @@ async fn main() {
 
     let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
 
+    let task_send = Arc::new(task_send);
+
     tokio::spawn(async move {
         while let Some(next) = task_recv.recv().await {
             let _ = tokio::spawn(next).await;
         }
     });
 
+    let mut idx = 0;
+
     loop {
         tokio::select! {
             _ = interval.tick() => {
                 let whisper_clone = Arc::clone(&whisper);
+                let task_send_clone = Arc::clone(&task_send);
 
                 // Spawn a new Tokio task in a separate thread
                 // Your task logic goes here
                 println!("Hi :D");
-                task_send.send(record_and_transcribe(whisper_clone)).await.unwrap();
+                tokio::spawn(async move {
+                    let dest = record(idx).await;
+                    task_send_clone.send(transcribe_and_remove(dest, whisper_clone, idx)).await.unwrap();
+                });
+                idx += 1;
             }
         }
     }
 }
 
-async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
+async fn record(idx: u32) -> String {
     let bitrate = 16000;
     let duration = 10; // Duration in seconds
     let channels = 1;
     let id = uuid::Uuid::new_v4();
     let dest = &format!("{id}.wav");
 
+    println!("Starting instance {idx} of arecord");
     let mut child = tokio::process::Command::new("arecord")
         .args([
             "-f",
@@ -65,8 +75,17 @@ async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
         .output()
         .await
         .unwrap();
+    println!("Instance {idx} finished");
+    return dest.to_string();
+}
 
-    transcribe(dest, Arc::clone(&whisper));
+async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>, idx: u32) {
+    let dest = record(idx).await;
+    transcribe_and_remove(dest, whisper, idx).await;
+}
+
+async fn transcribe_and_remove(dest: String, whisper: Arc<Whisper<Backend>>, idx: u32) {
+    transcribe(&dest, Arc::clone(&whisper), idx).await;
 
     tokio::fs::remove_file(dest).await.unwrap();
 }
@@ -133,7 +152,7 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
 
 use std::{fs, process, sync::Arc, thread::current, time::Duration};
 
-fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
+async fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>, idx: u32) {
     let lang_str = "en";
     let text_file = "transcript.txt";
 
@@ -162,14 +181,14 @@ fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
         }
     };
 
-    let (text, _tokens) = match waveform_to_text(&model.as_ref(), &bpe, lang, waveform, sample_rate)
-    {
-        Ok((text, tokens)) => (text, tokens),
-        Err(e) => {
-            eprintln!("Error during transcription: {}", e);
-            process::exit(1);
-        }
-    };
+    let (text, _tokens) =
+        match waveform_to_text(&model.as_ref(), &bpe, lang, waveform, sample_rate, idx) {
+            Ok((text, tokens)) => (text, tokens),
+            Err(e) => {
+                eprintln!("Error during transcription: {}", e);
+                process::exit(1);
+            }
+        };
 
     fs::write(text_file, text).unwrap_or_else(|e| {
         eprintln!("Error writing transcription file: {}", e);
