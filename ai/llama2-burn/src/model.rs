@@ -609,34 +609,51 @@ pub fn load_llama_dump<B: Backend>(
     path: &str,
     device: &B::Device,
 ) -> Result<(Llama<B>, LlamaConfig), Box<dyn Error>> {
+    dbg!();
     let mut blocks: Vec<ResidualDecoderAttentionBlock<B>> = vec![];
+    dbg!(&path);
     let n_layer = load_usize::<B>("n_layer", path, device)?;
+    dbg!();
     for i in 0..n_layer {
         let block = load_transformer_block(&format!("{}/layer{}", path, i), device)?;
+        dbg!();
         blocks.push(block);
+        dbg!();
     }
 
     let n_ctx = load_usize::<B>("n_ctx", path, device)?;
+    dbg!();
     let theta = load_f32::<B>("theta", path, device)?;
+    dbg!();
     let multiple_of = load_usize::<B>("multiple_of", path, device)?;
+    dbg!();
     let ffn_dim_multiplier = load_usize::<B>("ffn_dim_multiplier", path, device).ok();
+    dbg!();
 
     let token_embedding = load_tensor("tok_embeddings/weight", path, device)?;
+    dbg!();
     let [n_vocab, n_state] = token_embedding.dims();
     let n_head = blocks[0].attn.n_head;
     let n_kv_head = blocks[0].attn.n_kv_head;
     let head_dim = n_state / n_head;
+    dbg!();
 
     let token_embedding = EmbeddingConfig::new(n_vocab, n_state).init_with(EmbeddingRecord {
         weight: token_embedding.into(),
     });
+    dbg!();
     let rotary_encoding = RotaryEncodingConfig::new(n_ctx, head_dim, theta.into()).init();
+    dbg!();
 
     let norm = load_rmsnorm(&format!("{}/{}", path, "norm"), device)?;
+    dbg!();
     let output = load_linear(&format!("{}/{}", path, "output"), device)?;
+    dbg!();
     let mask = attn_decoder_mask(n_ctx).into();
+    dbg!();
 
     let norm_eps = norm.eps;
+    dbg!();
 
     let llama = Llama {
         token_embedding: token_embedding,
@@ -648,6 +665,7 @@ pub fn load_llama_dump<B: Backend>(
         n_vocab: n_vocab,
         n_ctx: n_ctx,
     };
+    dbg!();
 
     let llama_config = LlamaConfig::new(
         n_vocab,
@@ -660,6 +678,7 @@ pub fn load_llama_dump<B: Backend>(
     )
     .with_norm_eps(norm_eps)
     .with_ffn_dim_multiplier(ffn_dim_multiplier);
+    dbg!();
 
     Ok((llama, llama_config))
 }
