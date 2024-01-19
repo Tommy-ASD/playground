@@ -73,7 +73,6 @@ impl PayloadInner {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum PayloadMeta {
-    Unregistered,
     LoggedIn {
         id: Uuid,
         sent_at: chrono::NaiveDateTime,
