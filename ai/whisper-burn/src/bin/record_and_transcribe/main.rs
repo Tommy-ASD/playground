@@ -16,12 +16,14 @@ async fn main() {
 
     let mut interval = interval(Duration::from_secs(2));
 
-    // let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
+    let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
 
-    dbg!();
-    // let mut current_task = None;
+    tokio::spawn(async move {
+        while let Some(next) = task_recv.recv().await {
+            let _ = tokio::spawn(next).await;
+        }
+    });
 
-    dbg!();
     loop {
         tokio::select! {
             _ = interval.tick() => {
@@ -30,7 +32,7 @@ async fn main() {
                 // Spawn a new Tokio task in a separate thread
                 // Your task logic goes here
                 println!("Hi :D");
-                record_and_transcribe(whisper_clone).await;
+                task_send.send(record_and_transcribe(whisper_clone)).await.unwrap();
             }
         }
     }
@@ -69,7 +71,7 @@ async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
     tokio::fs::remove_file(dest).await.unwrap();
 }
 
-use tokio::time::interval;
+use tokio::{sync::Mutex, time::interval};
 use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
