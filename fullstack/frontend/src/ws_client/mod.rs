@@ -6,7 +6,7 @@ use common::{Payload, PayloadInner};
 use crate::{
     payload::PayloadHandler,
     payload::PayloadList,
-    state::{set_id, WS_CLIENT},
+    state::{set_session_id, WS_CLIENT},
     ws, BACKEND_URL,
 };
 
@@ -23,7 +23,7 @@ pub fn setup_client(link: &html::Scope<PayloadList>) {
 
                 match parsed.inner.clone() {
                     PayloadInner::Joined(id) => {
-                        set_id(id.0);
+                        set_session_id(id.0);
                     }
                     _ => {}
                 }

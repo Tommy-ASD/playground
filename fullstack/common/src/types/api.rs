@@ -72,14 +72,17 @@ impl PayloadInner {
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-pub struct PayloadMeta {
-    pub id: Uuid,
-    pub sent_at: chrono::NaiveDateTime,
+pub enum PayloadMeta {
+    Unregistered,
+    LoggedIn {
+        id: Uuid,
+        sent_at: chrono::NaiveDateTime,
+    },
 }
 
 impl PayloadMeta {
     pub fn new() -> Self {
-        Self {
+        Self::LoggedIn {
             id: Uuid::new_v4(),
             sent_at: chrono::Utc::now().naive_utc(),
         }
@@ -124,7 +127,7 @@ impl Payload {
         }
     }
     pub fn to_html(&self) -> Html {
-        let PayloadMeta {
+        let PayloadMeta::LoggedIn {
             id: _,
             sent_at: timestamp,
         } = self.meta;
