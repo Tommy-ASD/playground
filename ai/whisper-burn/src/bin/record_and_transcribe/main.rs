@@ -8,29 +8,27 @@ cfg_if::cfg_if! {
 
 #[tokio::main]
 async fn main() {
-    let model_name = "tiny_en";
-
-    let whisper = Arc::new(load_whisper(model_name));
-
     let mut interval = interval(Duration::from_secs(2));
 
-    let (task_sender, mut task_receiver) = tokio::sync::mpsc::channel(usize::MAX);
-    task_receiver.recv().await.map(|fut| fut).flatten();
+    let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
+
+    task_send
+        .send(Box::pin(async {
+            /* execution time of this function is highly variable */
+        }))
+        .await
+        .unwrap();
     tokio::select! {
-        _ = interval.tick() => {
-            let whisper_clone = Arc::clone(&whisper);
-
-            // Spawn a new Tokio task in a separate thread
-            // Your task logic goes here
-            match task_sender.send(record_and_transcribe(whisper_clone)).await {
-                Ok(_) => {},
-                Err(e) => {
-                    dbg!(e);
-                }
-            };
-        }
-
+        _ = interval.tick() => interval_tick_task().await,
     }
+
+    loop {
+        println!("P: {p:?}", p = interval.period());
+    }
+}
+
+async fn interval_tick_task() {
+    println!("Hi :D");
 }
 
 async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
