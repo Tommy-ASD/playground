@@ -68,21 +68,23 @@ impl Component for PayloadList {
         let join = callbacks::join(&link);
 
         html! {
-            <>
-                <input ref={username_ref} id={"username"} style={"display:block; width:100px; box-sizing: border-box"} type={"text"} placeholder={"username"} />
-                <button ref={joinbtn_ref} onclick={join} id={"join-chat"} type={"button"}>{ "Join Chat" }</button>
-                <table ref={textarea_ref} id={"chat"} style={"display:block; width:600px; height:400px; box-sizing: border-box"} cols={"30"} rows={"10"}>
-                {
-                    self
-                        .payloads
-                        .iter()
-                        .map(|payload| payload.to_html())
-                        .collect::<Vec<Html>>()
-                }
-                </table>
-                <input ref={input_ref} id={"input"} style={"display:block; width:600px; box-sizing: border-box"} type={"text"} placeholder={"chat"} />
-                <button ref={sendbtn_ref} id={"send-message"} type={"button"} onclick={send}>{ "Send Message" }</button>
-            </>
-        }
+                <>
+                    <script async=true src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8604115298075902"
+        crossorigin="anonymous"></script>
+                    <input ref={username_ref} id={"username"} style={"display:block; width:100px; box-sizing: border-box"} type={"text"} placeholder={"username"} />
+                    <button ref={joinbtn_ref} onclick={join} id={"join-chat"} type={"button"}>{ "Join Chat" }</button>
+                    <table ref={textarea_ref} id={"chat"} style={"display:block; width:600px; height:400px; box-sizing: border-box"} cols={"30"} rows={"10"}>
+                    {
+                        self
+                            .payloads
+                            .iter()
+                            .map(|payload| payload.to_html())
+                            .collect::<Vec<Html>>()
+                    }
+                    </table>
+                    <input ref={input_ref} id={"input"} style={"display:block; width:600px; box-sizing: border-box"} type={"text"} placeholder={"chat"} />
+                    <button ref={sendbtn_ref} id={"send-message"} type={"button"} onclick={send}>{ "Send Message" }</button>
+                </>
+            }
     }
 }
