@@ -8,27 +8,32 @@ cfg_if::cfg_if! {
 
 #[tokio::main]
 async fn main() {
+    let model_name = "tiny_en";
+
+    let whisper = Arc::new(load_whisper(model_name));
+
     let mut interval = interval(Duration::from_secs(2));
 
     let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
 
-    task_send
-        .send(Box::pin(async {
-            /* execution time of this function is highly variable */
-        }))
-        .await
-        .unwrap();
+    let mut current_task = None;
+    let mut current_task_locked = false;
+
     tokio::select! {
-        _ = interval.tick() => interval_tick_task().await,
-    }
+        _ = interval.tick() => {
+            let whisper_clone = Arc::clone(&whisper);
 
-    loop {
-        println!("P: {p:?}", p = interval.period());
-    }
-}
+            // Spawn a new Tokio task in a separate thread
+            // Your task logic goes here
+            let fut = Arc::new(record_and_transcribe(whisper_clone));
+            task_send.send(Arc::clone(&fut)).await.unwrap();
+            current_task = Some(Arc::clone(&fut));
+        }
+        _ = Arc::<_>::try_unwrap(current_task.unwrap()).ok().unwrap() => {
 
-async fn interval_tick_task() {
-    println!("Hi :D");
+        }
+    }
+    loop {}
 }
 
 async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
@@ -124,7 +129,7 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
         .map(|record| config.init().load_record(record))
 }
 
-use std::{fs, process, sync::Arc, time::Duration};
+use std::{fs, process, sync::Arc, thread::current, time::Duration};
 
 fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
     let lang_str = "en";
