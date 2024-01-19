@@ -17,7 +17,6 @@ async fn main() {
     let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
 
     let mut current_task = None;
-    let mut current_task_locked = false;
 
     tokio::select! {
         _ = interval.tick() => {
@@ -25,15 +24,11 @@ async fn main() {
 
             // Spawn a new Tokio task in a separate thread
             // Your task logic goes here
-            let fut = Arc::new(record_and_transcribe(whisper_clone));
-            task_send.send(Arc::clone(&fut)).await.unwrap();
-            current_task = Some(Arc::clone(&fut));
+            task_send.send(record_and_transcribe(whisper_clone)).await.unwrap();
         }
-        _ = Arc::<_>::try_unwrap(current_task.unwrap()).ok().unwrap() => {
-
-        }
+        _ = current_task.unwrap() => {},
+        next = task_recv.recv() => current_task = next,
     }
-    loop {}
 }
 
 async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
