@@ -12,28 +12,56 @@ async fn main() {
 
     let whisper = Arc::new(load_whisper(model_name));
 
-    let mut interval = interval(Duration::from_secs(5));
+    dbg!();
+
+    let mut interval = interval(Duration::from_secs(2));
+
+    let (task_send, mut task_recv) = tokio::sync::mpsc::channel(2305843009213693951);
+
+    let task_send = Arc::new(task_send);
+
+    tokio::spawn(async move {
+        while let Some(next) = task_recv.recv().await {
+            let _ = tokio::spawn(next).await;
+        }
+    });
+
+    let mut state = TranscribeStateForDebugging {
+        idx: 0,
+        running_since: std::time::Instant::now(),
+    };
 
     loop {
-        interval.tick().await;
+        tokio::select! {
+            _ = interval.tick() => {
+                let state_clone = state.clone();
+                let whisper_clone = Arc::clone(&whisper);
+                let task_send_clone = Arc::clone(&task_send);
 
-        let whisper_clone = Arc::clone(&whisper);
-
-        // Spawn a new Tokio task in a separate thread
-        tokio::spawn(async move {
-            // Your task logic goes here
-            record_and_transcribe(whisper_clone).await;
-        });
+                // Spawn a new Tokio task in a separate thread
+                // Your task logic goes here
+                println!("Hi :D");
+                tokio::spawn(async move {
+                    let dest = record(&state_clone).await;
+                    task_send_clone.send(transcribe_and_remove(dest, whisper_clone, state_clone)).await.unwrap();
+                });
+                state.idx += 1;
+            }
+        }
     }
 }
 
-async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
+async fn record(state: &TranscribeStateForDebugging) -> String {
     let bitrate = 16000;
     let duration = 10; // Duration in seconds
     let channels = 1;
     let id = uuid::Uuid::new_v4();
     let dest = &format!("{id}.wav");
 
+    println!(
+        "Starting instance {idx} of arecord at {duration}",
+        idx = state.idx
+    );
     let mut child = tokio::process::Command::new("arecord")
         .args([
             "-f",
@@ -54,16 +82,30 @@ async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>) {
         .output()
         .await
         .unwrap();
+    println!("Instance {idx} finished", idx = state.idx);
+    return dest.to_string();
+}
 
-    transcribe(dest, Arc::clone(&whisper));
+async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>, state: TranscribeStateForDebugging) {
+    let dest = record(&state).await;
+    transcribe_and_remove(dest, whisper, state).await;
+}
+
+async fn transcribe_and_remove(
+    dest: String,
+    whisper: Arc<Whisper<Backend>>,
+    state: TranscribeStateForDebugging,
+) {
+    transcribe(&dest, Arc::clone(&whisper), state).await;
 
     tokio::fs::remove_file(dest).await.unwrap();
 }
 
+use std::sync::Mutex;
 use tokio::time::interval;
-use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
+use whisper::{model::*, transcribe::TranscribeStateForDebugging};
 
 use strum::IntoEnumIterator;
 
@@ -120,9 +162,13 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
         .map(|record| config.init().load_record(record))
 }
 
-use std::{fs, process, sync::Arc, time::Duration};
+use std::{fs, process, sync::Arc, thread::current, time::Duration};
 
-fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
+async fn transcribe(
+    wav_file: &str,
+    model: Arc<Whisper<Backend>>,
+    state: TranscribeStateForDebugging,
+) {
     let lang_str = "en";
     let text_file = "transcript.txt";
 
@@ -151,14 +197,26 @@ fn transcribe(wav_file: &str, model: Arc<Whisper<Backend>>) {
         }
     };
 
-    let (text, _tokens) = match waveform_to_text(&model.as_ref(), &bpe, lang, waveform, sample_rate)
-    {
-        Ok((text, tokens)) => (text, tokens),
-        Err(e) => {
-            eprintln!("Error during transcription: {}", e);
-            process::exit(1);
+    let state_clone = state.clone();
+
+    let (text, _tokens) = tokio::task::spawn_blocking(move || {
+        match waveform_to_text(
+            &model.as_ref(),
+            &bpe,
+            lang,
+            waveform,
+            sample_rate,
+            state_clone,
+        ) {
+            Ok((text, tokens)) => (text, tokens),
+            Err(e) => {
+                eprintln!("Error during transcription: {}", e);
+                process::exit(1);
+            }
         }
-    };
+    })
+    .await
+    .unwrap();
 
     fs::write(text_file, text).unwrap_or_else(|e| {
         eprintln!("Error writing transcription file: {}", e);

@@ -10,3 +10,11 @@ target/
 *.pdb
 
 **/.DS_Store
+
+llama-2-7b
+
+__pycache__
+
+*.model
+*.bin
+*.cfg

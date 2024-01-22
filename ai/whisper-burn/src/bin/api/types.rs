@@ -41,8 +41,9 @@ impl Response {
             ..self
         }
     }
-    pub fn with_notes(self, notes: Vec<String>) -> Self {
-        Response { notes, ..self }
+    pub fn with_notes(mut self, notes: Vec<String>) -> Self {
+        self.notes.extend(notes);
+        self
     }
     pub fn with_example(self, example: &Value) -> Self {
         Response {
