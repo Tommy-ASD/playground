@@ -8,6 +8,11 @@ cfg_if::cfg_if! {
 
 #[tokio::main]
 async fn main() {
+    //// POSSSIBLE SOLUTION :D
+    /// when the program starts, start a recording running in the background
+    /// recording will abruptly end when the program ends
+    ///
+    ///  
     let model_name = "tiny_en";
 
     let whisper = Arc::new(load_whisper(model_name));
@@ -40,7 +45,7 @@ async fn main() {
 
                 // Spawn a new Tokio task in a separate thread
                 // Your task logic goes here
-                println!("Hi :D");
+                // println!("Hi :D");
                 tokio::spawn(async move {
                     let dest = record(&state_clone).await;
                     task_send_clone.send(transcribe_and_remove(dest, whisper_clone, state_clone)).await.unwrap();
@@ -58,10 +63,13 @@ async fn record(state: &TranscribeStateForDebugging) -> String {
     let id = uuid::Uuid::new_v4();
     let dest = &format!("{id}.wav");
 
-    println!(
-        "Starting instance {idx} of arecord at {duration}",
-        idx = state.idx
-    );
+    // println!(
+    //     "Starting instance {idx} of arecord at {time}",
+    //     idx = state.idx,
+    //     time = Instant::now()
+    //         .duration_since(state.running_since)
+    //         .as_secs_f32()
+    // );
     let mut child = tokio::process::Command::new("arecord")
         .args([
             "-f",
@@ -82,7 +90,13 @@ async fn record(state: &TranscribeStateForDebugging) -> String {
         .output()
         .await
         .unwrap();
-    println!("Instance {idx} finished", idx = state.idx);
+    // println!(
+    //     "Instance {idx} finished at {time}",
+    //     idx = state.idx,
+    //     time = Instant::now()
+    //         .duration_since(state.running_since)
+    //         .as_secs_f32()
+    // );
     return dest.to_string();
 }
 
@@ -102,6 +116,7 @@ async fn transcribe_and_remove(
 }
 
 use std::sync::Mutex;
+use std::time::Instant;
 use tokio::time::interval;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
