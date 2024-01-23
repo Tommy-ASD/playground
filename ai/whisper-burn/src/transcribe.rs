@@ -4,11 +4,19 @@ use crate::model::*;
 use crate::token::{self, *};
 
 use std::iter;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use burn::{
     module::Module,
     tensor::{self, activation::log_softmax, backend::Backend, Data, ElementConversion, Tensor},
 };
+
+#[derive(Debug, Clone)]
+pub struct TranscribeStateForDebugging {
+    pub idx: u32,
+    pub running_since: Instant,
+}
 
 pub fn waveform_to_text<B: Backend>(
     whisper: &Whisper<B>,
@@ -16,6 +24,7 @@ pub fn waveform_to_text<B: Backend>(
     lang: Language,
     waveform: Vec<f32>,
     sample_rate: usize,
+    state: TranscribeStateForDebugging,
 ) -> token::Result<(String, Vec<usize>)> {
     let device = whisper.devices()[0].clone();
 
@@ -55,7 +64,7 @@ pub fn waveform_to_text<B: Backend>(
         //tokens.extend(new_tokens);
 
         text = bpe.decode(&tokens[..], true)?;
-        println!("Chunk {}: {}\n", i, text);
+        println!("Chunk {i} idx {idx}: {text}\n", idx = state.idx);
 
         //text += &new_text;
     }

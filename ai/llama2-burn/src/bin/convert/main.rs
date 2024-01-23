@@ -23,10 +23,14 @@ fn convert_llama_dump_to_model<B: Backend>(
     model_name: &str,
     device: &B::Device,
 ) -> Result<(), Box<dyn Error>> {
+    dbg!();
     let (llama, llama_config): (Llama<B>, LlamaConfig) = load_llama_dump(dump_path, device)?;
+    dbg!();
 
     save_llama_model_file(llama, model_name)?;
+    dbg!();
     llama_config.save(&format!("{model_name}.cfg"))?;
+    dbg!();
 
     Ok(())
 }
