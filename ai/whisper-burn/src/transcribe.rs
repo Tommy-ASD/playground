@@ -64,6 +64,11 @@ pub fn waveform_to_text<B: Backend>(
         //tokens.extend(new_tokens);
 
         text = bpe.decode(&tokens[..], true)?;
+        text = text
+            .replace("*", "")
+            .replace(")", "")
+            .replace("(", "")
+            .replace("\"", "");
         println!("Chunk {i} idx {idx}: {text}\n", idx = state.idx);
 
         //text += &new_text;
@@ -234,7 +239,7 @@ fn mels_to_text<B: Backend>(
     )).to_device(&device);*/
 
     let beam_size = 5;
-    let max_depth = 50;
+    let max_depth = 100;
 
     let beamsearch_is_finished = |toks: &[BeamSearchToken]| {
         if let Some(btok) = toks.last() {
