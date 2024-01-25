@@ -38,7 +38,7 @@ pub async fn in_directory(
         let path = PathBuf::from(format!("{}{uri}", dotenv!("STORAGE_PATH")));
         dbg!(&path);
         let mut temp_storage = PathBuf::from(format!(
-            "{}/{}",
+            "{}/{}.zip",
             dotenv!("TEMP_PATH"),
             Uuid::new_v4().to_string()
         ));
