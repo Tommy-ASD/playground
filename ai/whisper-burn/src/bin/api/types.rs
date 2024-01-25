@@ -1,4 +1,3 @@
-use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -19,6 +18,7 @@ pub struct Response {
     page: Option<Value>,
 }
 
+#[allow(dead_code)]
 impl Response {
     pub fn new(code: u16) -> Self {
         Response {

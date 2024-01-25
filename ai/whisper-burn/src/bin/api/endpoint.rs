@@ -1,15 +1,13 @@
 use axum::{
     extract::Multipart,
     extract::{ConnectInfo, State},
-    http::{header::HeaderMap, StatusCode},
-    response::Redirect,
+    http::header::HeaderMap,
     routing::post,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
 use std::{fs::File, io, net::SocketAddr, sync::Arc};
-use whisper::model::Whisper;
+use whisper::{model::Whisper, transcribe::TranscribeStateForDebugging};
 
 use crate::{
     transcribe::{transcribe, TranscriptionError},
@@ -97,14 +95,18 @@ pub async fn accept_form(
                     return int_serv_err;
                 }
             }
-            let tx = match transcribe(&save_path, Arc::clone(&model), "en") {
+            let state = TranscribeStateForDebugging {
+                idx: 0,
+                running_since: std::time::Instant::now(),
+            };
+            let tx = match transcribe(&save_path, Arc::clone(&model), "en", state) {
                 Ok(tx) => tx,
                 Err(e) => {
                     match e {
-                        TranscriptionError::TranscriptingError(e) => {
+                        TranscriptionError::TranscriptingError(_e) => {
                             response = response.with_code(500);
                         }
-                        TranscriptionError::LoadTokenizer(e) => {
+                        TranscriptionError::LoadTokenizer(_e) => {
                             response = response.with_code(500);
                         }
                         TranscriptionError::InvalidLanguage(e) => {
@@ -115,7 +117,7 @@ pub async fn accept_form(
                         }
                         TranscriptionError::LoadWaveform(e) => {
                             match &e {
-                                hound::Error::FormatError(e) => {
+                                hound::Error::FormatError(_e) => {
                                     dbg!();
                                     response = response.with_code(400).with_details(
                                         "We only support the .wav format at this time.",
@@ -125,7 +127,7 @@ pub async fn accept_form(
                                     dbg!();
                                     response = response.with_code(400);
                                 }
-                                hound::Error::IoError(e) => {
+                                hound::Error::IoError(_e) => {
                                     dbg!();
                                     response = response
                                         .with_code(500)

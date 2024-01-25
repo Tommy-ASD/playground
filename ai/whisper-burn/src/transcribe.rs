@@ -4,8 +4,7 @@ use crate::model::*;
 use crate::token::{self, *};
 
 use std::iter;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use burn::{
     module::Module,
@@ -24,7 +23,7 @@ pub fn waveform_to_text<B: Backend>(
     lang: Language,
     waveform: Vec<f32>,
     sample_rate: usize,
-    state: TranscribeStateForDebugging,
+    _state: TranscribeStateForDebugging,
 ) -> token::Result<(String, Vec<usize>)> {
     let device = whisper.devices()[0].clone();
 
@@ -38,7 +37,7 @@ pub fn waveform_to_text<B: Backend>(
     let mut text = String::new();
     let mut tokens: Vec<usize> = Vec::new();
 
-    for (i, mel) in mel_iter.enumerate() {
+    for (_i, mel) in mel_iter.enumerate() {
         let mut prev_normal_tokens: Vec<_> = tokens
             .iter()
             .rev()

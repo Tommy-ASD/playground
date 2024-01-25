@@ -1,6 +1,6 @@
-use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
+use whisper::{model::*, transcribe::TranscribeStateForDebugging};
 
 use strum::IntoEnumIterator;
 
@@ -128,7 +128,13 @@ fn main() {
 
     let whisper = whisper.to_device(&device);
 
-    let (text, _tokens) = match waveform_to_text(&whisper, &bpe, lang, waveform, sample_rate) {
+    let state = TranscribeStateForDebugging {
+        idx: 0,
+        running_since: std::time::Instant::now(),
+    };
+
+    let (text, _tokens) = match waveform_to_text(&whisper, &bpe, lang, waveform, sample_rate, state)
+    {
         Ok((text, tokens)) => (text, tokens),
         Err(e) => {
             eprintln!("Error during transcription: {}", e);

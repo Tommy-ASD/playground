@@ -6,13 +6,13 @@ cfg_if::cfg_if! {
     }
 }
 
+//// POSSSIBLE SOLUTION :D
+/// when the program starts, start a recording running in the background
+/// recording will abruptly end when the program ends
+///
+///  
 #[tokio::main]
 async fn main() {
-    //// POSSSIBLE SOLUTION :D
-    /// when the program starts, start a recording running in the background
-    /// recording will abruptly end when the program ends
-    ///
-    ///  
     let model_name = "tiny_en";
 
     let whisper = Arc::new(load_whisper(model_name));
@@ -62,21 +62,14 @@ async fn main() {
     }
 }
 
-async fn record(state: &TranscribeStateForDebugging) -> String {
+async fn record(_state: &TranscribeStateForDebugging) -> String {
     let bitrate = 16000;
     let duration = 10; // Duration in seconds
     let channels = 1;
     let id = uuid::Uuid::new_v4();
     let dest = &format!("{id}.wav");
 
-    // println!(
-    //     "Starting instance {idx} of arecord at {time}",
-    //     idx = state.idx,
-    //     time = Instant::now()
-    //         .duration_since(state.running_since)
-    //         .as_secs_f32()
-    // );
-    let mut child = tokio::process::Command::new("arecord")
+    tokio::process::Command::new("arecord")
         .args([
             "-f",
             "cd",
@@ -96,22 +89,7 @@ async fn record(state: &TranscribeStateForDebugging) -> String {
         .output()
         .await
         .unwrap();
-    // println!(
-    //     "Instance {idx} finished at {time}",
-    //     idx = state.idx,
-    //     time = Instant::now()
-    //         .duration_since(state.running_since)
-    //         .as_secs_f32()
-    // );
     return dest.to_string();
-}
-
-async fn record_and_transcribe(
-    whisper: Arc<Whisper<Backend>>,
-    state: TranscribeStateForDebugging,
-) -> (String, Vec<usize>) {
-    let dest = record(&state).await;
-    transcribe_and_remove(dest, whisper, state).await
 }
 
 async fn transcribe_and_remove(
@@ -126,8 +104,6 @@ async fn transcribe_and_remove(
     result
 }
 
-use std::sync::Mutex;
-use std::time::Instant;
 use tokio::time::interval;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
@@ -188,7 +164,7 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
         .map(|record| config.init().load_record(record))
 }
 
-use std::{fs, process, sync::Arc, thread::current, time::Duration};
+use std::{fs, process, sync::Arc, time::Duration};
 
 async fn transcribe(
     wav_file: &str,
