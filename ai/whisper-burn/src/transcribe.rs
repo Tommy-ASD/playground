@@ -64,12 +64,7 @@ pub fn waveform_to_text<B: Backend>(
         //tokens.extend(new_tokens);
 
         text = bpe.decode(&tokens[..], true)?;
-        text = text
-            .replace("*", "")
-            .replace(")", "")
-            .replace("(", "")
-            .replace("\"", "");
-        println!("Chunk {i} idx {idx}: {text}\n", idx = state.idx);
+        text = text;
 
         //text += &new_text;
     }

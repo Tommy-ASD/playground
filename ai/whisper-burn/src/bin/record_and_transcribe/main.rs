@@ -25,9 +25,15 @@ async fn main() {
 
     let task_send = Arc::new(task_send);
 
+    let mut transcribed = vec![];
+
     tokio::spawn(async move {
         while let Some(next) = task_recv.recv().await {
-            let _ = tokio::spawn(next).await;
+            let (text, _tokens) = tokio::spawn(next).await.unwrap();
+
+            transcribed.push(text);
+
+            println!("{transcribed:#?}");
         }
     });
 
@@ -100,19 +106,24 @@ async fn record(state: &TranscribeStateForDebugging) -> String {
     return dest.to_string();
 }
 
-async fn record_and_transcribe(whisper: Arc<Whisper<Backend>>, state: TranscribeStateForDebugging) {
+async fn record_and_transcribe(
+    whisper: Arc<Whisper<Backend>>,
+    state: TranscribeStateForDebugging,
+) -> (String, Vec<usize>) {
     let dest = record(&state).await;
-    transcribe_and_remove(dest, whisper, state).await;
+    transcribe_and_remove(dest, whisper, state).await
 }
 
 async fn transcribe_and_remove(
     dest: String,
     whisper: Arc<Whisper<Backend>>,
     state: TranscribeStateForDebugging,
-) {
-    transcribe(&dest, Arc::clone(&whisper), state).await;
+) -> (String, Vec<usize>) {
+    let result = transcribe(&dest, Arc::clone(&whisper), state).await;
 
     tokio::fs::remove_file(dest).await.unwrap();
+
+    result
 }
 
 use std::sync::Mutex;
@@ -183,7 +194,7 @@ async fn transcribe(
     wav_file: &str,
     model: Arc<Whisper<Backend>>,
     state: TranscribeStateForDebugging,
-) {
+) -> (String, Vec<usize>) {
     let lang_str = "en";
     let text_file = "transcript.txt";
 
@@ -214,7 +225,7 @@ async fn transcribe(
 
     let state_clone = state.clone();
 
-    let (text, _tokens) = tokio::task::spawn_blocking(move || {
+    let (text, tokens) = tokio::task::spawn_blocking(move || {
         match waveform_to_text(
             &model.as_ref(),
             &bpe,
@@ -233,10 +244,12 @@ async fn transcribe(
     .await
     .unwrap();
 
-    fs::write(text_file, text).unwrap_or_else(|e| {
+    fs::write(text_file, text.to_string()).unwrap_or_else(|e| {
         eprintln!("Error writing transcription file: {}", e);
         process::exit(1);
     });
+
+    (text, tokens)
 
     // println!("Transcription finished.");
 }
