@@ -24,7 +24,6 @@ pub struct ApiState {
 pub fn upload_router(model: Arc<Whisper<Backend>>) -> Router {
     Router::new()
         .route("/", post(accept_form_index))
-        .route("/*uri", post(accept_form))
         .with_state(ApiState { model })
 }
 

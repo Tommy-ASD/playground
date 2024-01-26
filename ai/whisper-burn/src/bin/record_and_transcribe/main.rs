@@ -29,7 +29,7 @@ async fn main() {
 
     tokio::spawn(async move {
         while let Some(next) = task_recv.recv().await {
-            let (text, _tokens) = tokio::spawn(next).await.unwrap();
+            let (text) = tokio::spawn(next).await.unwrap();
 
             transcribed.push(text);
 
@@ -96,7 +96,7 @@ async fn transcribe_and_remove(
     dest: String,
     whisper: Arc<Whisper<Backend>>,
     state: TranscribeStateForDebugging,
-) -> (String, Vec<usize>) {
+) -> String {
     let result = transcribe(&dest, Arc::clone(&whisper), state).await;
 
     tokio::fs::remove_file(dest).await.unwrap();
@@ -104,12 +104,16 @@ async fn transcribe_and_remove(
     result
 }
 
+use reqwest::Body;
+use tokio::fs::File;
 use tokio::time::interval;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
 use whisper::{model::*, transcribe::TranscribeStateForDebugging};
 
 use strum::IntoEnumIterator;
+
+use reqwest::multipart::Form;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "wgpu-backend")] {
@@ -165,67 +169,43 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
 }
 
 use std::{fs, process, sync::Arc, time::Duration};
+use tokio_util::codec::{BytesCodec, FramedRead};
 
 async fn transcribe(
     wav_file: &str,
     model: Arc<Whisper<Backend>>,
     state: TranscribeStateForDebugging,
-) -> (String, Vec<usize>) {
-    let lang_str = "en";
-    let text_file = "transcript.txt";
+) -> (String) {
+    let wav_file = wav_file.to_string();
+    // Open the file
+    let file = File::open(&wav_file).await.unwrap();
+    let stream = FramedRead::new(file, BytesCodec::new());
+    let file_body = Body::wrap_stream(stream);
 
-    let lang = match Language::iter().find(|lang| lang.as_alpha2() == lang_str) {
-        Some(lang) => lang,
-        None => {
-            eprintln!("Invalid language abbreviation: {}", lang_str);
-            process::exit(1);
-        }
-    };
+    // Create a Reqwest client
+    let client = reqwest::Client::new();
 
-    // println!("Loading waveform...");
-    let (waveform, sample_rate) = match load_audio_waveform::<Backend>(wav_file) {
-        Ok((w, sr)) => (w, sr),
-        Err(e) => {
-            eprintln!("Failed to load audio file: {}", e);
-            process::exit(1);
-        }
-    };
+    // Build the multipart request
+    let part = reqwest::multipart::Part::stream(file_body)
+        .file_name(wav_file)
+        .mime_str("audio/wav")
+        .unwrap();
+    let form = reqwest::multipart::Form::new().part("file", part);
 
-    let bpe = match Gpt2Tokenizer::new() {
-        Ok(bpe) => bpe,
-        Err(e) => {
-            eprintln!("Failed to load tokenizer: {}", e);
-            process::exit(1);
-        }
-    };
+    // ("file", wav_file, file)
+    // .unwrap();
 
-    let state_clone = state.clone();
+    // Make the request
+    let response = client
+        .post("https://whisper.tommyasd.com/")
+        .multipart(form)
+        .send()
+        .await
+        .unwrap();
+    println!("{:?}", response);
 
-    let (text, tokens) = tokio::task::spawn_blocking(move || {
-        match waveform_to_text(
-            &model.as_ref(),
-            &bpe,
-            lang,
-            waveform,
-            sample_rate,
-            state_clone,
-        ) {
-            Ok((text, tokens)) => (text, tokens),
-            Err(e) => {
-                eprintln!("Error during transcription: {}", e);
-                process::exit(1);
-            }
-        }
-    })
-    .await
-    .unwrap();
-
-    fs::write(text_file, text.to_string()).unwrap_or_else(|e| {
-        eprintln!("Error writing transcription file: {}", e);
-        process::exit(1);
-    });
-
-    (text, tokens)
+    unimplemented!()
+    // text
 
     // println!("Transcription finished.");
 }
