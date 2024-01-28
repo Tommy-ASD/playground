@@ -55,22 +55,22 @@ where
 
 pub fn zip_folder_to_file(
     src_dir: &PathBuf,
-    dst_file: &PathBuf,
+    dst_file: &mut File,
     method: zip::CompressionMethod,
 ) -> zip::result::ZipResult<()> {
     if !Path::new(src_dir).is_dir() {
         return Err(ZipError::FileNotFound);
     }
 
-    let file = match std::fs::File::create(dst_file) {
-        Ok(file) => file,
-        Err(e) => return Err(ZipError::FileNotFound),
-    };
+    // let file = match std::fs::File::create(dst_file) {
+    //     Ok(file) => file,
+    //     Err(e) => return Err(ZipError::FileNotFound),
+    // };
 
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter();
 
-    zip_dir(&mut it.filter_map(|e| e.ok()), src_dir, file, method)?;
+    zip_dir(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method)?;
 
     Ok(())
 }

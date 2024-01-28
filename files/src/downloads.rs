@@ -30,6 +30,7 @@ pub async fn in_directory(
     axum::extract::Path(mut uri): axum::extract::Path<String>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     let body = async move {
+        dbg!(dotenv!("STORAGE_PATH"), dotenv!("TEMP_PATH"));
         if !uri.starts_with("/") {
             uri = format!("/{uri}"); // add / prefix if not there
         }
@@ -37,10 +38,11 @@ pub async fn in_directory(
         let path = PathBuf::from(format!("{}{uri}", dotenv!("STORAGE_PATH")));
         dbg!(&path);
         let mut temp_storage = PathBuf::from(format!(
-            "{}/{}",
+            "{}/{}.zip",
             dotenv!("TEMP_PATH"),
             Uuid::new_v4().to_string()
         ));
+        dbg!(temp_storage);
         let temp;
 
         let mime;

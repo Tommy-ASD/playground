@@ -4,8 +4,7 @@ use crate::model::*;
 use crate::token::{self, *};
 
 use std::iter;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use burn::{
     module::Module,
@@ -24,7 +23,7 @@ pub fn waveform_to_text<B: Backend>(
     lang: Language,
     waveform: Vec<f32>,
     sample_rate: usize,
-    state: TranscribeStateForDebugging,
+    _state: TranscribeStateForDebugging,
 ) -> token::Result<(String, Vec<usize>)> {
     let device = whisper.devices()[0].clone();
 
@@ -38,7 +37,7 @@ pub fn waveform_to_text<B: Backend>(
     let mut text = String::new();
     let mut tokens: Vec<usize> = Vec::new();
 
-    for (i, mel) in mel_iter.enumerate() {
+    for (_i, mel) in mel_iter.enumerate() {
         let mut prev_normal_tokens: Vec<_> = tokens
             .iter()
             .rev()
@@ -64,7 +63,7 @@ pub fn waveform_to_text<B: Backend>(
         //tokens.extend(new_tokens);
 
         text = bpe.decode(&tokens[..], true)?;
-        println!("Chunk {i} idx {idx}: {text}\n", idx = state.idx);
+        text = text;
 
         //text += &new_text;
     }
@@ -234,7 +233,7 @@ fn mels_to_text<B: Backend>(
     )).to_device(&device);*/
 
     let beam_size = 5;
-    let max_depth = 50;
+    let max_depth = 100;
 
     let beamsearch_is_finished = |toks: &[BeamSearchToken]| {
         if let Some(btok) = toks.last() {

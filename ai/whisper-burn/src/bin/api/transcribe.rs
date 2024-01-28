@@ -1,6 +1,6 @@
-use whisper::model::*;
 use whisper::token::Language;
 use whisper::transcribe::waveform_to_text;
+use whisper::{model::*, transcribe::TranscribeStateForDebugging};
 
 use strum::IntoEnumIterator;
 
@@ -8,7 +8,7 @@ use hound::{self, SampleFormat};
 
 use whisper::token::Gpt2Tokenizer;
 
-use std::{process, sync::Arc};
+use std::sync::Arc;
 
 use crate::Backend;
 
@@ -55,6 +55,7 @@ pub fn transcribe(
     wav_file: &str,
     model: Arc<Whisper<Backend>>,
     lang_str: &str,
+    state: TranscribeStateForDebugging,
 ) -> Result<String, TranscriptionError> {
     let lang = match Language::iter().find(|lang| lang.as_alpha2() == lang_str) {
         Some(lang) => lang,
@@ -81,14 +82,14 @@ pub fn transcribe(
         }
     };
 
-    let (text, _tokens) = match waveform_to_text(&model.as_ref(), &bpe, lang, waveform, sample_rate)
-    {
-        Ok((text, tokens)) => (text, tokens),
-        Err(e) => {
-            eprintln!("Error during transcription: {}", e);
-            return Err(TranscriptionError::TranscriptingError(e));
-        }
-    };
+    let (text, _tokens) =
+        match waveform_to_text(&model.as_ref(), &bpe, lang, waveform, sample_rate, state) {
+            Ok((text, tokens)) => (text, tokens),
+            Err(e) => {
+                eprintln!("Error during transcription: {}", e);
+                return Err(TranscriptionError::TranscriptingError(e));
+            }
+        };
 
     Ok(text)
 }
