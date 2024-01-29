@@ -136,19 +136,6 @@ async fn main_page(uri: &str, header: &str) -> String {
                 <div id="file-upload">
                 <h1>You are currently at /{uri}</h1>
                     <a href="/directory/{back}">Go up one</a>
-                    <h2>Upload Files</h2>
-                    <form id="file-form" action="/upload/{uri}" method="post" enctype="multipart/form-data">
-                        <input type="file" name="file" id="file-input" accept="*" multiple>
-                        <label for="file-input" id="file-label">Choose a file</label>
-                        <input type="submit" value="Upload">
-                    </form>
-                    <h2>Create Directory</h2>
-                    <form action="/create-dir/{uri}" method="post" id="createDirForm">
-                        <label for="directory_name">Directory Name:</label>
-                        <input type="text" id="directory_name" name="path">
-                        <br>
-                        <input type="submit" value="Create Directory">
-                    </form>
                 </div>
                             
                 <div id="file-download">

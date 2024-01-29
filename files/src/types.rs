@@ -65,7 +65,7 @@ impl FileDownloadData {
                 "directory-link",
                 "",
                 "directory",
-                Some("<button>Calculate</button>"),
+                None, // Some("<button>Calculate</button>"),
             ),
             _ => self.render_file(path),
         }
