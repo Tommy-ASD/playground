@@ -42,7 +42,11 @@ pub async fn in_directory(
             dotenv!("TEMP_PATH"),
             Uuid::new_v4().to_string()
         ));
-        dbg!(temp_storage);
+        tokio::fs::create_dir_all(dotenv!("TEMP_PATH"))
+            .await
+            .unwrap();
+        let temp_file = tokio::fs::File::create(&temp_storage).await.unwrap();
+        dbg!(&temp_storage);
         let temp;
 
         let mime;
@@ -51,7 +55,11 @@ pub async fn in_directory(
             temp = true;
             dbg!();
             mime = "application/zip".to_string();
-            match zip_folder_to_file(&path, &temp_storage, zip::CompressionMethod::Stored) {
+            match zip_folder_to_file(
+                &path,
+                &mut (temp_file.try_clone().await.unwrap().into_std().await),
+                zip::CompressionMethod::Stored,
+            ) {
                 Ok(_) => {}
                 Err(ZipError::FileNotFound) => {
                     return Err((StatusCode::NOT_FOUND, format!("File not found")))
@@ -87,14 +95,8 @@ pub async fn in_directory(
         };
 
         dbg!();
-        let file = match tokio::fs::File::open(&temp_storage).await {
-            Ok(file) => file,
-            Err(err) => return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err))),
-        };
-
-        dbg!();
         // convert the `AsyncRead` into a `Stream`
-        let stream = ReaderStream::new(file);
+        let stream = ReaderStream::new(temp_file);
 
         dbg!();
         // convert the `Stream` into an `axum::body::HttpBody`

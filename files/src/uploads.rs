@@ -58,7 +58,7 @@ pub async fn accept_form(
         println!("Recursively created {anc:?}");
     }
     while let Some(field) = multipart.next_field().await.unwrap() {
-        dbg!();
+        dbg!(field.headers());
         if field.file_name().is_some() {
             let file_name = field.file_name().unwrap().to_string();
 
