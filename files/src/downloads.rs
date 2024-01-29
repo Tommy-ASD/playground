@@ -84,8 +84,14 @@ pub async fn in_directory(
         }
 
         dbg!();
-        let filename: &std::ffi::OsStr = match path.file_name() {
-            Some(name) => name,
+        let filename = match path.file_name() {
+            Some(name) => {
+                if temp {
+                    format!("{filename}.zip", filename = name.to_string_lossy())
+                } else {
+                    name.to_string_lossy().to_string()
+                }
+            }
             None => {
                 return Err((
                     StatusCode::BAD_REQUEST,
@@ -117,7 +123,7 @@ pub async fn in_directory(
             (header::CONTENT_TYPE, mime),
             (
                 header::CONTENT_DISPOSITION,
-                format!("attachment; filename={:?}", filename),
+                format!("attachment; filename={}", filename),
             ),
         ];
 
