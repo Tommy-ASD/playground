@@ -57,7 +57,7 @@ pub async fn in_directory(
             mime = "application/zip".to_string();
             match zip_folder_to_file(
                 &path,
-                &mut (temp_file.try_clone().await.unwrap().into_std().await),
+                &mut (temp_file.into_std().await),
                 zip::CompressionMethod::Stored,
             ) {
                 Ok(_) => {}
@@ -95,8 +95,14 @@ pub async fn in_directory(
         };
 
         dbg!();
+        let file = match tokio::fs::File::open(&temp_storage).await {
+            Ok(file) => file,
+            Err(err) => return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err))),
+        };
+
+        dbg!();
         // convert the `AsyncRead` into a `Stream`
-        let stream = ReaderStream::new(temp_file);
+        let stream = ReaderStream::new(file);
 
         dbg!();
         // convert the `Stream` into an `axum::body::HttpBody`
