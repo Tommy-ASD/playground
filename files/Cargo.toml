@@ -6,7 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.6.20", features = ["multipart", "headers", "http2", "ws", "tracing"] }
+axum = { version = "0.6.20", features = [
+    "multipart",
+    "headers",
+    "http2",
+    "ws",
+    "tracing",
+] }
 chrono = { version = "0.4.31", features = ["serde"] }
 dotenv = "0.15.0"
 dotenv_codegen = "0.15.0"
@@ -38,7 +44,6 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 uuid = { version = "1.5.0", features = ["v4"] }
 walkdir = "2.4.0"
 warp = "0.3.6"
-zip = "0.6.6"
 
 anyhow = "1.0.75"
 oauth = "0.0.1"
@@ -49,5 +54,19 @@ traceback-error = "0.1.9"
 url = "2.4.0"
 
 utils = { git = "https://github.com/Tommy-ASD/utils.git" }
-axum-extra = { version = "0.8.0", features = ["cookie", "cookie-private", "cookie-signed", "form", "query", "multipart", "async-read-body"] }
+axum-extra = { version = "0.8.0", features = [
+    "cookie",
+    "cookie-private",
+    "cookie-signed",
+    "form",
+    "query",
+    "multipart",
+    "async-read-body",
+] }
 yew = { version = "0.21.0", features = ["ssr", "csr"] }
+async_zip = { version = "0.0.16", features = [
+    "full",
+    "tokio",
+    "tokio-util",
+    "async-compression",
+] }

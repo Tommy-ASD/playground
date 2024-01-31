@@ -1,31 +1,34 @@
+use async_zip::error::ZipError;
+use async_zip::ZipEntryBuilder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::io::{Read, Seek, Write};
 use std::iter::Iterator;
 use tar::Builder;
 use tokio::io::{AsyncRead, AsyncSeek, AsyncWrite};
-use zip::result::ZipError;
-use zip::write::FileOptions;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-fn zip_dir<T>(
+pub type Result<V> = std::result::Result<V, ZipError>;
+
+async fn zip_dir_async<T>(
     it: &mut dyn Iterator<Item = DirEntry>,
     prefix: &PathBuf,
-    writer: T,
-    method: zip::CompressionMethod,
-) -> zip::result::ZipResult<()>
-where
-    T: Write + Seek,
+    writer: &mut tokio::fs::File,
+    method: async_zip::Compression,
+) where
+    T: AsyncWrite + AsyncSeek + Write + Seek,
 {
-    let mut zip = zip::ZipWriter::new(writer);
-    let options = FileOptions::default()
-        .compression_method(method)
-        .unix_permissions(0o755);
+    let mut zip = async_zip::tokio::write::ZipFileWriter::with_tokio(writer);
 
-    let mut buffer = Vec::new();
+    let data = b"This is an example file.";
+    let builder = ZipEntryBuilder::new("bar.txt".into(), async_zip::Compression::Deflate);
+
+    // builder.
+
+    // let mut buffer = Vec::new();
     for entry in it {
         let path = entry.path();
         let name = path.strip_prefix(Path::new(prefix)).unwrap();
@@ -33,33 +36,33 @@ where
         // Write file or directory explicitly
         // Some unzip tools unzip files with directory paths correctly, some do not!
         if path.is_file() {
-            println!("adding file {path:?} as {name:?} ...");
-            #[allow(deprecated)]
-            zip.start_file_from_path(name, options)?;
-            let mut f = File::open(path)?;
+            // println!("adding file {path:?} as {name:?} ...");
+            // #[allow(deprecated)]
+            // zip.start_file_from_path(name, options)?;
+            // let mut f = File::open(path)?;
 
-            f.read_to_end(&mut buffer)?;
-            zip.write_all(&buffer)?;
-            buffer.clear();
+            // f.read_to_end(&mut buffer)?;
+            // zip.write_all(&buffer)?;
+            // buffer.clear();
         } else if !name.as_os_str().is_empty() {
-            // Only if not root! Avoids path spec / warning
-            // and mapname conversion failed error on unzip
-            println!("adding dir {path:?} as {name:?} ...");
-            #[allow(deprecated)]
-            zip.add_directory_from_path(name, options)?;
+            // // Only if not root! Avoids path spec / warning
+            // // and mapname conversion failed error on unzip
+            // println!("adding dir {path:?} as {name:?} ...");
+            // #[allow(deprecated)]
+            // zip.add_directory_from_path(name, options)?;
         }
     }
-    zip.finish()?;
-    Result::Ok(())
+    // zip.finish()?;
+    // Result::Ok(())
 }
 
-pub fn zip_folder_to_file(
+pub async fn zip_folder_to_file(
     src_dir: &PathBuf,
-    dst_file: &mut File,
-    method: zip::CompressionMethod,
-) -> zip::result::ZipResult<()> {
+    dst_file: &mut tokio::fs::File,
+    method: async_zip::Compression,
+) {
     if !Path::new(src_dir).is_dir() {
-        return Err(ZipError::FileNotFound);
+        panic!("AAAAAAAAAAAHHHH")
     }
 
     // let file = match std::fs::File::create(dst_file) {
@@ -70,37 +73,28 @@ pub fn zip_folder_to_file(
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter();
 
-    zip_dir(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method)?;
+    zip_dir_async(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method).await;
 
     Ok(())
 }
 
-pub fn create_tar(src_dir: &str, dst_file: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let tarball_file = File::create(dst_file)?;
+async fn walk_dir(dir: PathBuf) -> Result<Vec<PathBuf>> {
+    let mut dirs = vec![dir];
+    let mut files = vec![];
 
-    let mut tarball = Builder::new(tarball_file);
+    while !dirs.is_empty() {
+        let mut dir_iter = tokio::fs::read_dir(dirs.remove(0)).await?;
 
-    tarball.append_dir_all("", src_dir)?;
+        while let Some(entry) = dir_iter.next_entry().await? {
+            let entry_path_buf = entry.path();
 
-    tarball.finish()?;
+            if entry_path_buf.is_dir() {
+                dirs.push(entry_path_buf);
+            } else {
+                files.push(entry_path_buf);
+            }
+        }
+    }
 
-    Ok(())
-}
-
-pub fn create_gz(
-    src_dir: &str,
-    dst_file: &str,
-    compression: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut tarball_file: Box<dyn Write> = Box::new(File::create(dst_file)?);
-
-    tarball_file = Box::new(GzEncoder::new(tarball_file, Compression::new(compression)));
-
-    let mut tarball = Builder::new(tarball_file);
-
-    tarball.append_dir_all("", src_dir)?;
-
-    tarball.finish()?;
-
-    Ok(())
+    Ok(files)
 }

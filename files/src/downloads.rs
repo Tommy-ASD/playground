@@ -1,16 +1,9 @@
 use std::path::PathBuf;
 
-use axum::{
-    body::StreamBody, extract::Query, http::HeaderValue, response::IntoResponse, routing::get,
-    Router,
-};
-use hyper::HeaderMap;
-use serde::Deserialize;
+use axum::{body::StreamBody, response::IntoResponse, routing::get, Router};
 use tokio_util::io::ReaderStream;
-use tower_http::services::ServeFile;
 
 use axum::http::{header, StatusCode};
-use std::net::SocketAddr;
 use uuid::Uuid;
 use zip::result::ZipError;
 

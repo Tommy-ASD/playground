@@ -3,9 +3,7 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
-use hyper::HeaderMap;
 use serde::Deserialize;
-use yew::html;
 
 use crate::{get_dir, main_page, types::FileType};
 
