@@ -687,6 +687,7 @@ dependencies = [
  "dotenv_codegen",
  "env_logger",
  "flate2",
+ "futures-lite",
  "hyper",
  "hyper-staticfile",
  "log",

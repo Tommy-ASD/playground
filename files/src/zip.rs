@@ -1,18 +1,7 @@
-use async_zip::error::ZipError;
-use async_zip::tokio::write::ZipFileWriter;
-use async_zip::ZipEntryBuilder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::io::{Read, Seek, Write};
+use async_zip::{base::write::ZipFileWriter, error::ZipError, Compression, ZipEntryBuilder};
 use std::iter::Iterator;
-use tar::Builder;
-use tokio::{
-    fs::File,
-    io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncWrite},
-};
+use tokio::{fs::File, io::AsyncReadExt};
 
-use anyhow::anyhow;
-use anyhow::bail;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
@@ -26,26 +15,7 @@ async fn zip_dir_async(
     writer: &mut File,
     method: async_zip::Compression,
 ) {
-    let mut zip = async_zip::tokio::write::ZipFileWriter::with_tokio(writer);
-
-    let data = b"This is an example file.";
-    let builder = ZipEntryBuilder::new("bar.txt".into(), method);
-
-    // builder.
-
-    // let mut buffer = Vec::new();
-    for entry in it {
-        let entry_path = entry.path();
-        let entry_str = entry_path
-            .as_os_str()
-            .to_str()
-            .ok_or(anyhow!("Directory file path not valid UTF-8."))
-            .unwrap();
-
-        write_entry(entry_str, entry_path, writer, method)
-            .await
-            .unwrap();
-    }
+    // let mut writez
     // zip.finish()?;
     // Result::Ok(())
 }
