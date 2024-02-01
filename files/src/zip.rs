@@ -1,13 +1,18 @@
 use async_zip::error::ZipError;
+use async_zip::tokio::write::ZipFileWriter;
 use async_zip::ZipEntryBuilder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::io::{Read, Seek, Write};
 use std::iter::Iterator;
 use tar::Builder;
-use tokio::io::{AsyncRead, AsyncSeek, AsyncWrite};
+use tokio::{
+    fs::File,
+    io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncWrite},
+};
 
-use std::fs::File;
+use anyhow::anyhow;
+use anyhow::bail;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
@@ -18,57 +23,59 @@ type SendableDirEntryIterator = dyn Iterator<Item = DirEntry> + Send;
 async fn zip_dir_async(
     it: &mut SendableDirEntryIterator,
     prefix: &PathBuf,
-    writer: &mut tokio::fs::File,
+    writer: &mut File,
     method: async_zip::Compression,
 ) {
     let mut zip = async_zip::tokio::write::ZipFileWriter::with_tokio(writer);
 
     let data = b"This is an example file.";
-    let builder = ZipEntryBuilder::new("bar.txt".into(), async_zip::Compression::Deflate);
+    let builder = ZipEntryBuilder::new("bar.txt".into(), method);
 
     // builder.
 
     // let mut buffer = Vec::new();
     for entry in it {
-        let path = entry.path();
-        let name = path.strip_prefix(Path::new(prefix)).unwrap();
+        let entry_path = entry.path();
+        let entry_str = entry_path
+            .as_os_str()
+            .to_str()
+            .ok_or(anyhow!("Directory file path not valid UTF-8."))
+            .unwrap();
 
-        // Write file or directory explicitly
-        // Some unzip tools unzip files with directory paths correctly, some do not!
-        if path.is_file() {
-            // println!("adding file {path:?} as {name:?} ...");
-            // #[allow(deprecated)]
-            // zip.start_file_from_path(name, options)?;
-            // let mut f = File::open(path)?;
-
-            // f.read_to_end(&mut buffer)?;
-            // zip.write_all(&buffer)?;
-            // buffer.clear();
-        } else if !name.as_os_str().is_empty() {
-            // // Only if not root! Avoids path spec / warning
-            // // and mapname conversion failed error on unzip
-            // println!("adding dir {path:?} as {name:?} ...");
-            // #[allow(deprecated)]
-            // zip.add_directory_from_path(name, options)?;
-        }
+        write_entry(entry_str, entry_path, writer, method)
+            .await
+            .unwrap();
     }
     // zip.finish()?;
     // Result::Ok(())
 }
 
+async fn write_entry(
+    filename: &str,
+    input_path: &Path,
+    writer: &mut ZipFileWriter<File>,
+    method: async_zip::Compression,
+) -> Result<()> {
+    let mut input_file = File::open(input_path).await.unwrap();
+    let input_file_size = input_file.metadata().await.unwrap().len() as usize;
+
+    let mut buffer = Vec::with_capacity(input_file_size);
+    input_file.read_to_end(&mut buffer).await.unwrap();
+
+    let builder = ZipEntryBuilder::new(filename.into(), method);
+    writer.write_entry_whole(builder, &buffer).await.unwrap();
+
+    Ok(())
+}
+
 pub async fn zip_folder_to_file(
     src_dir: &PathBuf,
-    dst_file: &mut tokio::fs::File,
+    dst_file: &mut File,
     method: async_zip::Compression,
 ) {
     if !Path::new(src_dir).is_dir() {
         panic!("AAAAAAAAAAAHHHH")
     }
-
-    // let file = match std::fs::File::create(dst_file) {
-    //     Ok(file) => file,
-    //     Err(e) => return Err(ZipError::FileNotFound),
-    // };
 
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter();

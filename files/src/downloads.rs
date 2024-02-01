@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use axum::{body::StreamBody, response::IntoResponse, routing::get, Router};
 use tokio_util::io::ReaderStream;
 
+use tokio::fs::File;
+
 use axum::http::{header, StatusCode};
 use uuid::Uuid;
 
@@ -37,7 +39,7 @@ pub async fn in_directory(
         tokio::fs::create_dir_all(dotenv!("TEMP_PATH"))
             .await
             .unwrap();
-        let mut temp_file = tokio::fs::File::create(&temp_storage).await.unwrap();
+        let mut temp_file = File::create(&temp_storage).await.unwrap();
         dbg!(&temp_storage);
         let temp;
 
@@ -79,7 +81,7 @@ pub async fn in_directory(
         };
 
         dbg!();
-        let file = match tokio::fs::File::open(&temp_storage).await {
+        let file = match File::open(&temp_storage).await {
             Ok(file) => file,
             Err(err) => return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err))),
         };
