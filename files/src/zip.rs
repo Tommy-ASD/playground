@@ -2,8 +2,10 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::io::{Read, Seek, Write};
 use std::iter::Iterator;
+use std::os::windows::fs::MetadataExt;
 use tar::Builder;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncWrite};
+use yew::html::SendAsMessage;
 use zip::result::ZipError;
 use zip::write::FileOptions;
 
@@ -18,28 +20,47 @@ async fn zip_dir<T>(
     prefix: &PathBuf,
     writer: T,
     method: zip::CompressionMethod,
-    progress_sender: Option<tokio::sync::mpsc::Sender<u64>>,
+    progress_sender: Option<tokio::sync::mpsc::Sender<(u64, u64)>>,
 ) -> zip::result::ZipResult<()>
 where
     T: Write + Seek + Send,
 {
+    let it = it.collect::<Vec<(DirEntry)>>();
+    let it_clone = it.clone();
     let mut zip = zip::ZipWriter::new(writer);
     let options = zip::write::FileOptions::default()
         .compression_method(method)
         .unix_permissions(0o755);
+    // dbg!();
 
     let mut buffer = Vec::new();
-    let total_files = it.size_hint().0 as u64;
+    let (total_files, total_size) = calculate_total_size(&mut it_clone.into_iter(), prefix).await?;
+    if let Some(progress_sender) = &progress_sender {
+        if progress_sender
+            .send((total_files, total_size))
+            .await
+            .is_err()
+        {
+            // Handle sender dropped
+            return Err(zip::result::ZipError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Progress sender dropped",
+            )));
+        };
+    }
+    // dbg!();
+
     let mut current_file_count = 0;
+    let mut current_size = 0;
+    // dbg!();
 
     for entry in it {
+        // dbg!();
         let path = entry.path();
         let name = path.strip_prefix(Path::new(prefix)).unwrap();
 
-        dbg!();
         if path.is_file() {
-            dbg!();
-            println!("adding file {path:?} as {name:?} ...");
+            // println!("adding file {path:?} as {name:?} ...");
             #[allow(deprecated)]
             zip.start_file_from_path(name, options.clone())?;
             let mut f = tokio::fs::File::open(path).await?;
@@ -47,45 +68,65 @@ where
             f.read_to_end(&mut buffer).await?;
             zip.write_all(&buffer)?;
             buffer.clear();
-            println!("added file {path:?} as {name:?} ...");
+
+            current_size += f.metadata().await?.len();
         } else if !name.as_os_str().is_empty() {
-            dbg!();
-            println!("adding dir {path:?} as {name:?} ...");
+            // println!("adding dir {path:?} as {name:?} ...");
             #[allow(deprecated)]
             zip.add_directory_from_path(name, options.clone())?;
-            println!("added dir {path:?} as {name:?} ...");
         }
 
         current_file_count += 1;
+
         if let Some(sender) = &progress_sender {
-            println!("Sending {current_file_count} of {total_files}");
+            // println!("Total files; {total_files}, size; {total_size}");
             // Send progress update
-            dbg!();
-            if sender.send(current_file_count).await.is_err() {
-                dbg!();
+            if sender
+                .send((current_file_count, current_size))
+                .await
+                .is_err()
+            {
                 // Handle sender dropped
                 return Err(zip::result::ZipError::Io(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     "Progress sender dropped",
                 )));
-            } else {
-                dbg!();
             }
         }
-        dbg!();
     }
-    dbg!();
 
     zip.finish()?;
-    dbg!();
     Result::Ok(())
+}
+
+async fn calculate_total_size(
+    it: &mut SendableDirEntryIterator,
+    prefix: &PathBuf,
+) -> std::io::Result<(u64, u64)> {
+    let mut total_files = 0;
+    let mut total_size = 0;
+
+    for entry in it {
+        let entry = entry;
+        let path = entry.path();
+        let name = path.strip_prefix(Path::new(prefix)).unwrap();
+
+        if path.is_file() {
+            total_files += 1;
+            total_size += entry.metadata()?.file_size();
+        } else if !name.as_os_str().is_empty() {
+            total_files += 1;
+        }
+    }
+
+    Ok((total_files, total_size))
 }
 
 pub async fn zip_folder_to_file(
     src_dir: &PathBuf,
     dst_file: &mut File,
     method: zip::CompressionMethod,
-    progress_sender: Option<tokio::sync::mpsc::Sender<u64>>,
+    progress_sender: Option<tokio::sync::mpsc::Sender<(u64, u64)>>,
 ) -> zip::result::ZipResult<()> {
     if !Path::new(src_dir).is_dir() {
         return Err(ZipError::FileNotFound);
@@ -112,7 +153,7 @@ pub async fn zip_folder_to_file_taking(
     src_dir: PathBuf,
     mut dst_file: File,
     method: zip::CompressionMethod,
-    progress_sender: Option<tokio::sync::mpsc::Sender<u64>>,
+    progress_sender: Option<tokio::sync::mpsc::Sender<(u64, u64)>>,
 ) -> zip::result::ZipResult<()> {
     zip_folder_to_file(&src_dir, &mut dst_file, method, progress_sender).await
 }

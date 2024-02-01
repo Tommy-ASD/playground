@@ -65,7 +65,7 @@ pub async fn in_directory(
 
             tokio::task::spawn(async move {
                 while let Some(msg) = rx.recv().await {
-                    println!("MESSAGE!!!! {msg}");
+                    println!("MESSAGE!!!! {msg:?}");
                 }
             });
 
