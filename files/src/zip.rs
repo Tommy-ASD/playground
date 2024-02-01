@@ -1,75 +1,84 @@
-use async_zip::{base::write::ZipFileWriter, error::ZipError, Compression, ZipEntryBuilder};
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use std::io::{Read, Seek, Write};
 use std::iter::Iterator;
-use tokio::{fs::File, io::AsyncReadExt};
+use tar::Builder;
+use tokio::io::{AsyncRead, AsyncSeek, AsyncWrite};
+use zip::result::ZipError;
+use zip::write::FileOptions;
 
+use std::fs::File;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-pub type Result<V> = std::result::Result<V, ZipError>;
-
-type SendableDirEntryIterator = dyn Iterator<Item = DirEntry> + Send;
-
-async fn zip_dir_async(
-    it: &mut SendableDirEntryIterator,
+fn zip_dir<T>(
+    it: &mut dyn Iterator<Item = DirEntry>,
     prefix: &PathBuf,
-    writer: &mut File,
-    method: async_zip::Compression,
-) {
-    // let mut writez
-    // zip.finish()?;
-    // Result::Ok(())
-}
+    writer: T,
+    method: zip::CompressionMethod,
+) -> zip::result::ZipResult<()>
+where
+    T: Write + Seek,
+{
+    let mut zip = zip::ZipWriter::new(writer);
+    let options = FileOptions::default()
+        .compression_method(method)
+        .unix_permissions(0o755);
 
-async fn write_entry(
-    filename: &str,
-    input_path: &Path,
-    writer: &mut ZipFileWriter<File>,
-    method: async_zip::Compression,
-) -> Result<()> {
-    let mut input_file = File::open(input_path).await.unwrap();
-    let input_file_size = input_file.metadata().await.unwrap().len() as usize;
+    let mut buffer = Vec::new();
+    for entry in it {
+        let path = entry.path();
+        let name = path.strip_prefix(Path::new(prefix)).unwrap();
 
-    let mut buffer = Vec::with_capacity(input_file_size);
-    input_file.read_to_end(&mut buffer).await.unwrap();
+        // Write file or directory explicitly
+        // Some unzip tools unzip files with directory paths correctly, some do not!
+        if path.is_file() {
+            println!("adding file {path:?} as {name:?} ...");
+            #[allow(deprecated)]
+            zip.start_file_from_path(name, options)?;
+            let mut f = File::open(path)?;
 
-    let builder = ZipEntryBuilder::new(filename.into(), method);
-    writer.write_entry_whole(builder, &buffer).await.unwrap();
-
-    Ok(())
+            f.read_to_end(&mut buffer)?;
+            zip.write_all(&buffer)?;
+            buffer.clear();
+        } else if !name.as_os_str().is_empty() {
+            // Only if not root! Avoids path spec / warning
+            // and mapname conversion failed error on unzip
+            println!("adding dir {path:?} as {name:?} ...");
+            #[allow(deprecated)]
+            zip.add_directory_from_path(name, options)?;
+        }
+    }
+    zip.finish()?;
+    Result::Ok(())
 }
 
 pub async fn zip_folder_to_file(
     src_dir: &PathBuf,
     dst_file: &mut File,
-    method: async_zip::Compression,
-) {
+    method: zip::CompressionMethod,
+) -> zip::result::ZipResult<()> {
     if !Path::new(src_dir).is_dir() {
-        panic!("AAAAAAAAAAAHHHH")
+        return Err(ZipError::FileNotFound);
     }
+
+    // let file = match std::fs::File::create(dst_file) {
+    //     Ok(file) => file,
+    //     Err(e) => return Err(ZipError::FileNotFound),
+    // };
 
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter();
 
-    zip_dir_async(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method).await;
+    zip_dir(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method)?;
+
+    Ok(())
 }
 
-async fn walk_dir(dir: PathBuf) -> Result<Vec<PathBuf>> {
-    let mut dirs = vec![dir];
-    let mut files = vec![];
-
-    while dirs.is_empty() {
-        let mut dir_iter = tokio::fs::read_dir(dirs.remove(0)).await?;
-
-        while let Some(entry) = dir_iter.next_entry().await? {
-            let entry_path_buf = entry.path();
-
-            if entry_path_buf.is_dir() {
-                dirs.push(entry_path_buf);
-            } else {
-                files.push(entry_path_buf);
-            }
-        }
-    }
-
-    Ok(files)
+pub async fn zip_folder_to_file_taking(
+    src_dir: PathBuf,
+    mut dst_file: File,
+    method: zip::CompressionMethod,
+) -> zip::result::ZipResult<()> {
+    zip_folder_to_file(&src_dir, &mut dst_file, method).await
 }

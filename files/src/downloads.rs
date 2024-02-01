@@ -2,13 +2,14 @@ use std::path::PathBuf;
 
 use axum::{body::StreamBody, response::IntoResponse, routing::get, Router};
 use tokio_util::io::ReaderStream;
+use zip::CompressionMethod;
 
 use tokio::fs::File;
 
 use axum::http::{header, StatusCode};
 use uuid::Uuid;
 
-use crate::zip::zip_folder_to_file;
+use crate::zip::{zip_folder_to_file, zip_folder_to_file_taking};
 
 pub fn downloads_router() -> Router {
     Router::new()
@@ -39,7 +40,7 @@ pub async fn in_directory(
         tokio::fs::create_dir_all(dotenv!("TEMP_PATH"))
             .await
             .unwrap();
-        let mut temp_file = File::create(&temp_storage).await.unwrap();
+        let temp_file = File::create(&temp_storage).await.unwrap();
         dbg!(&temp_storage);
         let temp;
 
@@ -49,8 +50,15 @@ pub async fn in_directory(
             temp = true;
             dbg!();
             mime = "application/zip".to_string();
-            zip_folder_to_file(&path, &mut temp_file, async_zip::Compression::Stored).await;
-            temp_file.sync_all().await.unwrap();
+            // zipping the folder may take a while and we want stuff to keep happening, so we'll move it to another thread
+            tokio::task::spawn(zip_folder_to_file_taking(
+                path.clone(),
+                temp_file.into_std().await,
+                CompressionMethod::Stored,
+            ))
+            .await
+            .unwrap()
+            .unwrap();
             dbg!();
         } else {
             temp = false;

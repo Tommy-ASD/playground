@@ -1,20 +1,15 @@
 use axum::{extract::DefaultBodyLimit, response::Html, routing::get, routing::post, Router};
 use directories::render_files_and_directories;
-use std::{
-    net::SocketAddr,
-    path::{Path, PathBuf},
-};
+use std::{net::SocketAddr, path::Path};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use types::FileDownloadData;
-use yew::html;
 
 use crate::{
     directories::{create_directories_router, get_directories_router},
     downloads::downloads_router,
     initialize_download::{initialize_download_index, initialize_download_router},
     // oauth::oauth_router,
-    uploads::{accept_form_index, upload_router},
 };
 
 #[macro_use]

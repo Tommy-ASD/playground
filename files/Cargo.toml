@@ -61,3 +61,5 @@ async_zip = { version = "0.0.16", features = [
     "async-compression",
 ] }
 futures-lite = { version = "2.2.0", features = ["std"] }
+futures-io = "0.3.30"
+zip = "0.6.6"
