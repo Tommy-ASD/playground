@@ -13,14 +13,14 @@ use walkdir::{DirEntry, WalkDir};
 
 pub type Result<V> = std::result::Result<V, ZipError>;
 
-async fn zip_dir_async<T>(
-    it: &mut dyn Iterator<Item = DirEntry>,
+type SendableDirEntryIterator = dyn Iterator<Item = DirEntry> + Send;
+
+async fn zip_dir_async(
+    it: &mut SendableDirEntryIterator,
     prefix: &PathBuf,
     writer: &mut tokio::fs::File,
     method: async_zip::Compression,
-) where
-    T: AsyncWrite + AsyncSeek + Write + Seek,
-{
+) {
     let mut zip = async_zip::tokio::write::ZipFileWriter::with_tokio(writer);
 
     let data = b"This is an example file.";
@@ -74,15 +74,13 @@ pub async fn zip_folder_to_file(
     let it = walkdir.into_iter();
 
     zip_dir_async(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method).await;
-
-    Ok(())
 }
 
 async fn walk_dir(dir: PathBuf) -> Result<Vec<PathBuf>> {
     let mut dirs = vec![dir];
     let mut files = vec![];
 
-    while !dirs.is_empty() {
+    while dirs.is_empty() {
         let mut dir_iter = tokio::fs::read_dir(dirs.remove(0)).await?;
 
         while let Some(entry) = dir_iter.next_entry().await? {

@@ -5,7 +5,6 @@ use tokio_util::io::ReaderStream;
 
 use axum::http::{header, StatusCode};
 use uuid::Uuid;
-use zip::result::ZipError;
 
 use crate::zip::zip_folder_to_file;
 
@@ -38,7 +37,7 @@ pub async fn in_directory(
         tokio::fs::create_dir_all(dotenv!("TEMP_PATH"))
             .await
             .unwrap();
-        let temp_file = tokio::fs::File::create(&temp_storage).await.unwrap();
+        let mut temp_file = tokio::fs::File::create(&temp_storage).await.unwrap();
         dbg!(&temp_storage);
         let temp;
 
@@ -48,22 +47,8 @@ pub async fn in_directory(
             temp = true;
             dbg!();
             mime = "application/zip".to_string();
-            match zip_folder_to_file(
-                &path,
-                &mut (temp_file.into_std().await),
-                zip::CompressionMethod::Stored,
-            ) {
-                Ok(_) => {}
-                Err(ZipError::FileNotFound) => {
-                    return Err((StatusCode::NOT_FOUND, format!("File not found")))
-                }
-                Err(_) => {
-                    return Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unknown error occured"),
-                    ))
-                }
-            };
+            zip_folder_to_file(&path, &mut temp_file, async_zip::Compression::Stored).await;
+            temp_file.sync_all().await.unwrap();
             dbg!();
         } else {
             temp = false;
