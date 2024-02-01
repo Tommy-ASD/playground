@@ -50,15 +50,27 @@ pub async fn in_directory(
             temp = true;
             dbg!();
             mime = "application/zip".to_string();
+
+            let (tx, mut rx) = tokio::sync::mpsc::channel(64);
+
             // zipping the folder may take a while and we want stuff to keep happening, so we'll move it to another thread
-            tokio::task::spawn(zip_folder_to_file_taking(
+            let zipping_task = tokio::task::spawn(zip_folder_to_file_taking(
                 path.clone(),
                 temp_file.into_std().await,
                 CompressionMethod::Stored,
-            ))
-            .await
-            .unwrap()
-            .unwrap();
+                Some(tx),
+            ));
+
+            dbg!();
+
+            tokio::task::spawn(async move {
+                while let Some(msg) = rx.recv().await {
+                    println!("MESSAGE!!!! {msg}");
+                }
+            });
+
+            zipping_task.await.unwrap().unwrap();
+
             dbg!();
         } else {
             temp = false;
