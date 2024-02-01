@@ -3,7 +3,7 @@ use flate2::Compression;
 use std::io::{Read, Seek, Write};
 use std::iter::Iterator;
 use tar::Builder;
-use tokio::io::{AsyncRead, AsyncSeek, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncWrite};
 use zip::result::ZipError;
 use zip::write::FileOptions;
 
@@ -11,14 +11,16 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-fn zip_dir<T>(
-    it: &mut dyn Iterator<Item = DirEntry>,
+type SendableDirEntryIterator = dyn Iterator<Item = DirEntry> + Send;
+
+async fn zip_dir<T>(
+    it: &mut SendableDirEntryIterator,
     prefix: &PathBuf,
     writer: T,
     method: zip::CompressionMethod,
 ) -> zip::result::ZipResult<()>
 where
-    T: Write + Seek,
+    T: Write + Seek + Send,
 {
     let mut zip = zip::ZipWriter::new(writer);
     let options = FileOptions::default()
@@ -36,9 +38,9 @@ where
             println!("adding file {path:?} as {name:?} ...");
             #[allow(deprecated)]
             zip.start_file_from_path(name, options)?;
-            let mut f = File::open(path)?;
+            let mut f = tokio::fs::File::open(path).await?;
 
-            f.read_to_end(&mut buffer)?;
+            f.read_to_end(&mut buffer).await?;
             zip.write_all(&buffer)?;
             buffer.clear();
         } else if !name.as_os_str().is_empty() {
@@ -62,15 +64,10 @@ pub async fn zip_folder_to_file(
         return Err(ZipError::FileNotFound);
     }
 
-    // let file = match std::fs::File::create(dst_file) {
-    //     Ok(file) => file,
-    //     Err(e) => return Err(ZipError::FileNotFound),
-    // };
-
     let walkdir = WalkDir::new(src_dir);
     let it = walkdir.into_iter();
 
-    zip_dir(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method)?;
+    zip_dir(&mut it.filter_map(|e| e.ok()), src_dir, dst_file, method).await?;
 
     Ok(())
 }
