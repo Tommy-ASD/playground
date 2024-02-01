@@ -2,8 +2,8 @@ use axum::{
     extract::ConnectInfo,
     extract::Multipart,
     http::{header::HeaderMap, StatusCode},
-    response::Redirect,
-    routing::{get, post},
+    response::{Html, Redirect},
+    routing::post,
     Router,
 };
 use chrono::Utc;
@@ -148,4 +148,28 @@ pub async fn accept_form(
         dbg!();
         return int_serv_err;
     }
+}
+
+async fn successfully_uploaded(
+    axum::extract::Path(uri): axum::extract::Path<String>,
+) -> Html<String> {
+    let uri = uri.replace(" ", "%20");
+    let url = format!("{url}/download/{uri}", url = dotenv!("URL"));
+    let rendered = format!(
+        r#"
+        <!doctype html>
+        <html>
+            <head>
+                <link rel="stylesheet" type="text/css" href="/static/style.css">
+            </head>
+            <body>
+                <h1>Successfully uploaded!</h1>
+                <p>Available at <a href={url}>{url}</a></p>
+
+                <button onclick="window.location.href = '/';">Back</button>
+            </body>
+        </html>
+        "#,
+    );
+    Html(rendered)
 }

@@ -1,13 +1,8 @@
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::io::{Read, Seek, Write};
+use std::io::{Seek, Write};
 use std::iter::Iterator;
 use std::os::windows::fs::MetadataExt;
-use tar::Builder;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeek, AsyncWrite};
-use yew::html::SendAsMessage;
+use tokio::io::AsyncReadExt;
 use zip::result::ZipError;
-use zip::write::FileOptions;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -25,13 +20,12 @@ async fn zip_dir<T>(
 where
     T: Write + Seek + Send,
 {
-    let it = it.collect::<Vec<(DirEntry)>>();
+    let it = it.collect::<Vec<DirEntry>>();
     let it_clone = it.clone();
     let mut zip = zip::ZipWriter::new(writer);
     let options = zip::write::FileOptions::default()
         .compression_method(method)
         .unix_permissions(0o755);
-    // dbg!();
 
     let mut buffer = Vec::new();
     let (total_files, total_size) = calculate_total_size(&mut it_clone.into_iter(), prefix).await?;
@@ -48,19 +42,15 @@ where
             )));
         };
     }
-    // dbg!();
 
     let mut current_file_count = 0;
     let mut current_size = 0;
-    // dbg!();
 
     for entry in it {
-        // dbg!();
         let path = entry.path();
         let name = path.strip_prefix(Path::new(prefix)).unwrap();
 
         if path.is_file() {
-            // println!("adding file {path:?} as {name:?} ...");
             #[allow(deprecated)]
             zip.start_file_from_path(name, options.clone())?;
             let mut f = tokio::fs::File::open(path).await?;
@@ -71,7 +61,6 @@ where
 
             current_size += f.metadata().await?.len();
         } else if !name.as_os_str().is_empty() {
-            // println!("adding dir {path:?} as {name:?} ...");
             #[allow(deprecated)]
             zip.add_directory_from_path(name, options.clone())?;
         }
@@ -79,7 +68,6 @@ where
         current_file_count += 1;
 
         if let Some(sender) = &progress_sender {
-            // println!("Total files; {total_files}, size; {total_size}");
             // Send progress update
             if sender
                 .send((current_file_count, current_size))

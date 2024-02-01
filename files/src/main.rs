@@ -20,7 +20,6 @@ mod downloads;
 mod initialize_download;
 // mod oauth;
 mod types;
-mod uploads;
 mod zip;
 
 #[tokio::main]
@@ -71,10 +70,6 @@ async fn main() {
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
-}
-
-async fn get_all_files() -> Vec<FileDownloadData> {
-    get_dir("").await.unwrap()
 }
 
 async fn get_dir(path: &str) -> Option<Vec<FileDownloadData>> {
@@ -151,28 +146,4 @@ fileInput.addEventListener('dragenter', (e) => {{
         </html>
         "#,
     )
-}
-
-async fn successfully_uploaded(
-    axum::extract::Path(uri): axum::extract::Path<String>,
-) -> Html<String> {
-    let uri = uri.replace(" ", "%20");
-    let url = format!("{url}/download/{uri}", url = dotenv!("URL"));
-    let rendered = format!(
-        r#"
-        <!doctype html>
-        <html>
-            <head>
-                <link rel="stylesheet" type="text/css" href="/static/style.css">
-            </head>
-            <body>
-                <h1>Successfully uploaded!</h1>
-                <p>Available at <a href={url}>{url}</a></p>
-
-                <button onclick="window.location.href = '/';">Back</button>
-            </body>
-        </html>
-        "#,
-    );
-    Html(rendered)
 }

@@ -9,7 +9,7 @@ use tokio::fs::File;
 use axum::http::{header, StatusCode};
 use uuid::Uuid;
 
-use crate::zip::{zip_folder_to_file, zip_folder_to_file_taking};
+use crate::zip::zip_folder_to_file_taking;
 
 pub fn downloads_router() -> Router {
     Router::new()
