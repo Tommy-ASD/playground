@@ -9,7 +9,7 @@ use crate::{
     directories::{create_directories_router, get_directories_router},
     downloads::downloads_router,
     initialize_download::{initialize_download_index, initialize_download_router},
-    // oauth::oauth_router,
+    uploads::{accept_form_index, successfully_uploaded, upload_router}, // oauth::oauth_router,
 };
 
 #[macro_use]
@@ -20,6 +20,7 @@ mod downloads;
 mod initialize_download;
 // mod oauth;
 mod types;
+mod uploads;
 mod zip;
 
 #[tokio::main]

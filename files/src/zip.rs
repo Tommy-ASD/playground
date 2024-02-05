@@ -1,6 +1,6 @@
 use std::io::{Seek, Write};
 use std::iter::Iterator;
-use std::os::windows::fs::MetadataExt;
+// use std::os::windows::fs::MetadataExt;
 use tokio::io::AsyncReadExt;
 use zip::result::ZipError;
 
@@ -94,18 +94,18 @@ async fn calculate_total_size(
     let mut total_files = 0;
     let mut total_size = 0;
 
-    for entry in it {
-        let entry = entry;
-        let path = entry.path();
-        let name = path.strip_prefix(Path::new(prefix)).unwrap();
+    // for entry in it {
+    //     let entry = entry;
+    //     let path = entry.path();
+    //     let name = path.strip_prefix(Path::new(prefix)).unwrap();
 
-        if path.is_file() {
-            total_files += 1;
-            total_size += entry.metadata()?.file_size();
-        } else if !name.as_os_str().is_empty() {
-            total_files += 1;
-        }
-    }
+    //     if path.is_file() {
+    //         total_files += 1;
+    //         total_size += entry.metadata()?.file_size();
+    //     } else if !name.as_os_str().is_empty() {
+    //         total_files += 1;
+    //     }
+    // }
 
     Ok((total_files, total_size))
 }
