@@ -1,20 +1,15 @@
 use std::path::PathBuf;
 
-use axum::{
-    body::StreamBody, extract::Query, http::HeaderValue, response::IntoResponse, routing::get,
-    Router,
-};
-use hyper::HeaderMap;
-use serde::Deserialize;
+use axum::{body::StreamBody, response::IntoResponse, routing::get, Router};
 use tokio_util::io::ReaderStream;
-use tower_http::services::ServeFile;
+use zip::CompressionMethod;
+
+use tokio::fs::File;
 
 use axum::http::{header, StatusCode};
-use std::net::SocketAddr;
 use uuid::Uuid;
-use zip::result::ZipError;
 
-use crate::zip::zip_folder_to_file;
+use crate::zip::zip_folder_to_file_taking;
 
 pub fn downloads_router() -> Router {
     Router::new()
@@ -45,7 +40,7 @@ pub async fn in_directory(
         tokio::fs::create_dir_all(dotenv!("TEMP_PATH"))
             .await
             .unwrap();
-        let temp_file = tokio::fs::File::create(&temp_storage).await.unwrap();
+        let temp_file = File::create(&temp_storage).await.unwrap();
         dbg!(&temp_storage);
         let temp;
 
@@ -55,22 +50,27 @@ pub async fn in_directory(
             temp = true;
             dbg!();
             mime = "application/zip".to_string();
-            match zip_folder_to_file(
-                &path,
-                &mut (temp_file.into_std().await),
-                zip::CompressionMethod::Stored,
-            ) {
-                Ok(_) => {}
-                Err(ZipError::FileNotFound) => {
-                    return Err((StatusCode::NOT_FOUND, format!("File not found")))
+
+            let (tx, mut rx) = tokio::sync::mpsc::channel(64);
+
+            // zipping the folder may take a while and we want stuff to keep happening, so we'll move it to another thread
+            let zipping_task = tokio::task::spawn(zip_folder_to_file_taking(
+                path.clone(),
+                temp_file.into_std().await,
+                CompressionMethod::Stored,
+                Some(tx),
+            ));
+
+            dbg!();
+
+            tokio::task::spawn(async move {
+                while let Some(msg) = rx.recv().await {
+                    println!("MESSAGE!!!! {msg:?}");
                 }
-                Err(_) => {
-                    return Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unknown error occured"),
-                    ))
-                }
-            };
+            });
+
+            zipping_task.await.unwrap().unwrap();
+
             dbg!();
         } else {
             temp = false;
@@ -101,7 +101,7 @@ pub async fn in_directory(
         };
 
         dbg!();
-        let file = match tokio::fs::File::open(&temp_storage).await {
+        let file = match File::open(&temp_storage).await {
             Ok(file) => file,
             Err(err) => return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err))),
         };

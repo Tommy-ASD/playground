@@ -1,8 +1,4 @@
-use std::{
-    fs::{Metadata, Permissions},
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{fs::Permissions, path::PathBuf, time::UNIX_EPOCH};
 
 use chrono::NaiveDateTime;
 

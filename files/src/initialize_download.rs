@@ -1,9 +1,8 @@
 use axum::{
-    extract::Multipart,
     extract::{ConnectInfo, Query},
     http::{header::HeaderMap, StatusCode},
-    response::{IntoResponse, Redirect},
-    routing::{get, post},
+    response::IntoResponse,
+    routing::post,
     Router,
 };
 use chrono::Utc;
@@ -11,8 +10,6 @@ use hyper::{Body, Response};
 use serde::Deserialize;
 use serde_json::json;
 use std::{
-    fs::File,
-    io,
     net::SocketAddr,
     path::{Path, PathBuf},
     sync::Arc,
