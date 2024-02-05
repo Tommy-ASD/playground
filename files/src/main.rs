@@ -54,9 +54,9 @@ async fn main() {
     // build our application with some routes
     let app = Router::new()
         .route("/", get(show_form))
-        // .nest("/upload", upload_router())
-        // .route("/upload/", post(accept_form_index))
-        // .route("/uploaded/*uri", get(successfully_uploaded))
+        .nest("/upload", upload_router())
+        .route("/upload/", post(accept_form_index))
+        .route("/uploaded/*uri", get(successfully_uploaded))
         .nest("/directory", get_directories_router())
         .route("/directory/", get(directories::index)) // to support trailing slash for url
         .nest("/create-dir", create_directories_router())
