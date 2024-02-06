@@ -9,7 +9,7 @@ use crate::{
     directories::{create_directories_router, get_directories_router},
     downloads::downloads_router,
     initialize_download::{initialize_download_index, initialize_download_router},
-    // oauth::oauth_router,
+    uploads::{accept_form_index, successfully_uploaded, upload_router}, // oauth::oauth_router,
 };
 
 #[macro_use]
@@ -20,6 +20,7 @@ mod downloads;
 mod initialize_download;
 // mod oauth;
 mod types;
+mod uploads;
 mod zip;
 
 #[tokio::main]
@@ -48,9 +49,9 @@ async fn main() {
     // build our application with some routes
     let app = Router::new()
         .route("/", get(show_form))
-        // .nest("/upload", upload_router())
-        // .route("/upload/", post(accept_form_index))
-        // .route("/uploaded/*uri", get(successfully_uploaded))
+        .nest("/upload", upload_router())
+        .route("/upload/", post(accept_form_index))
+        .route("/uploaded/*uri", get(successfully_uploaded))
         .nest("/directory", get_directories_router())
         .route("/directory/", get(directories::index)) // to support trailing slash for url
         .nest("/create-dir", create_directories_router())
@@ -66,7 +67,7 @@ async fn main() {
 
     let port = dotenv!("PORT").parse::<u16>().unwrap();
 
-    hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], port)))
+    hyper::Server::bind(&SocketAddr::from(([0, 0, 0, 0], port)))
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();

@@ -150,7 +150,7 @@ pub async fn accept_form(
     }
 }
 
-async fn successfully_uploaded(
+pub async fn successfully_uploaded(
     axum::extract::Path(uri): axum::extract::Path<String>,
 ) -> Html<String> {
     let uri = uri.replace(" ", "%20");
