@@ -69,8 +69,9 @@ async fn main() {
     prefix.prefix = Some("!".to_string());
 
     let framework = poise::Framework::builder()
-        .setup(move |_ctx, _ready, _framework| {
+        .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
                     poise_mentions: AtomicU32::new(0),
                 })
