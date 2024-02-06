@@ -94,7 +94,7 @@ async fn calculate_total_size(
     let mut total_files = 0;
     let mut total_size = 0;
 
-    for entry in it {
+    let _ = it.into_iter().map(|entry| {
         let entry = entry;
         let path = entry.path();
         let name = path.strip_prefix(Path::new(prefix)).unwrap();
@@ -105,7 +105,9 @@ async fn calculate_total_size(
         } else if !name.as_os_str().is_empty() {
             total_files += 1;
         }
-    }
+
+        Ok::<(), Box<dyn std::error::Error>>(())
+    });
 
     Ok((total_files, total_size))
 }

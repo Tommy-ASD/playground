@@ -66,7 +66,7 @@ async fn main() {
 
     let port = dotenv!("PORT").parse::<u16>().unwrap();
 
-    hyper::Server::bind(&SocketAddr::from(([127, 0, 0, 1], port)))
+    hyper::Server::bind(&SocketAddr::from(([0, 0, 0, 0], port)))
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
