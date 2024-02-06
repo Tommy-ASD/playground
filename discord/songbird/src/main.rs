@@ -118,11 +118,11 @@ async fn age(
     #[description = "Selected user"] user: Option<serenity::User>,
 ) -> Result<(), Error> {
     let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    println!(
-        "Got age command by {author} for {user}",
-        author = ctx.author().name,
-        user = u.name
-    );
+    // println!(
+    //     "Got age command by {author} for {user}",
+    //     author = ctx.author().name,
+    //     user = u.name
+    // );
     let response = format!("{}'s account was created at {}", u.name, u.created_at());
     ctx.say(response).await.unwrap();
     Ok(())
