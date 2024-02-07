@@ -42,6 +42,8 @@ struct Args {
     user: String,
     #[arg(short, long, default_value = "0")]
     depth: u32,
+    #[arg(short, long)]
+    infinite: bool,
 }
 
 fn do_fetch<'a>(
@@ -240,7 +242,9 @@ async fn main() {
 
     let users: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
-    handle_user(key, args.user, args.depth, users).await;
+    let depth = if args.infinite { u32::MAX } else { args.depth };
+
+    handle_user(key, args.user, depth, users).await;
 
     loop {}
 }
