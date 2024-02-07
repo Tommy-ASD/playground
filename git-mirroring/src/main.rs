@@ -39,13 +39,9 @@ static IS_PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool:
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(short, long)]
-    path: Option<String>,
-    #[arg(short, long)]
-    source: Option<String>,
-    #[arg(short, long)]
-    branch: Option<String>,
-    #[arg(short, long)]
-    recursive: bool,
+    user: String,
+    #[arg(short, long, default_value = "0")]
+    depth: u32,
 }
 
 fn do_fetch<'a>(
@@ -239,11 +235,12 @@ fn run_inner(
 
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
     let key = std::env::var("GITHUB_AUTH").unwrap();
 
     let users: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
-    handle_user(key, "Tommy-ASD".to_string(), 10, users).await;
+    handle_user(key, args.user, args.depth, users).await;
 
     loop {}
 }
