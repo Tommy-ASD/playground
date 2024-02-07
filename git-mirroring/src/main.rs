@@ -246,7 +246,7 @@ async fn main() {
 
     let depth = if args.infinite { u32::MAX } else { args.depth };
 
-    handle_user(args.root, key, args.user, depth, users).await;
+    handle_user(args.root.into(), key, args.user, depth, users).await;
 
     loop {}
 }
