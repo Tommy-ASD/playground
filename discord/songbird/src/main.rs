@@ -69,14 +69,6 @@ async fn main() {
     prefix.prefix = Some("!".to_string());
 
     let framework = poise::Framework::builder()
-        .setup(move |ctx, _ready, framework| {
-            Box::pin(async move {
-                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {
-                    poise_mentions: AtomicU32::new(0),
-                })
-            })
-        })
         .options(poise::FrameworkOptions {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
@@ -84,6 +76,17 @@ async fn main() {
             commands: vec![age(), join(), play()],
             prefix_options: prefix,
             ..Default::default()
+        })
+        .setup(move |ctx, _ready, framework| {
+            Box::pin(async move {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                framework.options().commands.iter().for_each(|c| {
+                    println!("{cname}", cname = c.name);
+                });
+                Ok(Data {
+                    poise_mentions: AtomicU32::new(0),
+                })
+            })
         })
         .build();
 
