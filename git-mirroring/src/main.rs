@@ -45,7 +45,7 @@ struct Args {
     #[arg(short, long)]
     infinite: bool,
     #[arg(short, long)]
-    root: bool,
+    root: String,
 }
 
 fn do_fetch<'a>(
