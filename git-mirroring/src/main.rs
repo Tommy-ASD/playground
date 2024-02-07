@@ -245,9 +245,8 @@ async fn main() {
     let users: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
     let depth = if args.infinite { u32::MAX } else { args.depth };
-    let root = PathBuf::from_str("C://Users/tsd874/Documents/git-mirror").unwrap();
 
-    handle_user(root, key, args.user, depth, users).await;
+    handle_user(args.root, key, args.user, depth, users).await;
 
     loop {}
 }
