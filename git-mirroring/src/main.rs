@@ -19,7 +19,6 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
-    collections::VecDeque,
     io::{self, Write},
     path::PathBuf,
     str::{self, FromStr},
@@ -84,7 +83,7 @@ fn do_fetch<'a>(
     // Perform a download and also update tips
     fo.download_tags(git2::AutotagOption::All);
     println!("Fetching {} for repo {name}", remote.name().unwrap());
-    remote.fetch(refs, Some(&mut fo), None).unwrap();
+    remote.fetch(refs, Some(&mut fo), None)?;
 
     // If there are local objects (we got a thin pack), then tell the user
     // how many objects we saved from having to cross the network.
@@ -107,8 +106,8 @@ fn do_fetch<'a>(
         );
     }
 
-    let fetch_head = repo.find_reference("FETCH_HEAD").unwrap();
-    Ok(repo.reference_to_annotated_commit(&fetch_head).unwrap())
+    let fetch_head = repo.find_reference("FETCH_HEAD")?;
+    Ok(repo.reference_to_annotated_commit(&fetch_head)?)
 }
 
 fn fast_forward(
@@ -244,11 +243,10 @@ async fn main() {
     let key = std::env::var("GITHUB_AUTH").unwrap();
 
     let users: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
-    let queue: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
 
     let depth = if args.infinite { u32::MAX } else { args.depth };
 
-    handle_user(args.root.into(), key, args.user, depth, users, queue).await;
+    handle_user(args.root.into(), key, args.user, depth, users).await;
 
     loop {}
 }
@@ -277,12 +275,19 @@ async fn handle_user(
     user: String,
     mut iterations_remaining: u32,
     checked_users: Arc<Mutex<Vec<String>>>,
-    users_queue: Arc<Mutex<VecDeque<String>>>,
 ) {
     if checked_users.lock().await.contains(&user) {
         return;
     }
     checked_users.lock().await.push(user.clone());
+    pull_user_repos(&root, &key, &user).await;
+
+    if iterations_remaining > 0 {
+        init_user_connections_job(&root, &key, &user, iterations_remaining, checked_users).await;
+    }
+}
+
+async fn pull_user_repos(root: &PathBuf, key: &str, user: &str) {
     let repos = get_user_repos(&key, &user).await;
     println!("User {user} has {amount} repos", amount = repos.len());
 
@@ -293,31 +298,30 @@ async fn handle_user(
     futures::future::join_all(tasks).await;
 
     println!("Finished fetching user {user} repos");
+}
 
-    if iterations_remaining > 0 {
-        let following = get_user_following(key.to_string(), user.to_string()).await;
-        println!("Following; {following:?}");
-        iterations_remaining -= 1;
-        for f_user in following {
-            users_queue.lock().await.push_back(f_user);
-        }
-        let followers = get_user_followers(key.to_string(), user.to_string()).await;
-        println!("Followers; {followers:?}");
-        for f_user in followers {
-            users_queue.lock().await.push_back(f_user);
-        }
-    }
-    futures::future::join_all(users_queue.lock().await.iter().map(|queued| {
-        tokio::spawn(handle_user(
+async fn init_user_connections_job(
+    root: &PathBuf,
+    key: &str,
+    user: &str,
+    mut iterations_remaining: u32,
+    checked_users: Arc<Mutex<Vec<String>>>,
+) {
+    iterations_remaining -= 1;
+
+    let mut following = get_user_following(key.to_string(), user.to_string()).await;
+    let followers = get_user_followers(key.to_string(), user.to_string()).await;
+    following.extend(followers);
+    for f_user in following {
+        handle_user(
             root.clone(),
             key.to_string(),
-            queued.to_string(),
+            f_user,
             iterations_remaining,
             Arc::clone(&checked_users),
-            Arc::clone(&users_queue),
-        ))
-    }))
-    .await;
+        )
+        .await;
+    }
 }
 
 async fn get_user_following(key: String, user: String) -> Vec<String> {
