@@ -292,26 +292,26 @@ async fn handle_user(
         let following = get_user_following(key.to_string(), user.to_string()).await;
         println!("Following; {following:?}");
         iterations_remaining -= 1;
-        let mut tasks = vec![];
         for f_user in following {
-            tasks.push(tokio::task::spawn(handle_user(
+            handle_user(
                 key.to_string(),
                 f_user,
                 iterations_remaining,
                 Arc::clone(&checked_users),
-            )));
+            )
+            .await;
         }
         let followers = get_user_followers(key.to_string(), user.to_string()).await;
         println!("Followers; {followers:?}");
         for f_user in followers {
-            tasks.push(tokio::task::spawn(handle_user(
+            handle_user(
                 key.to_string(),
                 f_user,
                 iterations_remaining,
                 Arc::clone(&checked_users),
-            )));
+            )
+            .await;
         }
-        futures::future::join_all(tasks).await;
     }
 }
 
@@ -386,40 +386,38 @@ async fn handle_repo(repo: Repo, mut root: PathBuf) {
     if was_paused {
         println!("Unpaused; fetching {rname}", rname = repo.full_name)
     }
-    tokio::task::spawn(async move {
-        let extension = PathBuf::from_str(&repo.full_name).unwrap();
-        root.extend(&extension);
-        std::fs::create_dir_all(&root).unwrap();
-        let _fetched_repo = match Repository::open(&root) {
-            Ok(fetched_repo) => {
-                println!("Fetching {rname}", rname = repo.full_name);
-                match run_inner(&repo.full_name, &fetched_repo, "origin", "master") {
-                    Ok(_) => {}
-                    Err(_e) => {
-                        // repo is probably corrupted, just re-clone it
-                        tokio::fs::remove_dir_all(root.clone()).await.unwrap();
-                        handle_repo(repo, root).await;
-                    }
-                };
-                Ok(fetched_repo)
-            }
-            Err(_) => {
-                println!(
-                    "Could not find repo {rname}, cloning",
-                    rname = repo.full_name
-                );
-                match Repository::clone(&repo.clone_url, &root) {
-                    Ok(fetched_repo) => Ok(fetched_repo),
-                    Err(e) => {
-                        println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
-                        global_pause(Duration::from_secs(1)).await;
-                        handle_repo(repo, root).await;
-                        Err(())
-                    }
+    let extension = PathBuf::from_str(&repo.full_name).unwrap();
+    root.extend(&extension);
+    std::fs::create_dir_all(&root).unwrap();
+    let _fetched_repo = match Repository::open(&root) {
+        Ok(fetched_repo) => {
+            println!("Fetching {rname}", rname = repo.full_name);
+            match run_inner(&repo.full_name, &fetched_repo, "origin", "master") {
+                Ok(_) => {}
+                Err(_e) => {
+                    // repo is probably corrupted, just re-clone it
+                    tokio::fs::remove_dir_all(root.clone()).await.unwrap();
+                    handle_repo(repo, root).await;
+                }
+            };
+            Ok(fetched_repo)
+        }
+        Err(_) => {
+            println!(
+                "Could not find repo {rname}, cloning",
+                rname = repo.full_name
+            );
+            match Repository::clone(&repo.clone_url, &root) {
+                Ok(fetched_repo) => Ok(fetched_repo),
+                Err(e) => {
+                    println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
+                    global_pause(Duration::from_secs(1)).await;
+                    handle_repo(repo, root).await;
+                    Err(())
                 }
             }
-        };
-    });
+        }
+    };
 }
 
 async fn global_pause(duration: Duration) {
