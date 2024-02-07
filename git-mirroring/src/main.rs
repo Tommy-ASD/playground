@@ -12,13 +12,27 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+use async_recursion::async_recursion;
+use core::panic;
 use git2::Repository;
-use std::collections::HashSet;
-use std::io::{self, Write};
-use std::path::PathBuf;
-use std::str;
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{
+    io::{self, Write},
+    path::PathBuf,
+    str::{self, FromStr},
+};
+use tokio::{
+    sync::Mutex,
+    time::{sleep, Duration, Instant},
+};
+use url::Url;
 
 use clap::Parser;
+
+static GLOBAL_TIMEOUT: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now()));
+static IS_PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -34,6 +48,7 @@ struct Args {
 }
 
 fn do_fetch<'a>(
+    name: &str,
     repo: &'a git2::Repository,
     refs: &[&str],
     remote: &'a mut git2::Remote,
@@ -44,13 +59,13 @@ fn do_fetch<'a>(
     cb.transfer_progress(|stats| {
         if stats.received_objects() == stats.total_objects() {
             print!(
-                "Resolving deltas {}/{}\r",
+                "{name}: Resolving deltas {}/{}\r",
                 stats.indexed_deltas(),
                 stats.total_deltas()
             );
         } else if stats.total_objects() > 0 {
             print!(
-                "Received {}/{} objects ({}) in {} bytes\r",
+                "{name}: Received {}/{} objects ({}) in {} bytes\r",
                 stats.received_objects(),
                 stats.total_objects(),
                 stats.indexed_objects(),
@@ -66,7 +81,7 @@ fn do_fetch<'a>(
     // Always fetch all tags.
     // Perform a download and also update tips
     fo.download_tags(git2::AutotagOption::All);
-    println!("Fetching {} for repo", remote.name().unwrap());
+    println!("Fetching {} for repo {name}", remote.name().unwrap());
     remote.fetch(refs, Some(&mut fo), None).unwrap();
 
     // If there are local objects (we got a thin pack), then tell the user
@@ -74,7 +89,7 @@ fn do_fetch<'a>(
     let stats = remote.stats();
     if stats.local_objects() > 0 {
         println!(
-            "\rReceived {}/{} objects in {} bytes (used {} local \
+            "\r{name}: Received {}/{} objects in {} bytes (used {} local \
              objects)",
             stats.indexed_objects(),
             stats.total_objects(),
@@ -83,7 +98,7 @@ fn do_fetch<'a>(
         );
     } else {
         println!(
-            "\rReceived {}/{} objects in {} bytes",
+            "\r{name}: Received {}/{} objects in {} bytes",
             stats.indexed_objects(),
             stats.total_objects(),
             stats.received_bytes()
@@ -206,93 +221,186 @@ fn do_merge<'a>(
             .unwrap();
         normal_merge(&repo, &head_commit, &fetch_commit).unwrap();
     } else {
-        println!("Nothing to do...");
+        // println!("Nothing to do...");
     }
 }
 
-fn run(repo_path: &PathBuf, remote_name: &str, remote_branch: &str) -> Result<(), git2::Error> {
-    let repo = match Repository::open(repo_path) {
-        Ok(repo) => repo,
-        Err(e) => {
-            println!("Path {repo_path:?} is not a repo");
-            return Err(e);
-        }
-    };
+fn run_inner(
+    name: &str,
+    repo: &Repository,
+    remote_name: &str,
+    remote_branch: &str,
+) -> Result<(), git2::Error> {
     let mut remote = repo.find_remote(remote_name)?;
-    let fetch_commit = do_fetch(&repo, &[remote_branch], &mut remote)?;
+    let fetch_commit = do_fetch(name, &repo, &[remote_branch], &mut remote)?;
     Ok(do_merge(&repo, &remote_branch, fetch_commit))
-}
-
-async fn walk_dir(dir: PathBuf) -> Vec<PathBuf> {
-    let ignore: Vec<PathBuf> = vec!["target".into(), ".git".into(), ".vscode".into()];
-
-    let mut dirs_iter = vec![dir.clone()];
-    let mut dirs = vec![dir.clone()];
-
-    println!("Initialized dirs as {dirs_iter:?}");
-
-    while !dirs_iter.is_empty() {
-        let dir_path = dirs_iter.remove(0);
-        println!("Checking dir {dir_path:?}");
-
-        let mut dir_iter = tokio::fs::read_dir(dir_path).await.unwrap();
-
-        while let Some(entry) = dir_iter.next_entry().await.unwrap() {
-            let entry_path_buf = entry.path();
-
-            if entry_path_buf.is_dir() {
-                let mut skip = false;
-                for i in &ignore {
-                    if entry_path_buf.ends_with(&i) {
-                        skip = true;
-                        break;
-                    }
-                }
-                if skip {
-                    continue;
-                }
-
-                println!("Found dir {entry_path_buf:?}");
-
-                dirs_iter.push(entry_path_buf.clone());
-                dirs.push(entry_path_buf.clone());
-            } else {
-                println!("Found entry {entry_path_buf:?}");
-            }
-        }
-    }
-
-    dedupe_vec(dirs)
 }
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
-    let remote_name = args.source.as_ref().map(|s| &s[..]).unwrap_or("origin");
-    let remote_branch = args.branch.as_ref().map(|s| &s[..]).unwrap_or("master");
-    let path = args.path.as_ref().map(|s| &s[..]).unwrap_or(".").into();
-    if args.recursive {
+    let key = std::env::var("GITHUB_AUTH").unwrap();
+
+    handle_user(key, "rust-lang".to_string(), 0).await;
+
+    loop {}
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Repo {
+    name: String,
+    full_name: String,
+    id: u32,
+    html_url: Url,
+    git_url: String,
+    ssh_url: String,
+    clone_url: String,
+    svn_url: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct User {
+    login: String,
+}
+
+#[async_recursion]
+async fn handle_user(key: String, user: String, mut iterations_remaining: u32) {
+    let repos = get_user_repos(&key, &user).await;
+
+    let mut tasks = vec![];
+    for repo in &repos {
+        let root = PathBuf::from_str("C://Users/tsd874/Documents/git-mirror").unwrap();
+        tasks.push(handle_repo(repo.clone(), root));
+    }
+    futures::future::join_all(tasks).await;
+
+    if iterations_remaining > 0 {
+        let following = get_user_following(key.to_string(), user.to_string()).await;
+        println!("Following; {following:?}");
+        iterations_remaining -= 1;
         let mut tasks = vec![];
-        let dirs = walk_dir(path).await;
-        println!("Found dirs {dirs:?}");
-        for dir in dirs {
-            let rname = remote_name.to_string();
-            let rbranch = remote_branch.to_string();
-            tasks.push(tokio::task::spawn_blocking(move || {
-                run(&dir, &rname, &rbranch)
-            }));
+        for f_user in following {
+            tasks.push(tokio::task::spawn(handle_user(
+                key.to_string(),
+                f_user,
+                iterations_remaining,
+            )));
+        }
+        let followers = get_user_followers(key.to_string(), user.to_string()).await;
+        println!("Followers; {followers:?}");
+        iterations_remaining -= 1;
+        for f_user in followers {
+            tasks.push(tokio::task::spawn(handle_user(
+                key.to_string(),
+                f_user,
+                iterations_remaining,
+            )));
         }
         futures::future::join_all(tasks).await;
-    } else {
-        match run(&path, remote_name, remote_branch) {
-            Ok(_) => {}
-            Err(_) => {}
-        };
     }
 }
 
-fn dedupe_vec<T: Eq + std::hash::Hash + Clone>(vec: Vec<T>) -> Vec<T> {
-    let set: HashSet<_> = vec.into_iter().collect();
-    let deduped_vec: Vec<_> = set.into_iter().collect();
-    deduped_vec
+async fn get_user_following(key: String, user: String) -> Vec<String> {
+    let url = Url::parse(&format!("https://api.github.com/users/{user}/following")).unwrap();
+    let resp = reqwest::Client::new()
+        .get(url)
+        .header("User-Agent", "git-mirror-reqwest")
+        .bearer_auth(key)
+        .send()
+        .await
+        .unwrap();
+    println!("RESP :D {resp:?}");
+    let resp: Vec<User> = resp.json().await.unwrap();
+    println!("JSON :D {resp:?}");
+    resp.into_iter().map(|user| user.login).collect()
+}
+
+async fn get_user_followers(key: String, user: String) -> Vec<String> {
+    let url = Url::parse(&format!("https://api.github.com/users/{user}/followers")).unwrap();
+    let resp = reqwest::Client::new()
+        .get(url)
+        .header("User-Agent", "git-mirror-reqwest")
+        .bearer_auth(key)
+        .send()
+        .await
+        .unwrap();
+    println!("RESP :D {resp:?}");
+    let resp: Vec<User> = resp.json().await.unwrap();
+    println!("JSON :D {resp:?}");
+    resp.into_iter().map(|user| user.login).collect()
+}
+
+async fn get_user_repos(key: &str, user: &str) -> Vec<Repo> {
+    let url = Url::parse(&format!("https://api.github.com/users/{user}/repos")).unwrap();
+    let resp = reqwest::Client::new()
+        .get(url)
+        .header("User-Agent", "git-mirror-reqwest")
+        .bearer_auth(key)
+        .send()
+        .await
+        .unwrap();
+
+    let resp: Value = match resp.json().await {
+        Ok(ok) => ok,
+        Err(e) => {
+            panic!("Failed to fetch repos for user {user}: {e}\n")
+        }
+    };
+    let parsed: Vec<Repo> = match serde_json::from_value(resp.clone()) {
+        Ok(ok) => ok,
+        Err(e) => {
+            panic!("Failed to fetch repos for user {user}: {e}\n{resp}")
+        }
+    };
+    let names = parsed
+        .iter()
+        .map(|r| r.name.as_str())
+        .collect::<Vec<&str>>();
+    println!("User {user} har repos {names:?}");
+    parsed
+}
+
+#[async_recursion]
+async fn handle_repo(repo: Repo, mut root: PathBuf) {
+    // Check if paused
+    while IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
+        // You can yield or sleep here to avoid busy-waiting
+        sleep(Duration::from_millis(10)).await;
+    }
+    tokio::task::spawn(async move {
+        let extension = PathBuf::from_str(&repo.full_name).unwrap();
+        root.extend(&extension);
+        std::fs::create_dir_all(&root).unwrap();
+        let _fetched_repo = match Repository::open(&root) {
+            Ok(fetched_repo) => {
+                run_inner(&repo.full_name, &fetched_repo, "origin", "master").unwrap();
+                Ok(fetched_repo)
+            }
+            Err(_) => match Repository::clone(&repo.clone_url, &root) {
+                Ok(fetched_repo) => Ok(fetched_repo),
+                Err(e) => {
+                    global_pause(Duration::from_secs(1)).await;
+                    println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
+                    handle_repo(repo, root).await;
+                    Err(())
+                }
+            },
+        };
+    });
+}
+
+async fn global_pause(duration: Duration) {
+    println!(
+        "Pausing execution for {msecs}ms",
+        msecs = duration.as_millis()
+    );
+    // Set the global timeout
+    *GLOBAL_TIMEOUT.lock().await = Instant::now() + duration;
+
+    // Set is_paused to true
+    IS_PAUSED.store(true, std::sync::atomic::Ordering::Relaxed);
+
+    // Wait for the global timeout
+    while Instant::now() < *GLOBAL_TIMEOUT.lock().await {
+        sleep(Duration::from_millis(10)).await;
+    }
 }
