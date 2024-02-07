@@ -22,6 +22,7 @@ use std::{
     io::{self, Write},
     path::PathBuf,
     str::{self, FromStr},
+    sync::Arc,
 };
 use tokio::{
     sync::Mutex,
@@ -240,7 +241,9 @@ fn run_inner(
 async fn main() {
     let key = std::env::var("GITHUB_AUTH").unwrap();
 
-    handle_user(key, "rust-lang".to_string(), 0).await;
+    let users: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+
+    handle_user(key, "Tommy-ASD".to_string(), 10, users).await;
 
     loop {}
 }
@@ -263,8 +266,18 @@ pub struct User {
 }
 
 #[async_recursion]
-async fn handle_user(key: String, user: String, mut iterations_remaining: u32) {
+async fn handle_user(
+    key: String,
+    user: String,
+    mut iterations_remaining: u32,
+    checked_users: Arc<Mutex<Vec<String>>>,
+) {
+    if checked_users.lock().await.contains(&user) {
+        return;
+    }
+    checked_users.lock().await.push(user.clone());
     let repos = get_user_repos(&key, &user).await;
+    println!("User {user} has {amount} repos", amount = repos.len());
 
     let mut tasks = vec![];
     for repo in &repos {
@@ -272,6 +285,8 @@ async fn handle_user(key: String, user: String, mut iterations_remaining: u32) {
         tasks.push(handle_repo(repo.clone(), root));
     }
     futures::future::join_all(tasks).await;
+
+    println!("Finished fetching user {user} repos");
 
     if iterations_remaining > 0 {
         let following = get_user_following(key.to_string(), user.to_string()).await;
@@ -283,16 +298,17 @@ async fn handle_user(key: String, user: String, mut iterations_remaining: u32) {
                 key.to_string(),
                 f_user,
                 iterations_remaining,
+                Arc::clone(&checked_users),
             )));
         }
         let followers = get_user_followers(key.to_string(), user.to_string()).await;
         println!("Followers; {followers:?}");
-        iterations_remaining -= 1;
         for f_user in followers {
             tasks.push(tokio::task::spawn(handle_user(
                 key.to_string(),
                 f_user,
                 iterations_remaining,
+                Arc::clone(&checked_users),
             )));
         }
         futures::future::join_all(tasks).await;
@@ -307,7 +323,7 @@ async fn get_user_following(key: String, user: String) -> Vec<String> {
         .bearer_auth(key)
         .send()
         .await
-        .unwrap();
+        .expect(&format!("Failed to get following for {user}"));
     println!("RESP :D {resp:?}");
     let resp: Vec<User> = resp.json().await.unwrap();
     println!("JSON :D {resp:?}");
@@ -337,7 +353,7 @@ async fn get_user_repos(key: &str, user: &str) -> Vec<Repo> {
         .bearer_auth(key)
         .send()
         .await
-        .unwrap();
+        .expect(&format!("Failed to get {user} repos"));
 
     let resp: Value = match resp.json().await {
         Ok(ok) => ok,
@@ -361,10 +377,14 @@ async fn get_user_repos(key: &str, user: &str) -> Vec<Repo> {
 
 #[async_recursion]
 async fn handle_repo(repo: Repo, mut root: PathBuf) {
+    let was_paused = IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed);
     // Check if paused
     while IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
         // You can yield or sleep here to avoid busy-waiting
         sleep(Duration::from_millis(10)).await;
+    }
+    if was_paused {
+        println!("Unpaused; fetching {rname}", rname = repo.full_name)
     }
     tokio::task::spawn(async move {
         let extension = PathBuf::from_str(&repo.full_name).unwrap();
@@ -372,18 +392,32 @@ async fn handle_repo(repo: Repo, mut root: PathBuf) {
         std::fs::create_dir_all(&root).unwrap();
         let _fetched_repo = match Repository::open(&root) {
             Ok(fetched_repo) => {
-                run_inner(&repo.full_name, &fetched_repo, "origin", "master").unwrap();
+                println!("Fetching {rname}", rname = repo.full_name);
+                match run_inner(&repo.full_name, &fetched_repo, "origin", "master") {
+                    Ok(_) => {}
+                    Err(_e) => {
+                        // repo is probably corrupted, just re-clone it
+                        tokio::fs::remove_dir_all(root.clone()).await.unwrap();
+                        handle_repo(repo, root).await;
+                    }
+                };
                 Ok(fetched_repo)
             }
-            Err(_) => match Repository::clone(&repo.clone_url, &root) {
-                Ok(fetched_repo) => Ok(fetched_repo),
-                Err(e) => {
-                    global_pause(Duration::from_secs(1)).await;
-                    println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
-                    handle_repo(repo, root).await;
-                    Err(())
+            Err(_) => {
+                println!(
+                    "Could not find repo {rname}, cloning",
+                    rname = repo.full_name
+                );
+                match Repository::clone(&repo.clone_url, &root) {
+                    Ok(fetched_repo) => Ok(fetched_repo),
+                    Err(e) => {
+                        println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
+                        global_pause(Duration::from_secs(1)).await;
+                        handle_repo(repo, root).await;
+                        Err(())
+                    }
                 }
-            },
+            }
         };
     });
 }
@@ -401,6 +435,8 @@ async fn global_pause(duration: Duration) {
 
     // Wait for the global timeout
     while Instant::now() < *GLOBAL_TIMEOUT.lock().await {
+        println!("Still paused pls wait");
         sleep(Duration::from_millis(10)).await;
     }
+    println!("Ok continue execution time :3");
 }
