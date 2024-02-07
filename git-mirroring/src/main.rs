@@ -44,6 +44,8 @@ struct Args {
     depth: u32,
     #[arg(short, long)]
     infinite: bool,
+    #[arg(short, long)]
+    root: bool,
 }
 
 fn do_fetch<'a>(
@@ -243,8 +245,9 @@ async fn main() {
     let users: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
     let depth = if args.infinite { u32::MAX } else { args.depth };
+    let root = PathBuf::from_str("C://Users/tsd874/Documents/git-mirror").unwrap();
 
-    handle_user(key, args.user, depth, users).await;
+    handle_user(root, key, args.user, depth, users).await;
 
     loop {}
 }
@@ -268,6 +271,7 @@ pub struct User {
 
 #[async_recursion]
 async fn handle_user(
+    root: PathBuf,
     key: String,
     user: String,
     mut iterations_remaining: u32,
@@ -282,8 +286,7 @@ async fn handle_user(
 
     let mut tasks = vec![];
     for repo in &repos {
-        let root = PathBuf::from_str("C://Users/tsd874/Documents/git-mirror").unwrap();
-        tasks.push(handle_repo(repo.clone(), root));
+        tasks.push(handle_repo(repo.clone(), root.clone()));
     }
     futures::future::join_all(tasks).await;
 
@@ -295,6 +298,7 @@ async fn handle_user(
         iterations_remaining -= 1;
         for f_user in following {
             handle_user(
+                root.clone(),
                 key.to_string(),
                 f_user,
                 iterations_remaining,
@@ -306,6 +310,7 @@ async fn handle_user(
         println!("Followers; {followers:?}");
         for f_user in followers {
             handle_user(
+                root.clone(),
                 key.to_string(),
                 f_user,
                 iterations_remaining,
