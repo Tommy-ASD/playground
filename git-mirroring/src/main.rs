@@ -439,5 +439,6 @@ async fn global_pause(duration: Duration) {
         println!("Still paused pls wait");
         sleep(Duration::from_millis(10)).await;
     }
+    IS_PAUSED.store(false, std::sync::atomic::Ordering::Relaxed);
     println!("Ok continue execution time :3");
 }
