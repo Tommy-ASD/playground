@@ -292,9 +292,9 @@ async fn pull_user_repos(root: PathBuf, key: String, user: String) {
 
     let mut tasks = vec![];
     for repo in &repos {
-        tasks.push(handle_repo(repo.clone(), root.clone()));
+        tasks.push(tokio::task::spawn(handle_repo(repo.clone(), root.clone())));
     }
-    futures::future::join_all(tasks).await;
+    tokio::task::spawn(futures::future::join_all(tasks));
 
     println!("Finished fetching user {user} repos");
 }
