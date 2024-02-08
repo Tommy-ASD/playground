@@ -273,7 +273,7 @@ async fn handle_user(
         return;
     }
     checked_users.lock().await.push(user.clone());
-    tokio::task::spawn(pull_user_repos(root.clone(), key.clone(), user.clone()));
+    tokio::task::spawn(dpull_user_repos(root.clone(), key.clone(), user.clone()));
 
     if iterations_remaining > 0 {
         tokio::task::spawn(init_user_connections_job(
