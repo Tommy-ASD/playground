@@ -382,6 +382,7 @@ async fn handle_repo(repo: Repo, mut root: PathBuf) {
     let was_paused = IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed);
     // Check if paused
     while IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
+        println!("Pause :(");
         // You can yield or sleep here to avoid busy-waiting
         sleep(Duration::from_millis(10)).await;
     }
