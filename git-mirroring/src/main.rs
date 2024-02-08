@@ -273,7 +273,7 @@ async fn handle_user(
         return;
     }
     checked_users.lock().await.push(user.clone());
-    tokio::task::spawn(dpull_user_repos(root.clone(), key.clone(), user.clone()));
+    tokio::task::spawn(pull_user_repos(root.clone(), key.clone(), user.clone()));
 
     if iterations_remaining > 0 {
         tokio::task::spawn(init_user_connections_job(
@@ -442,7 +442,10 @@ async fn handle_repo(repo: Repo, mut root: PathBuf) {
                     rname = repo.full_name
                 );
                 match Repository::clone(&repo.clone_url, &root) {
-                    Ok(fetched_repo) => Ok(fetched_repo),
+                    Ok(fetched_repo) => {
+                        println!("Successfully cloned {rname}", rname = repo.full_name);
+                        Ok(fetched_repo)
+                    }
                     Err(e) => {
                         println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
                         global_pause(Duration::from_secs(1)).await;
