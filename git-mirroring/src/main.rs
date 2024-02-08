@@ -273,20 +273,20 @@ async fn handle_user(
         return;
     }
     checked_users.lock().await.push(user.clone());
-    tokio::task::spawn(pull_user_repos(&root, &key, &user));
+    tokio::task::spawn(pull_user_repos(root.clone(), key.clone(), user.clone()));
 
     if iterations_remaining > 0 {
         tokio::task::spawn(init_user_connections_job(
-            &root,
-            &key,
-            &user,
+            root.clone(),
+            key.clone(),
+            user.clone(),
             iterations_remaining,
             checked_users,
         ));
     }
 }
 
-async fn pull_user_repos(root: &PathBuf, key: &str, user: &str) {
+async fn pull_user_repos(root: PathBuf, key: String, user: String) {
     let repos = get_user_repos(&key, &user).await;
     println!("User {user} has {amount} repos", amount = repos.len());
 
@@ -300,9 +300,9 @@ async fn pull_user_repos(root: &PathBuf, key: &str, user: &str) {
 }
 
 async fn init_user_connections_job(
-    root: &PathBuf,
-    key: &str,
-    user: &str,
+    root: PathBuf,
+    key: String,
+    user: String,
     mut iterations_remaining: u32,
     checked_users: Arc<Mutex<Vec<String>>>,
 ) {
