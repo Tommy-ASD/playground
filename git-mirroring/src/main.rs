@@ -266,17 +266,23 @@ async fn handle_user(
     root: PathBuf,
     key: String,
     user: String,
-    mut iterations_remaining: u32,
+    iterations_remaining: u32,
     checked_users: Arc<Mutex<Vec<String>>>,
 ) {
     if checked_users.lock().await.contains(&user) {
         return;
     }
     checked_users.lock().await.push(user.clone());
-    pull_user_repos(&root, &key, &user).await;
+    tokio::task::spawn(pull_user_repos(&root, &key, &user));
 
     if iterations_remaining > 0 {
-        init_user_connections_job(&root, &key, &user, iterations_remaining, checked_users).await;
+        tokio::task::spawn(init_user_connections_job(
+            &root,
+            &key,
+            &user,
+            iterations_remaining,
+            checked_users,
+        ));
     }
 }
 
