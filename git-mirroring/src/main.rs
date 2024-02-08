@@ -302,10 +302,32 @@ async fn init_user_connections_job(
 ) {
     iterations_remaining -= 1;
 
-    let mut following = get_user_following(key.to_string(), user.to_string()).await;
-    let followers = get_user_followers(key.to_string(), user.to_string()).await;
-    following.extend(followers);
+    let mut following = vec![];
+    let mut followers = vec![];
+
+    match get_user_following(key.to_string(), user.to_string()).await {
+        Ok(inner_following) => {
+            following.extend(inner_following);
+        }
+        Err(_e) => {}
+    };
+    match get_user_followers(key.to_string(), user.to_string()).await {
+        Ok(inner_followers) => {
+            followers.extend(inner_followers);
+        }
+        Err(_e) => {}
+    };
     for f_user in following {
+        handle_user(
+            root.clone(),
+            key.to_string(),
+            f_user,
+            iterations_remaining,
+            Arc::clone(&checked_users),
+        )
+        .await;
+    }
+    for f_user in followers {
         handle_user(
             root.clone(),
             key.to_string(),
@@ -317,34 +339,38 @@ async fn init_user_connections_job(
     }
 }
 
-async fn get_user_following(key: String, user: String) -> Vec<String> {
-    let url = Url::parse(&format!("https://api.github.com/users/{user}/following")).unwrap();
+async fn get_user_following(
+    key: String,
+    user: String,
+) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let url = Url::parse(&format!("https://api.github.com/users/{user}/following"))?;
     let resp = reqwest::Client::new()
         .get(url)
         .header("User-Agent", "git-mirror-reqwest")
         .bearer_auth(key)
         .send()
-        .await
-        .expect(&format!("Failed to get following for {user}"));
+        .await?;
     println!("RESP :D {resp:?}");
-    let resp: Vec<User> = resp.json().await.unwrap();
+    let resp: Vec<User> = resp.json().await?;
     println!("JSON :D {resp:?}");
-    resp.into_iter().map(|user| user.login).collect()
+    Ok(resp.into_iter().map(|user| user.login).collect())
 }
 
-async fn get_user_followers(key: String, user: String) -> Vec<String> {
-    let url = Url::parse(&format!("https://api.github.com/users/{user}/followers")).unwrap();
+async fn get_user_followers(
+    key: String,
+    user: String,
+) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let url = Url::parse(&format!("https://api.github.com/users/{user}/followers"))?;
     let resp = reqwest::Client::new()
         .get(url)
         .header("User-Agent", "git-mirror-reqwest")
         .bearer_auth(key)
         .send()
-        .await
-        .unwrap();
+        .await?;
     println!("RESP :D {resp:?}");
-    let resp: Vec<User> = resp.json().await.unwrap();
+    let resp: Vec<User> = resp.json().await?;
     println!("JSON :D {resp:?}");
-    resp.into_iter().map(|user| user.login).collect()
+    Ok(resp.into_iter().map(|user| user.login).collect())
 }
 
 async fn get_user_repos(key: &str, user: &str) -> Vec<Repo> {
