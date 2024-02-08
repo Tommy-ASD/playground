@@ -318,24 +318,22 @@ async fn init_user_connections_job(
         Err(_e) => {}
     };
     for f_user in following {
-        handle_user(
+        tokio::task::spawn(handle_user(
             root.clone(),
             key.to_string(),
             f_user,
             iterations_remaining,
             Arc::clone(&checked_users),
-        )
-        .await;
+        ));
     }
     for f_user in followers {
-        handle_user(
+        tokio::task::spawn(handle_user(
             root.clone(),
             key.to_string(),
             f_user,
             iterations_remaining,
             Arc::clone(&checked_users),
-        )
-        .await;
+        ));
     }
 }
 
