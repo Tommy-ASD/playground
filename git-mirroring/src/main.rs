@@ -379,48 +379,51 @@ async fn get_user_repos(key: &str, user: &str) -> Vec<Repo> {
 
 #[async_recursion]
 async fn handle_repo(repo: Repo, mut root: PathBuf) {
-    let was_paused = IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed);
-    // Check if paused
-    while IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
-        println!("Pause :(");
-        // You can yield or sleep here to avoid busy-waiting
-        sleep(Duration::from_millis(10)).await;
-    }
-    if was_paused {
-        println!("Unpaused; fetching {rname}", rname = repo.full_name)
-    }
-    let extension = PathBuf::from_str(&repo.full_name).unwrap();
-    root.extend(&extension);
-    tokio::fs::create_dir_all(&root).await.unwrap();
-    let _fetched_repo = match Repository::open(&root) {
-        Ok(fetched_repo) => {
-            println!("Fetching {rname}", rname = repo.full_name);
-            match run_inner(&repo.full_name, &fetched_repo, "origin", "master") {
-                Ok(_) => {}
-                Err(_e) => {
-                    // repo is probably corrupted, just re-clone it
-                    tokio::fs::remove_dir_all(root.clone()).await.unwrap();
-                    handle_repo(repo, root).await;
-                }
-            };
-            Ok(fetched_repo)
+    let body = async {
+        let was_paused = IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed);
+        // Check if paused
+        while IS_PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
+            println!("Pause :(");
+            // You can yield or sleep here to avoid busy-waiting
+            sleep(Duration::from_millis(10)).await;
         }
-        Err(_) => {
-            println!(
-                "Could not find repo {rname}, cloning",
-                rname = repo.full_name
-            );
-            match Repository::clone(&repo.clone_url, &root) {
-                Ok(fetched_repo) => Ok(fetched_repo),
-                Err(e) => {
-                    println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
-                    global_pause(Duration::from_secs(1)).await;
-                    handle_repo(repo, root).await;
-                    Err(())
+        if was_paused {
+            println!("Unpaused; fetching {rname}", rname = repo.full_name)
+        }
+        let extension = PathBuf::from_str(&repo.full_name).unwrap();
+        root.extend(&extension);
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let _fetched_repo = match Repository::open(&root) {
+            Ok(fetched_repo) => {
+                println!("Fetching {rname}", rname = repo.full_name);
+                match run_inner(&repo.full_name, &fetched_repo, "origin", "master") {
+                    Ok(_) => {}
+                    Err(_e) => {
+                        // repo is probably corrupted, just re-clone it
+                        tokio::fs::remove_dir_all(root.clone()).await.unwrap();
+                        handle_repo(repo, root).await;
+                    }
+                };
+                Ok(fetched_repo)
+            }
+            Err(_) => {
+                println!(
+                    "Could not find repo {rname}, cloning",
+                    rname = repo.full_name
+                );
+                match Repository::clone(&repo.clone_url, &root) {
+                    Ok(fetched_repo) => Ok(fetched_repo),
+                    Err(e) => {
+                        println!("FUCK {e:?}\nRepo is {rname}", rname = repo.full_name);
+                        global_pause(Duration::from_secs(1)).await;
+                        handle_repo(repo, root).await;
+                        Err(())
+                    }
                 }
             }
-        }
+        };
     };
+    tokio::task::spawn(body);
 }
 
 async fn global_pause(duration: Duration) {
