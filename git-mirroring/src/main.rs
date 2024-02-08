@@ -241,6 +241,8 @@ async fn main() {
 
     handle_user(args.root.into(), key, args.user, depth, users).await;
 
+    println!("Finished handle_user, though stuff may be happening in other threads");
+
     loop {}
 }
 
