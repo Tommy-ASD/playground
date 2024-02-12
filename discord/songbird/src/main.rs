@@ -188,11 +188,11 @@ async fn play(
     let url = match Url::parse(&song) {
         Ok(url) => url,
         Err(e) => {
-            ctx.reply(format!("{song} is not a valid URL: {e}"));
-            return Err(e).into();
+            ctx.reply(format!("{song} is not a valid URL: {e}")).await;
+            return Err(e.into());
         }
     };
-    play_inner(&ctx, &song).await
+    play_inner(&ctx, &url).await
 }
 
 async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
@@ -216,7 +216,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
 
-        if url.starts_with("https://youtu.be") || url.starts_with("https://youtube.com") {
+        if url.host_str() == Some("youtu.be") || url.host_str() == Some("youtube.com") {
             let id = url.query();
             println!("Id: {id:?}");
 
@@ -224,7 +224,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
             let thandle = handler.play_input(src.clone().into());
             ctx.reply("Playing song").await;
         } else {
-            let req = match reqwest::get(url).await {
+            let req = match reqwest::get(url.as_str()).await {
                 Ok(req) => match req.bytes().await {
                     Ok(b) => {
                         let _ = handler.play(b.into());
