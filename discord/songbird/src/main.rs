@@ -140,6 +140,12 @@ fn check_msg(result: SerenityResult<Message>) {
 }
 
 #[poise::command(slash_command, prefix_command)]
+async fn test(ctx: Context<'_>) -> Result<(), Error> {
+    println!("{}", ctx.id());
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
 async fn play(
     ctx: Context<'_>,
     #[description = "Song URL (song search will be implemented at later point)"] song: String,
