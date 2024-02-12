@@ -83,7 +83,7 @@ async fn main() {
                 framework.options().commands.iter().for_each(|c| {
                     println!("{cname}", cname = c.name);
                 });
-                Ok(Data {
+                                Ok(Data {
                     poise_mentions: AtomicU32::new(0),
                 })
             })
@@ -237,3 +237,4 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
 
     Ok(())
 }
+
