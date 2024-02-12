@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rusty_ytdl = { version = "0.6.4", features = ["tokio"] }
 tokio = { version = "1.33.0", features = ["full"] }
+youtube_dl = { version = "0.9.0", features = ["reqwest", "tokio"] }
