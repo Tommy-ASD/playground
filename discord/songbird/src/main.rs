@@ -6,8 +6,6 @@ use songbird::SerenityInit;
 
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 
-use songbird::input::YoutubeDl;
-
 use reqwest::{Client as HttpClient, Url};
 
 use serenity::{
@@ -221,10 +219,27 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
             || url.host_str() == Some("youtube.com")
             || url.host_str() == Some("www.youtube.com")
         {
-            let id = url.query();
-            println!("Id: {id:?}");
+            let id = if url.host_str() == Some("youtu.be") || url.host_str() == Some("www.youtu.be")
+            {
+                url.path_segments()[0]
+            } else {
+                url.query_pairs()
+                    .into_iter()
+                    .find(|item| {
+                        println!("Q: {item:?}");
+                        item.0 == "v"
+                    })
+                    .and_then(|id_pair| Some(id_pair.1))
+            };
 
-            let src = YoutubeDl::new(http_client, url.to_string());
+            YoutubeDl::new(url)
+                .extra_arg("-f bestvideo[ext=mp4]+bestaudio[ext=m4a]")
+                .extra_arg("-k")
+                .output_template("%(ID)s")
+                .download_to_async("./downloads")
+                .await
+                .unwrap();
+
             let thandle = handler.play_input(src.clone().into());
             ctx.reply("Playing song").await;
         } else {
