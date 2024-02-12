@@ -73,7 +73,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play()],
+            commands: vec![age(), join(), play() /*test()*/],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -139,10 +139,46 @@ fn check_msg(result: SerenityResult<Message>) {
     }
 }
 
-#[poise::command(slash_command, prefix_command)]
-async fn test(ctx: Context<'_>) -> Result<(), Error> {
-    Ok(())
-}
+// #[poise::command(slash_command, prefix_command)]
+// async fn test(ctx: Context<'_>) -> Result<(), Error> {
+//     println!("{}", ctx.id());
+//     let msg = ctx
+//         .channel_id()
+//         .message(ctx.http(), ctx.id())
+//         .await
+//         .unwrap();
+//     let manager = songbird::get(ctx.serenity_context())
+//         .await
+//         .expect("Songbird Voice client placed in at initialisation.")
+//         .clone();
+//     for attachment in msg.attachments {
+//         println!("A URL: {}", attachment.url);
+//         println!("P URL: {}", attachment.proxy_url);
+//         println!("CT: {:?}", attachment.content_type);
+//         println!("A: {:?}", attachment);
+//         let b = reqwest::get(attachment.proxy_url)
+//             .await
+//             .unwrap()
+//             .bytes()
+//             .await
+//             .unwrap();
+//         if let Some(handler_lock) = manager.get(ctx.guild_id().unwrap()) {
+//             let mut handler = handler_lock.lock().await;
+
+//             let _ = handler.play_input(b.into());
+
+//             check_msg(ctx.channel_id().say(&ctx.http(), "Playing song").await);
+//         } else {
+//             check_msg(
+//                 ctx.channel_id()
+//                     .say(&ctx.http(), "Not in a voice channel to play in")
+//                     .await,
+//             );
+//         }
+//     }
+
+//     Ok(())
+// }
 
 #[poise::command(slash_command, prefix_command)]
 async fn play(
@@ -170,10 +206,30 @@ async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
 
-        let src = YoutubeDl::new(http_client, url.to_string());
-        let handle = handler.play_input(src.clone().into());
-
-        check_msg(ctx.reply("Playing song").await);
+        if url.starts_with("https://youtu.be") {
+            let src = YoutubeDl::new(http_client, url.to_string());
+            let _ = handler.play_input(src.clone().into());
+            check_msg(ctx.channel_id().say(&ctx.http(), "Playing song").await);
+        } else {
+            let req = match reqwest::get(url).await {
+                Ok(req) => match req.bytes().await {
+                    Ok(b) => {
+                        let _ = handler.play(b.into());
+                        check_msg(ctx.reply("Playing song").await);
+                    }
+                    Err(e) => {
+                        check_msg(ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}")).await);
+                    }
+                },
+                Err(e) => {
+                    check_msg(
+                        ctx
+                            .reply( format!("Did not get a response from URL. Exact error for debugging purposes; {e}"))
+                            .await,
+                    );
+                }
+            };
+        }
     } else {
         check_msg(ctx.reply("Not in a voice channel to play in").await);
     }
