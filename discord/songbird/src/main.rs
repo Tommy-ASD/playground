@@ -209,24 +209,24 @@ async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
         if url.starts_with("https://youtu.be") {
             let src = YoutubeDl::new(http_client, url.to_string());
             let _ = handler.play_input(src.clone().into());
-            check_msg(ctx.channel_id().say(&ctx.http(), "Playing song").await);
+            ctx.reply("Playing song").await;
         } else {
             let req = match reqwest::get(url).await {
                 Ok(req) => match req.bytes().await {
                     Ok(b) => {
                         let _ = handler.play(b.into());
-                        check_msg(ctx.reply("Playing song").await);
+                        ctx.reply("Playing song").await;
                     }
                     Err(e) => {
-                        check_msg(ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}")).await);
+                        ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}")).await;
                     }
                 },
                 Err(e) => {
-                    check_msg(
+                    
                         ctx
                             .reply( format!("Did not get a response from URL. Exact error for debugging purposes; {e}"))
                             .await,
-                    );
+                    ;
                 }
             };
         }
