@@ -1,6 +1,10 @@
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use std::env;
 use std::sync::atomic::{AtomicU32, Ordering};
+use tokio::fs::rename;
+use tokio::io::AsyncReadExt;
+use tracing_subscriber::fmt::format;
+use youtube_dl::YoutubeDl;
 
 use songbird::SerenityInit;
 
@@ -219,28 +223,66 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
             || url.host_str() == Some("youtube.com")
             || url.host_str() == Some("www.youtube.com")
         {
+            let url_clone = url.clone();
             let id = if url.host_str() == Some("youtu.be") || url.host_str() == Some("www.youtu.be")
             {
-                url.path_segments()[0]
+                url_clone.path_segments().and_then(|mut paths| {
+                    paths.next().and_then(|segment| Some(segment.to_string()))
+                })
             } else {
-                url.query_pairs()
+                url_clone
+                    .query_pairs()
                     .into_iter()
                     .find(|item| {
                         println!("Q: {item:?}");
                         item.0 == "v"
                     })
-                    .and_then(|id_pair| Some(id_pair.1))
+                    .and_then(|id_pair| Some(id_pair.1.to_string()))
             };
+            if id.is_none() {
+                return Err("Could not get ID".into());
+            }
+            let id = id.unwrap();
+            if let Ok(mut bytes) = tokio::fs::File::open(format!("./downloads/{id}.m4a")).await {
+                let mut buf = vec![];
+                bytes.read_to_end(&mut buf).await.unwrap();
 
-            YoutubeDl::new(url)
-                .extra_arg("-f bestvideo[ext=mp4]+bestaudio[ext=m4a]")
-                .extra_arg("-k")
-                .output_template("%(ID)s")
-                .download_to_async("./downloads")
+                let thandle = handler.play_input(buf.into());
+                ctx.reply("Playing song").await;
+                return Ok(());
+            }
+
+            ctx.reply("Downloading song... Don't worry, won't have to download next time")
+                .await;
+
+            tokio::process::Command::new("yt-dlp")
+                .arg("-f")
+                .arg("bestvideo[ext=mp4]+bestaudio[ext=m4a]")
+                .arg("-o")
+                .arg("downloads/%(id)s")
+                .arg("-k")
+                .arg(url.as_str())
+                .status()
                 .await
                 .unwrap();
 
-            let thandle = handler.play_input(src.clone().into());
+            let mut dir = tokio::fs::read_dir("./downloads").await.unwrap();
+
+            while let Some(entry) = dir.next_entry().await.unwrap() {
+                let path = entry.path();
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+
+                if name.starts_with(&id) && name.ends_with("m4a") {}
+            }
+
+            let mut file = tokio::fs::File::open(format!("./downloads/{id}.m4a"))
+                .await
+                .unwrap();
+            let mut buf = vec![];
+            file.read_to_end(&mut buf).await.unwrap();
+
+            let thandle = handler.play_input(buf.into());
             ctx.reply("Playing song").await;
         } else {
             let req = match reqwest::get(url.as_str()).await {

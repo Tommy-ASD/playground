@@ -3417,6 +3417,7 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "tracing-subscriber",
+ "youtube_dl",
 ]
 
 [[package]]
@@ -4494,6 +4495,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
+name = "wait-timeout"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f200f5b12eb75f8c1ed65abd4b2db8a6e1b138a20de009dacee265a2498f3f6"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "walkdir"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4872,6 +4882,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
+]
+
+[[package]]
+name = "youtube_dl"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc791a982b545c7392ea685957d39bbac4a716667b46d72a1d4c384065205ab9"
+dependencies = [
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wait-timeout",
 ]
 
 [[package]]
