@@ -189,6 +189,9 @@ async fn play(
 }
 
 async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
+    let opt_msg = ctx.channel_id().message(ctx.http(), ctx.id()).await;
+    if let Ok(msg) = opt_msg {}
+
     let guild_id = ctx.guild_id().unwrap();
 
     let http_client = {
@@ -206,9 +209,9 @@ async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
 
-        if url.starts_with("https://youtu.be") {
+        if url.starts_with("https://youtu.be") || url.starts_with("https://youtube.com") {
             let src = YoutubeDl::new(http_client, url.to_string());
-            let _ = handler.play_input(src.clone().into());
+            let thandle = handler.play_input(src.clone().into());
             ctx.reply("Playing song").await;
         } else {
             let req = match reqwest::get(url).await {
