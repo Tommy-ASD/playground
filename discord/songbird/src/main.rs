@@ -216,7 +216,11 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
 
-        if url.host_str() == Some("youtu.be") || url.host_str() == Some("youtube.com") {
+        if url.host_str() == Some("youtu.be")
+            || url.host_str() == Some("www.youtu.be")
+            || url.host_str() == Some("youtube.com")
+            || url.host_str() == Some("www.youtube.com")
+        {
             let id = url.query();
             println!("Id: {id:?}");
 
