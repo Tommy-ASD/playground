@@ -222,16 +222,15 @@ async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
                     }
                 },
                 Err(e) => {
-                    
-                        ctx
-                            .reply( format!("Did not get a response from URL. Exact error for debugging purposes; {e}"))
-                            .await,
-                    ;
+                    ctx.reply(format!(
+                        "Did not get a response from URL. Exact error for debugging purposes; {e}"
+                    ))
+                    .await;
                 }
             };
         }
     } else {
-        check_msg(ctx.reply("Not in a voice channel to play in").await);
+        ctx.reply("Not in a voice channel to play in").await;
     }
 
     Ok(())
