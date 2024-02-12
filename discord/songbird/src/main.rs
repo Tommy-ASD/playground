@@ -185,10 +185,17 @@ async fn play(
     ctx: Context<'_>,
     #[description = "Song URL (song search will be implemented at later point)"] song: String,
 ) -> Result<(), Error> {
+    let url = match Url::parse(&song) {
+        Ok(url) => url,
+        Err(e) => {
+            ctx.reply(format!("{song} is not a valid URL: {e}"));
+            return Err(e).into();
+        }
+    };
     play_inner(&ctx, &song).await
 }
 
-async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
+async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
     let opt_msg = ctx.channel_id().message(ctx.http(), ctx.id()).await;
     if let Ok(msg) = opt_msg {}
 
@@ -210,6 +217,9 @@ async fn play_inner(ctx: &Context<'_>, url: &str) -> Result<(), Error> {
         let mut handler = handler_lock.lock().await;
 
         if url.starts_with("https://youtu.be") || url.starts_with("https://youtube.com") {
+            let id = url.query();
+            println!("Id: {id:?}");
+
             let src = YoutubeDl::new(http_client, url.to_string());
             let thandle = handler.play_input(src.clone().into());
             ctx.reply("Playing song").await;
