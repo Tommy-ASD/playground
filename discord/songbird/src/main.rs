@@ -286,7 +286,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 let name = name.to_string_lossy();
 
                 if name.starts_with(&id) && name.ends_with("m4a") {
-                    let target_path = path.with_file_name(&id);
+                    let target_path = path.with_file_name(format!("{id}.m4a"));
                     tokio::fs::rename(path, target_path).await.unwrap();
                 }
             }
