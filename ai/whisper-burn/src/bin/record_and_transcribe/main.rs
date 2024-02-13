@@ -22,7 +22,7 @@ use burn::{
 };
 
 use hound::{self, SampleFormat};
-use std::{fs, process, sync::Arc, time::Duration};
+use std::{process, sync::Arc, time::Duration};
 use tokio_util::codec::{BytesCodec, FramedRead};
 
 #[tokio::main]
@@ -118,6 +118,7 @@ async fn transcribe_and_remove(
     result
 }
 
+#[allow(dead_code)]
 fn load_audio_waveform<B: burn::tensor::backend::Backend>(
     filename: &str,
 ) -> hound::Result<(Vec<f32>, usize)> {
@@ -157,9 +158,9 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
 
 async fn transcribe(
     wav_file: &str,
-    model: Arc<Whisper<Backend>>,
-    state: TranscribeStateForDebugging,
-) -> (String) {
+    _model: Arc<Whisper<Backend>>,
+    _state: TranscribeStateForDebugging,
+) -> String {
     let wav_file = wav_file.to_string();
     // Open the file
     let file = File::open(&wav_file).await.unwrap();
