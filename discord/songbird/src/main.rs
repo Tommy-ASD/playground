@@ -190,7 +190,7 @@ async fn play(
     let url = match Url::parse(&song) {
         Ok(url) => url,
         Err(e) => {
-            ctx.reply(format!("{song} is not a valid URL: {e}")).await;
+            ctx.reply(format!("`{song}` is not a valid URL: {e}")).await;
             return Err(e.into());
         }
     };
