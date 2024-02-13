@@ -243,9 +243,11 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 return Err("Could not get ID".into());
             }
             let id = id.unwrap();
-            if let Ok(mut bytes) =
-                tokio::fs::File::open(format!("{}/{id}.m4a", env::var("SONGBIRD_DOWNLOADS_PATH")))
-                    .await
+            if let Ok(mut bytes) = tokio::fs::File::open(format!(
+                "{}/{id}.m4a",
+                env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
+            ))
+            .await
             {
                 let mut buf = vec![];
                 bytes.read_to_end(&mut buf).await.unwrap();
@@ -262,16 +264,21 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 .arg("-f")
                 .arg("bestvideo[ext=mp4]+bestaudio[ext=m4a]")
                 .arg("-o")
-                .arg(format!("{}/%(id)s", env::var("SONGBIRD_DOWNLOADS_PATH")))
+                .arg(format!(
+                    "{}/%(id)s",
+                    env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
+                ))
                 .arg("-k")
                 .arg(url.as_str())
                 .status()
                 .await
                 .unwrap();
 
-            let mut dir = tokio::fs::read_dir(env::var("SONGBIRD_DOWNLOADS_PATH"))
-                .await
-                .unwrap();
+            let mut dir = tokio::fs::read_dir(
+                env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string()),
+            )
+            .await
+            .unwrap();
 
             while let Some(entry) = dir.next_entry().await.unwrap() {
                 let path = entry.path();
@@ -281,10 +288,12 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 if name.starts_with(&id) && name.ends_with("m4a") {}
             }
 
-            let mut file =
-                tokio::fs::File::open(format!("{}/{id}.m4a", env::var("SONGBIRD_DOWNLOADS_PATH")))
-                    .await
-                    .unwrap();
+            let mut file = tokio::fs::File::open(format!(
+                "{}/{id}.m4a",
+                env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
+            ))
+            .await
+            .unwrap();
             let mut buf = vec![];
             file.read_to_end(&mut buf).await.unwrap();
 
