@@ -259,7 +259,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 .arg("-f")
                 .arg("bestvideo[ext=mp4]+bestaudio[ext=m4a]")
                 .arg("-o")
-                .arg("/home/dev/prog/playground/files/downloads/%(id)s")
+                .arg("/home/dev/prog/playground/discord/songbird/downloads/%(id)s")
                 .arg("-k")
                 .arg(url.as_str())
                 .status()
