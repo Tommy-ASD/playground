@@ -293,7 +293,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
             );
 
-            let mut file = tokio::fs::File::open(path)
+            let mut file = tokio::fs::File::open(&path)
                 .await
                 .expect(&format!("Error opening {path}"));
             let mut buf = vec![];
