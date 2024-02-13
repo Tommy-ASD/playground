@@ -255,7 +255,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
             ctx.reply("Downloading song... Don't worry, won't have to download next time")
                 .await;
 
-            tokio::process::Command::new("yt-dlp")
+            tokio::process::Command::new(env::var("YT_DLP_PATH").unwrap_or("yt-dlp".to_string()))
                 .arg("-f")
                 .arg("bestvideo[ext=mp4]+bestaudio[ext=m4a]")
                 .arg("-o")
