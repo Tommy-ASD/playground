@@ -1,16 +1,30 @@
 cfg_if::cfg_if! {
     if #[cfg(feature = "wgpu-backend")] {
         type Backend = WgpuBackend<AutoGraphicsApi, f32, i32>;
+        use burn_wgpu::{WgpuBackend, WgpuDevice, AutoGraphicsApi};
     } else if #[cfg(feature = "torch-backend")] {
         type Backend = TchBackend<f32>;
+        use burn_tch::{TchBackend, TchDevice};
     }
 }
 
-//// POSSSIBLE SOLUTION :D
-/// when the program starts, start a recording running in the background
-/// recording will abruptly end when the program ends
-///
-///  
+use reqwest::Body;
+use tokio::{fs::File, time::interval};
+use whisper::{
+    model::{Whisper, WhisperConfig},
+    transcribe::TranscribeStateForDebugging,
+};
+
+use burn::{
+    config::Config,
+    module::Module,
+    record::{DefaultRecorder, Recorder, RecorderError},
+};
+
+use hound::{self, SampleFormat};
+use std::{fs, process, sync::Arc, time::Duration};
+use tokio_util::codec::{BytesCodec, FramedRead};
+
 #[tokio::main]
 async fn main() {
     let model_name = "tiny_en";
@@ -29,7 +43,7 @@ async fn main() {
 
     tokio::spawn(async move {
         while let Some(next) = task_recv.recv().await {
-            let (text) = tokio::spawn(next).await.unwrap();
+            let text = tokio::spawn(next).await.unwrap();
 
             transcribed.push(text);
 
@@ -104,29 +118,6 @@ async fn transcribe_and_remove(
     result
 }
 
-use reqwest::Body;
-use tokio::fs::File;
-use tokio::time::interval;
-use whisper::token::Language;
-use whisper::transcribe::waveform_to_text;
-use whisper::{model::*, transcribe::TranscribeStateForDebugging};
-
-use strum::IntoEnumIterator;
-
-use reqwest::multipart::Form;
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "wgpu-backend")] {
-        use burn_wgpu::{WgpuBackend, WgpuDevice, AutoGraphicsApi};
-    } else if #[cfg(feature = "torch-backend")] {
-        use burn_tch::{TchBackend, TchDevice};
-    }
-}
-
-use burn::{config::Config, module::Module};
-
-use hound::{self, SampleFormat};
-
 fn load_audio_waveform<B: burn::tensor::backend::Backend>(
     filename: &str,
 ) -> hound::Result<(Vec<f32>, usize)> {
@@ -155,10 +146,6 @@ fn load_audio_waveform<B: burn::tensor::backend::Backend>(
     return Ok((floats, sample_rate));
 }
 
-use whisper::token::Gpt2Tokenizer;
-
-use burn::record::{DefaultRecorder, Recorder, RecorderError};
-
 fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
     config: &WhisperConfig,
     filename: &str,
@@ -167,9 +154,6 @@ fn load_whisper_model_file<B: burn::tensor::backend::Backend>(
         .load(filename.into())
         .map(|record| config.init().load_record(record))
 }
-
-use std::{fs, process, sync::Arc, time::Duration};
-use tokio_util::codec::{BytesCodec, FramedRead};
 
 async fn transcribe(
     wav_file: &str,
