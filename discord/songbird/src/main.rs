@@ -292,12 +292,12 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                         ctx.reply("Playing song").await;
                     }
                     Err(e) => {
-                        ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}")).await;
+                        ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}\n<@373135474119933955> fix your shit")).await;
                     }
                 },
                 Err(e) => {
                     ctx.reply(format!(
-                        "Did not get a response from URL. Exact error for debugging purposes; {e}"
+                        "Did not get a response from URL. Exact error for debugging purposes; {e}\n<@373135474119933955> fix your shit"
                     ))
                     .await;
                 }
