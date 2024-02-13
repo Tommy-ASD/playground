@@ -288,12 +288,14 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                 if name.starts_with(&id) && name.ends_with("m4a") {}
             }
 
-            let mut file = tokio::fs::File::open(format!(
+            let path = format!(
                 "{}/{id}.m4a",
                 env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
-            ))
-            .await
-            .unwrap();
+            );
+
+            let mut file = tokio::fs::File::open(path)
+                .await
+                .expect(&format!("Error opening {path}"));
             let mut buf = vec![];
             file.read_to_end(&mut buf).await.unwrap();
 
