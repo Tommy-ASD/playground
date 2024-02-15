@@ -388,3 +388,46 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
 
     Ok(())
 }
+
+#[poise::command(slash_command, prefix_command)]
+async fn leave(ctx: Context<'_>) -> Result<(), Error> {
+    let (guild_id, channel_id) = {
+        let guild = ctx.guild().unwrap();
+        let channel_id = guild
+            .voice_states
+            .get(&ctx.author().id)
+            .and_then(|voice_state| voice_state.channel_id);
+
+        (guild.id, channel_id)
+    };
+
+    let disconnect_from = match channel_id {
+        Some(channel) => channel,
+        None => {
+            ctx.reply("Not in a voice channel").await.unwrap();
+
+            return Ok(());
+        }
+    };
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    if let Ok(handler_lock) = manager.join(guild_id, disconnect_from).await {
+        // Attach an event handler to see notifications of all track errors.
+        let mut handler = handler_lock.lock().await;
+        match handler.leave().await {
+            Ok(_) => ctx.reply("Ok :thumbsup:").await.unwrap(),
+            Err(e) => ctx
+                .reply(&format!(
+                    "Error leaving: {e}; \n<@373135474119933955> come fix this"
+                ))
+                .await
+                .unwrap(),
+        };
+    }
+
+    Ok(())
+}
