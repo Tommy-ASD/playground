@@ -75,7 +75,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play() /*test()*/],
+            commands: vec![age(), join(), play(), leave() /*test()*/],
             prefix_options: prefix,
             ..Default::default()
         })
