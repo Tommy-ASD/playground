@@ -1,0 +1,66 @@
+sudo apt install pkg-config
+sudo apt install libgobject-dev'
+sudo apt install libgobject-dev
+sudo apt install smbclient
+sudo apt install nginx
+sudo apt install nginx
+sudo apt install certbot
+sudo apt install python3-pip
+sudo apt install nethogs
+sudo apt install zip
+sudo apt install ffmpeg
+sudo apt install transmission-daemon
+sudo apt install transmission-daemon
+sudo apt install samba
+sudo apt install zim
+sudo apt install virt-manager
+sudo apt install qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst
+sudo apt install virt-viewer spice-client
+sudo apt install xrdp
+sudo apt install qemu-kvm libvirt-daemon-system libvirt-clients virtinst
+sudo apt install xrdp
+sudo apt install xfce4
+sudo apt install remina
+sudo apt install remmina
+sudo apt install vlc
+sudo apt install gnome-system-monitor
+sudo apt install lightdm
+sudo apt install nvidia-utils-510-server
+sudo apt install xserver-xorg-video-nvidia-535-server
+sudo apt install xrdp openssl -y
+sudo apt install build-essential dpkg-dev libpulse-dev git autoconf libtool
+sudo apt install nvidia-driver-nvidia-headless-no-dkms-470-server
+sudo apt install nvidia-driver-470
+sudo apt install testdisk
+sudo apt install firefoc
+sudo apt install firefox
+sudo apt install firefox
+sudo apt install firefox
+sudo apt install -f  # This command will attempt to fix broken packages
+sudo apt install firefox
+sudo apt install midori  # For Midori
+sudo apt install lynx    # For Lynx
+sudo apt install --only-upgrade xrdp
+sudo apt install xrdp
+sudo apt install xfce
+sudo apt install xfce4
+sudo apt install genisoimage
+sudo apt install xfce4 xfce4-goodies -y
+sudo apt install xfce4
+sudo apt install golang-go
+sudo apt install libpam0g-dev
+sudo apt install golang-go
+sudo apt install go
+sudo apt install gccgo
+sudo apt install golang
+sudo apt install docker.io
+sudo apt install docker-compose
+sudo apt install python
+sudo apt install python
+sudo apt install python-is-python3
+sudo apt install python-is-python3
+sudo apt install isc-dhcp-server
+sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system virtinst bridge-utils
+sudo apt install net-tools
+sudo apt install samba
