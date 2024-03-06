@@ -1,8 +1,6 @@
-use std::io::BufRead;
-
 fn main() {
     let binding = std::fs::read_to_string("./lines").unwrap();
-    let mut lines = binding
+    let lines = binding
         .lines()
         .collect::<Vec<&str>>()
         .iter()
