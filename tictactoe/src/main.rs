@@ -1,5 +1,5 @@
 use core::fmt;
-use std::io::Write;
+use std::{io::Write, str::Lines};
 use termcolor::WriteColor;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -115,14 +115,24 @@ fn as_string(square: &SquareState, index: usize) -> String {
 fn draw_nested(state: &[[SquareState; 9]]) {
     for i in (0..3).rev() {
         let offset = i * 3;
-        draw(&state[offset], offset);
-        draw(&state[offset + 1], offset + 1);
-        draw(&state[offset + 2], offset + 2);
+        let lines_1 = get_lines(&state[offset], offset);
+        let lines_2 = get_lines(&state[offset + 1], offset + 1);
+        let lines_3 = get_lines(&state[offset + 2], offset + 2);
+        lines_1
+            .into_iter()
+            .enumerate()
+            .map(|(idx, mut line)| {
+                line.push_str(&lines_2[idx][1..]);
+                line.push_str(&lines_3[idx][1..]);
+                line
+            })
+            .into_iter()
+            .for_each(|line| println!("{line}"));
     }
 }
 
 // Function to draw the TicTacToe board
-fn draw(state: &[SquareState], index: usize) {
+fn get_lines(state: &[SquareState], index: usize) -> Vec<String> {
     let mut board = format!(
         "| ------{corrected_index}------ |\n",
         corrected_index = index + 1
@@ -143,7 +153,17 @@ fn draw(state: &[SquareState], index: usize) {
         board.push_str(&line);
         board.push_str(separator);
     }
-    println!("{board}");
+    board
+        .lines()
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>()
+}
+
+fn draw(state: &[SquareState], index: usize) {
+    get_lines(state, index)
+        .iter()
+        .for_each(|line| println!("{line}"));
 }
 
 // Function to prompt the user for input
