@@ -1,6 +1,6 @@
 use core::fmt;
-use std::{io::Write, str::Lines};
-use termcolor::WriteColor;
+use std::io::Write;
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SquareState {
@@ -78,12 +78,6 @@ impl Default for SubGameState {
     }
 }
 
-impl SubGameState {
-    fn is_default(&self) -> bool {
-        self == &Self::default()
-    }
-}
-
 impl Into<SubGameState> for SquareState {
     fn into(self) -> SubGameState {
         match self {
@@ -112,22 +106,45 @@ fn as_string(square: &SquareState, index: usize) -> String {
     }
 }
 
-fn draw_nested(state: &[[SquareState; 9]]) {
+fn set_green(stdout: &mut StandardStream) {
+    stdout
+        .set_color(ColorSpec::new().set_fg(Some(Color::Green)))
+        .unwrap();
+}
+
+fn set_white(stdout: &mut StandardStream) {
+    stdout
+        .set_color(ColorSpec::new().set_fg(Some(Color::White)))
+        .unwrap();
+}
+
+fn draw_nested(state: &[[SquareState; 9]], highlight_idx: usize) {
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
     for i in (0..3).rev() {
         let offset = i * 3;
         let lines_1 = get_lines(&state[offset], offset);
         let lines_2 = get_lines(&state[offset + 1], offset + 1);
         let lines_3 = get_lines(&state[offset + 2], offset + 2);
-        lines_1
-            .into_iter()
-            .enumerate()
-            .map(|(idx, mut line)| {
-                line.push_str(&lines_2[idx][1..]);
-                line.push_str(&lines_3[idx][1..]);
-                line
-            })
-            .into_iter()
-            .for_each(|line| println!("{line}"));
+        lines_1.into_iter().enumerate().for_each(|(idx, line)| {
+            if idx == 0 && highlight_idx == offset {
+                set_green(&mut stdout);
+            }
+            print!("{line}");
+            set_white(&mut stdout);
+            if idx == 0 && highlight_idx == offset + 1 {
+                set_green(&mut stdout);
+                print!("\u{0008}|");
+            }
+            print!("{line2}", line2 = &lines_2[idx][1..]);
+            set_white(&mut stdout);
+            if idx == 0 && highlight_idx == offset + 2 {
+                set_green(&mut stdout);
+                print!("\u{0008}|");
+            }
+            print!("{line3}", line3 = &lines_3[idx][1..]);
+            set_white(&mut stdout);
+            println!();
+        });
     }
 }
 
@@ -240,7 +257,7 @@ fn has_won(state: &[SquareState]) -> bool {
 // Function to check if a player has won
 fn has_won_outer(state: &[SubGameState]) -> bool {
     for tmp in 0..3 {
-        if (state[tmp] == SubGameState::Unfinished || state[tmp] == SubGameState::Draw) {
+        if state[tmp] == SubGameState::Unfinished || state[tmp] == SubGameState::Draw {
             continue;
         }
         if state[tmp] == state[tmp + 3] && state[tmp] == state[tmp + 6] {
@@ -249,7 +266,7 @@ fn has_won_outer(state: &[SubGameState]) -> bool {
 
         let tmp = tmp * 3;
 
-        if (state[tmp] == SubGameState::Unfinished || state[tmp] == SubGameState::Draw) {
+        if state[tmp] == SubGameState::Unfinished || state[tmp] == SubGameState::Draw {
             continue;
         }
 
@@ -283,12 +300,11 @@ fn main() {
     let mut outer_state = [SubGameState::Unfinished; 9];
     let mut player = SquareState::X;
 
-    draw_nested(&state);
-
     // Welcome the player
     greeting();
 
     let mut index = 4;
+    draw_nested(&state, index);
 
     // Main game loop
     loop {
