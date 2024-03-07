@@ -104,32 +104,46 @@ fn greeting() {
     );
 }
 
-fn write_state(square: &SquareState, index: usize) {
+fn as_string(square: &SquareState, index: usize) -> String {
     if square.is_default() {
-        print!("{index}");
+        index.to_string()
     } else {
-        print!("{square}");
+        square.to_string()
+    }
+}
+
+fn draw_nested(state: &[[SquareState; 9]]) {
+    for i in (0..3).rev() {
+        let offset = i * 3;
+        draw(&state[offset], offset);
+        draw(&state[offset + 1], offset + 1);
+        draw(&state[offset + 2], offset + 2);
     }
 }
 
 // Function to draw the TicTacToe board
-fn draw(state: &[SquareState]) {
-    println!("\n");
+fn draw(state: &[SquareState], index: usize) {
+    let mut board = format!(
+        "| ------{corrected_index}------ |\n",
+        corrected_index = index + 1
+    );
 
     // Iterate over rows and columns to print the board
     for i in (0..3).rev() {
         let offset = i * 3;
 
-        print!("-------------\n| ");
-        write_state(&state[offset], offset + 1);
-        print!(" | ");
-        write_state(&state[offset + 1], offset + 1 + 1);
-        print!(" | ");
-        write_state(&state[offset + 2], offset + 2 + 1);
-        println!(" |");
-    }
+        let line = format!(
+            "| | {} | {} | {} | |\n",
+            as_string(&state[offset], offset + 1),
+            as_string(&state[offset + 1], offset + 1 + 1),
+            as_string(&state[offset + 2], offset + 2 + 1)
+        );
 
-    println!("-------------");
+        let separator = "| ------------- |\n";
+        board.push_str(&line);
+        board.push_str(separator);
+    }
+    println!("{board}");
 }
 
 // Function to prompt the user for input
@@ -249,17 +263,24 @@ fn main() {
     let mut outer_state = [SubGameState::Unfinished; 9];
     let mut player = SquareState::X;
 
+    draw_nested(&state);
+
     // Welcome the player
     greeting();
 
-    let mut index = 5;
+    let mut index = 4;
 
     // Main game loop
     loop {
-        let mv = in_square(&mut state[index], &mut player);
+        let mv = in_square(&mut state[index], &mut player, index);
+        outer_state[index] = mv.current_state;
         index = mv.index;
         println!("State; {substate:?}", substate = mv.current_state);
-        outer_state[index] = mv.current_state;
+
+        if has_won_outer(&outer_state) {
+            println!("Player '{player}' won the entire thing! \\(^.^)/");
+            return;
+        };
 
         // Switch to the other player for the next turn
         player = if player == SquareState::X {
@@ -284,17 +305,17 @@ pub struct InnerMove {
     pub current_state: SubGameState,
 }
 
-fn in_square(state: &mut [SquareState], player: &mut SquareState) -> InnerMove {
+fn in_square(state: &mut [SquareState], player: &mut SquareState, index: usize) -> InnerMove {
     let mut end_state = SubGameState::Unfinished;
     // Draw the current state of the board
-    draw(state);
+    draw(state, index);
 
     // Prompt the current player for a move
     let played_index = ask_user(state, *player);
 
     // Check if the current player has won
     if has_won(state) {
-        draw(state);
+        draw(state, index);
         println!("Player '{player}' won! \\(^.^)/");
         end_state = (*player).into();
         return InnerMove {
@@ -306,7 +327,7 @@ fn in_square(state: &mut [SquareState], player: &mut SquareState) -> InnerMove {
 
     // Check if all fields are used (game is a draw)
     if is_over(state) {
-        draw(state);
+        draw(state, index);
         println!("All fields are used. No one won. (._.)");
         end_state = SubGameState::Draw;
         return InnerMove {
