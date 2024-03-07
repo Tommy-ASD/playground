@@ -203,6 +203,40 @@ fn has_won(state: &[SquareState]) -> bool {
     false
 }
 
+// Function to check if a player has won
+fn has_won_outer(state: &[SubGameState]) -> bool {
+    for tmp in 0..3 {
+        if (state[tmp] == SubGameState::Unfinished || state[tmp] == SubGameState::Draw) {
+            continue;
+        }
+        if state[tmp] == state[tmp + 3] && state[tmp] == state[tmp + 6] {
+            return true;
+        }
+
+        let tmp = tmp * 3;
+
+        if (state[tmp] == SubGameState::Unfinished || state[tmp] == SubGameState::Draw) {
+            continue;
+        }
+
+        if state[tmp] == state[tmp + 1] && state[tmp] == state[tmp + 2] {
+            return true;
+        }
+    }
+
+    if ((state[0] != SubGameState::Unfinished || state[0] != SubGameState::Draw)
+        && state[0] == state[4]
+        && state[0] == state[8])
+        || ((state[2] != SubGameState::Unfinished || state[2] != SubGameState::Draw)
+            && state[2] == state[4]
+            && state[2] == state[6])
+    {
+        return true;
+    }
+
+    false
+}
+
 // Function to check if the game is over (all fields used)
 #[inline(always)]
 fn is_over(state: &[SquareState]) -> bool {
@@ -211,45 +245,79 @@ fn is_over(state: &[SquareState]) -> bool {
 
 // Main function to run the TicTacToe game
 fn main() {
-    let mut state = [([SquareState::Unplayed; 9], SubGameState::default()); 9]; // second element in the tuple represents who won
+    let mut state = [[SquareState::Unplayed; 9]; 9]; // second element in the tuple represents who won
+    let mut outer_state = [SubGameState::Unfinished; 9];
     let mut player = SquareState::X;
 
     // Welcome the player
     greeting();
 
+    let mut index = 5;
+
     // Main game loop
     loop {
-        in_square((&mut state[0].0, &mut state[0].1), &mut player)
+        let mv = in_square(&mut state[index], &mut player);
+        index = mv.index;
+        println!("State; {substate:?}", substate = mv.current_state);
+        outer_state[index] = mv.current_state;
+
+        // Switch to the other player for the next turn
+        player = if player == SquareState::X {
+            SquareState::O
+        } else {
+            SquareState::X
+        };
+        println!("Full state; {outer_state:?}");
     }
 }
 
-fn in_square(state: (&mut [SquareState], &mut SubGameState), player: &mut SquareState) {
+pub struct Move {
+    pub outer_index: usize,
+    pub inner_index: usize,
+    pub player: SquareState,
+}
+
+pub struct InnerMove {
+    pub index: usize,
+    pub player: SquareState,
+
+    pub current_state: SubGameState,
+}
+
+fn in_square(state: &mut [SquareState], player: &mut SquareState) -> InnerMove {
+    let mut end_state = SubGameState::Unfinished;
     // Draw the current state of the board
-    draw(state.0);
+    draw(state);
 
     // Prompt the current player for a move
-    ask_user(state.0, *player);
+    let played_index = ask_user(state, *player);
 
     // Check if the current player has won
-    if has_won(state.0) {
-        draw(state.0);
+    if has_won(state) {
+        draw(state);
         println!("Player '{player}' won! \\(^.^)/");
-        *state.1 = (*player).into();
-        return;
+        end_state = (*player).into();
+        return InnerMove {
+            index: played_index,
+            player: *player,
+            current_state: end_state,
+        };
     }
 
     // Check if all fields are used (game is a draw)
-    if is_over(state.0) {
-        draw(state.0);
+    if is_over(state) {
+        draw(state);
         println!("All fields are used. No one won. (._.)");
-        *state.1 = SubGameState::Draw;
-        return;
+        end_state = SubGameState::Draw;
+        return InnerMove {
+            index: played_index,
+            player: *player,
+            current_state: end_state,
+        };
     }
-
-    // Switch to the other player for the next turn
-    *player = if *player == SquareState::X {
-        SquareState::O
-    } else {
-        SquareState::X
+    InnerMove {
+        index: played_index,
+        player: *player,
+        current_state: end_state,
     }
 }
