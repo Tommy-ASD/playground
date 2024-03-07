@@ -88,16 +88,6 @@ impl Into<SubGameState> for SquareState {
     }
 }
 
-// Function to display a welcome message
-fn greeting() {
-    println!(
-        "\nRust TicTacToe\n\
-         --------------\n\
-         A simple game written in the Rust programming language.\n\
-         Code is available at: https://github.com/flofriday/tictactoe"
-    );
-}
-
 fn as_string(square: &SquareState, index: usize) -> String {
     if square.is_default() {
         index.to_string()
@@ -125,23 +115,51 @@ fn draw_nested(state: &[[SquareState; 9]], highlight_idx: usize) {
         let lines_1 = get_lines(&state[offset], offset);
         let lines_2 = get_lines(&state[offset + 1], offset + 1);
         let lines_3 = get_lines(&state[offset + 2], offset + 2);
+        let len = lines_1.len();
         lines_1.into_iter().enumerate().for_each(|(idx, line)| {
-            if idx == 0 && highlight_idx == offset {
+            let is_at_top_or_bottom_of_square = (idx == 0 || idx == len - 1);
+            if highlight_idx == offset {
                 set_green(&mut stdout);
             }
-            print!("{line}");
-            set_white(&mut stdout);
-            if idx == 0 && highlight_idx == offset + 1 {
+            print!("\u{0008}|");
+            if highlight_idx == offset && !is_at_top_or_bottom_of_square {
+                set_white(&mut stdout);
+            }
+            print!("{line1}", line1 = &line[1..]);
+            if highlight_idx == offset {
                 set_green(&mut stdout);
-                print!("\u{0008}|");
+            }
+            print!("\u{0008}|");
+            set_white(&mut stdout);
+            if highlight_idx == offset + 1 {
+                // if this square should be highlighted
+                set_green(&mut stdout); // set color to green
+                print!("\u{0008}|"); // replace the uncolored pipe with a colored one on the left side
+                if !is_at_top_or_bottom_of_square {
+                    // if we aren't at the top or bottom of a square, only color the sides
+                    set_white(&mut stdout);
+                }
             }
             print!("{line2}", line2 = &lines_2[idx][1..]);
+            if highlight_idx == offset + 1 {
+                set_green(&mut stdout); // set color to green
+                print!("\u{0008}|"); // replace the uncolored pipe with a colored one on the right side
+                set_white(&mut stdout);
+            }
             set_white(&mut stdout);
-            if idx == 0 && highlight_idx == offset + 2 {
+            if highlight_idx == offset + 2 {
                 set_green(&mut stdout);
                 print!("\u{0008}|");
+                if !is_at_top_or_bottom_of_square {
+                    set_white(&mut stdout);
+                }
             }
             print!("{line3}", line3 = &lines_3[idx][1..]);
+            if highlight_idx == offset + 2 {
+                set_green(&mut stdout); // set color to green
+                print!("\u{0008}|"); // replace the uncolored pipe with a colored one on the right side
+                set_white(&mut stdout);
+            }
             set_white(&mut stdout);
             println!();
         });
@@ -254,6 +272,7 @@ fn has_won(state: &[SquareState]) -> bool {
     false
 }
 
+#[allow(dead_code)]
 // Function to check if a player has won
 fn has_won_outer(state: &[SubGameState]) -> bool {
     for tmp in 0..3 {
@@ -300,23 +319,20 @@ fn main() {
     let mut outer_state = [SubGameState::Unfinished; 9];
     let mut player = SquareState::X;
 
-    // Welcome the player
-    greeting();
-
     let mut index = 4;
-    draw_nested(&state, index);
 
     // Main game loop
     loop {
+        draw_nested(&state, index);
         let mv = in_square(&mut state[index], &mut player, index);
         outer_state[index] = mv.current_state;
         index = mv.index;
         println!("State; {substate:?}", substate = mv.current_state);
 
-        if has_won_outer(&outer_state) {
-            println!("Player '{player}' won the entire thing! \\(^.^)/");
-            return;
-        };
+        // if has_won_outer(&outer_state) {
+        //     println!("Player '{player}' won the entire thing! \\(^.^)/");
+        //     return;
+        // };
 
         // Switch to the other player for the next turn
         player = if player == SquareState::X {
@@ -343,8 +359,6 @@ pub struct InnerMove {
 
 fn in_square(state: &mut [SquareState], player: &mut SquareState, index: usize) -> InnerMove {
     let mut end_state = SubGameState::Unfinished;
-    // Draw the current state of the board
-    draw(state, index);
 
     // Prompt the current player for a move
     let played_index = ask_user(state, *player);
