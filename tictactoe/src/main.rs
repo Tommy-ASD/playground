@@ -64,6 +64,36 @@ impl fmt::Display for SquareState {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SubGameState {
+    X,
+    O,
+    Unfinished,
+    Draw,
+}
+
+impl Default for SubGameState {
+    fn default() -> Self {
+        SubGameState::Unfinished
+    }
+}
+
+impl SubGameState {
+    fn is_default(&self) -> bool {
+        self == &Self::default()
+    }
+}
+
+impl Into<SubGameState> for SquareState {
+    fn into(self) -> SubGameState {
+        match self {
+            SquareState::O => SubGameState::O,
+            SquareState::X => SubGameState::X,
+            SquareState::Unplayed => SubGameState::Unfinished,
+        }
+    }
+}
+
 // Function to display a welcome message
 fn greeting() {
     println!(
@@ -103,7 +133,7 @@ fn draw(state: &[SquareState]) {
 }
 
 // Function to prompt the user for input
-fn ask_user(state: &mut [SquareState], player: SquareState) {
+fn ask_user(state: &mut [SquareState], player: SquareState) -> usize {
     loop {
         print!("Player '{player}', enter a number: ");
 
@@ -135,7 +165,7 @@ fn ask_user(state: &mut [SquareState], player: SquareState) {
             // Update the game state with the player's move
             state[number] = player;
 
-            break;
+            break number;
         } else {
             println!("Only numbers are allowed.");
             continue;
@@ -181,7 +211,7 @@ fn is_over(state: &[SquareState]) -> bool {
 
 // Main function to run the TicTacToe game
 fn main() {
-    let mut state = [SquareState::Unplayed; 9];
+    let mut state = [([SquareState::Unplayed; 9], SubGameState::default()); 9]; // second element in the tuple represents who won
     let mut player = SquareState::X;
 
     // Welcome the player
@@ -189,31 +219,37 @@ fn main() {
 
     // Main game loop
     loop {
-        // Draw the current state of the board
-        draw(&state);
+        in_square((&mut state[0].0, &mut state[0].1), &mut player)
+    }
+}
 
-        // Prompt the current player for a move
-        ask_user(&mut state, player);
+fn in_square(state: (&mut [SquareState], &mut SubGameState), player: &mut SquareState) {
+    // Draw the current state of the board
+    draw(state.0);
 
-        // Check if the current player has won
-        if has_won(&state) {
-            draw(&state);
-            println!("Player '{player}' won! \\(^.^)/");
-            break;
-        }
+    // Prompt the current player for a move
+    ask_user(state.0, *player);
 
-        // Check if all fields are used (game is a draw)
-        if is_over(&state) {
-            draw(&state);
-            println!("All fields are used. No one won. (._.)");
-            break;
-        }
+    // Check if the current player has won
+    if has_won(state.0) {
+        draw(state.0);
+        println!("Player '{player}' won! \\(^.^)/");
+        *state.1 = (*player).into();
+        return;
+    }
 
-        // Switch to the other player for the next turn
-        player = if player == SquareState::X {
-            SquareState::O
-        } else {
-            SquareState::X
-        }
+    // Check if all fields are used (game is a draw)
+    if is_over(state.0) {
+        draw(state.0);
+        println!("All fields are used. No one won. (._.)");
+        *state.1 = SubGameState::Draw;
+        return;
+    }
+
+    // Switch to the other player for the next turn
+    *player = if *player == SquareState::X {
+        SquareState::O
+    } else {
+        SquareState::X
     }
 }
