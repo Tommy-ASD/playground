@@ -34,7 +34,7 @@ impl fmt::Display for SquareState {
             }
             SquareState::O => {
                 stdout
-                    .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Green)))
+                    .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Red)))
                     .unwrap();
             }
             SquareState::Unplayed => {
@@ -89,80 +89,74 @@ impl Into<SubGameState> for SquareState {
 }
 
 fn as_string(square: &SquareState, index: usize) -> String {
-    if square.is_default() {
-        index.to_string()
-    } else {
-        square.to_string()
+    match square {
+        SquareState::O => String::from("O"),
+        SquareState::X => String::from("X"),
+        SquareState::Unplayed => format!("{index}"),
     }
 }
 
-fn set_green(stdout: &mut StandardStream) {
+fn set_color(stdout: &mut StandardStream, color: Color) {
     stdout
-        .set_color(ColorSpec::new().set_fg(Some(Color::Green)))
+        .set_color(ColorSpec::new().set_fg(Some(color)))
         .unwrap();
 }
 
-fn set_white(stdout: &mut StandardStream) {
-    stdout
-        .set_color(ColorSpec::new().set_fg(Some(Color::White)))
-        .unwrap();
-}
-
-fn draw_nested(state: &[[SquareState; 9]], highlight_idx: usize) {
+fn draw_nested(state: &[[SquareState; 9]], outer_state: &[SubGameState; 9], highlight_idx: usize) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
+
     for i in (0..3).rev() {
         let offset = i * 3;
-        let lines_1 = get_lines(&state[offset], offset);
-        let lines_2 = get_lines(&state[offset + 1], offset + 1);
-        let lines_3 = get_lines(&state[offset + 2], offset + 2);
-        let len = lines_1.len();
-        lines_1.into_iter().enumerate().for_each(|(idx, line)| {
-            let is_at_top_or_bottom_of_square = (idx == 0 || idx == len - 1);
-            if highlight_idx == offset {
-                set_green(&mut stdout);
-            }
-            print!("\u{0008}|");
-            if highlight_idx == offset && !is_at_top_or_bottom_of_square {
-                set_white(&mut stdout);
-            }
-            print!("{line1}", line1 = &line[1..]);
-            if highlight_idx == offset {
-                set_green(&mut stdout);
-            }
-            print!("\u{0008}|");
-            set_white(&mut stdout);
-            if highlight_idx == offset + 1 {
-                // if this square should be highlighted
-                set_green(&mut stdout); // set color to green
-                print!("\u{0008}|"); // replace the uncolored pipe with a colored one on the left side
-                if !is_at_top_or_bottom_of_square {
-                    // if we aren't at the top or bottom of a square, only color the sides
-                    set_white(&mut stdout);
+        let lines = [
+            get_lines(&state[offset], offset),
+            get_lines(&state[offset + 1], offset + 1),
+            get_lines(&state[offset + 2], offset + 2),
+        ];
+
+        let len = lines[0].len();
+
+        for idx in 0..len {
+            let is_at_top_or_bottom_of_square = idx == 0 || idx == len - 1;
+
+            for square_idx in 0..3 {
+                let current_offset = offset + square_idx;
+
+                let default_color = match outer_state[current_offset] {
+                    SubGameState::X => Color::Blue,
+                    SubGameState::O => Color::Red,
+                    _ => Color::White,
+                };
+                set_color(&mut stdout, default_color);
+
+                if highlight_idx == current_offset {
+                    set_color(&mut stdout, Color::Green);
+                    print!("\u{0008}|");
                 }
-            }
-            print!("{line2}", line2 = &lines_2[idx][1..]);
-            if highlight_idx == offset + 1 {
-                set_green(&mut stdout); // set color to green
-                print!("\u{0008}|"); // replace the uncolored pipe with a colored one on the right side
-                set_white(&mut stdout);
-            }
-            set_white(&mut stdout);
-            if highlight_idx == offset + 2 {
-                set_green(&mut stdout);
+
+                if square_idx == 0 {
+                    print!("\u{0008}|");
+                }
+
+                if highlight_idx == current_offset && !is_at_top_or_bottom_of_square {
+                    set_color(&mut stdout, default_color);
+                }
+
+                print!("{line}", line = &lines[square_idx][idx][1..]);
+
+                match outer_state[current_offset] {
+                    SubGameState::X | SubGameState::O => set_color(&mut stdout, Color::White),
+                    _ => {}
+                }
+
+                if highlight_idx == current_offset {
+                    set_color(&mut stdout, Color::Green);
+                }
+
                 print!("\u{0008}|");
-                if !is_at_top_or_bottom_of_square {
-                    set_white(&mut stdout);
-                }
             }
-            print!("{line3}", line3 = &lines_3[idx][1..]);
-            if highlight_idx == offset + 2 {
-                set_green(&mut stdout); // set color to green
-                print!("\u{0008}|"); // replace the uncolored pipe with a colored one on the right side
-                set_white(&mut stdout);
-            }
-            set_white(&mut stdout);
+
             println!();
-        });
+        }
     }
 }
 
@@ -323,7 +317,7 @@ fn main() {
 
     // Main game loop
     loop {
-        draw_nested(&state, index);
+        draw_nested(&state, &outer_state, index);
         let mv = in_square(&mut state[index], &mut player, index);
         outer_state[index] = mv.current_state;
         index = mv.index;
