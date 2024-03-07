@@ -2,6 +2,8 @@ use core::fmt;
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
+const BACKSPACE: &str = "\u{0008}";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SquareState {
     X,
@@ -102,7 +104,11 @@ fn set_color(stdout: &mut StandardStream, color: Color) {
         .unwrap();
 }
 
-fn draw_nested(state: &[[SquareState; 9]], outer_state: &[SubGameState; 9], highlight_idx: usize) {
+fn draw_nested(
+    state: &[[SquareState; 9]],
+    outer_state: &[SubGameState; 9],
+    highlight_index: usize,
+) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     for i in (0..3).rev() {
@@ -115,44 +121,44 @@ fn draw_nested(state: &[[SquareState; 9]], outer_state: &[SubGameState; 9], high
 
         let len = lines[0].len();
 
-        for idx in 0..len {
-            let is_at_top_or_bottom_of_square = idx == 0 || idx == len - 1;
+        for line_index in 0..len {
+            let is_at_top_or_bottom_of_square = line_index == 0 || line_index == len - 1;
 
             for square_idx in 0..3 {
-                let current_offset = offset + square_idx;
+                // index of the square in current offset
+                let current_square_index = offset + square_idx; // real square index
 
-                let default_color = match outer_state[current_offset] {
+                let default_color = match outer_state[current_square_index] {
                     SubGameState::X => Color::Blue,
                     SubGameState::O => Color::Red,
                     _ => Color::White,
                 };
                 set_color(&mut stdout, default_color);
 
-                if highlight_idx == current_offset {
-                    set_color(&mut stdout, Color::Green);
-                    print!("\u{0008}|");
+                if highlight_index == current_square_index {
+                    set_color(&mut stdout, Color::Green); // set color to highlight left border
+                    print!("{BACKSPACE}|");
                 }
 
                 if square_idx == 0 {
-                    print!("\u{0008}|");
+                    print!("{BACKSPACE}|"); // for drawing the very left edge, as lines[square_idx][line_index][1..] removes the border
                 }
 
-                if highlight_idx == current_offset && !is_at_top_or_bottom_of_square {
+                if highlight_index == current_square_index && !is_at_top_or_bottom_of_square {
+                    // we only wanna paint the borders with the highlight color
+                    // if we are not at the top or bottom (border), reset color
                     set_color(&mut stdout, default_color);
                 }
 
-                print!("{line}", line = &lines[square_idx][idx][1..]);
+                print!("{line}", line = &lines[square_idx][line_index][1..]);
 
-                match outer_state[current_offset] {
-                    SubGameState::X | SubGameState::O => set_color(&mut stdout, Color::White),
-                    _ => {}
+                if highlight_index == current_square_index {
+                    set_color(&mut stdout, Color::Green); // set highlight color to highlight the border
+                } else {
+                    set_color(&mut stdout, Color::White); // reset color so the border isn't painted
                 }
 
-                if highlight_idx == current_offset {
-                    set_color(&mut stdout, Color::Green);
-                }
-
-                print!("\u{0008}|");
+                print!("{BACKSPACE}|");
             }
 
             println!();
