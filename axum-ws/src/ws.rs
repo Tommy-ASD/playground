@@ -1,6 +1,6 @@
 use crate::{
     peer::Peer,
-    state::{AppState, Payload},
+    state::{AppState, Payload, PayloadDistribution},
 };
 use axum::{
     extract::{
@@ -51,6 +51,7 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, state: Arc<AppState>)
         id: Uuid::new_v4(),
     };
     let peer = Arc::new(peer);
+    state.peers.lock().await.push(Arc::clone(&peer));
     // By splitting socket we can send and receive at the same time. In this example we will send
     // unsolicited messages to client based on some sort of server's internal event (i.e .timer).
     let (sender, receiver) = socket.split();
@@ -89,9 +90,12 @@ async fn ws_sender(
     mut sender: futures::prelude::stream::SplitSink<WebSocket, ws::Message>,
     state: Arc<AppState>,
 ) {
-    let mut rx: tokio::sync::broadcast::Receiver<Payload> = state.tx.subscribe();
+    let mut rx: tokio::sync::broadcast::Receiver<PayloadDistribution> = state.tx.subscribe();
 
     while let Ok(msg) = rx.recv().await {
+        if !msg.receiver_ids.contains(&peer.id) {
+            continue;
+        }
         // for each message sent in state.tx
         // In any websocket error, break loop.
         if sender
@@ -125,7 +129,7 @@ async fn message_received_from_peer(
 ) -> Result<(), TracebackError> {
     match msg {
         Message::Text(txt) => {
-            let parsed: Payload = serde_json::from_str(&txt)?;
+            let parsed: PayloadDistribution = serde_json::from_str(&txt)?;
             state.send(parsed).await?;
         }
         _ => {}

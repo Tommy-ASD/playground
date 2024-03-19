@@ -9,7 +9,7 @@ use tower_http::{
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Mutex};
 
 use crate::{state::Sender, ws::ws_handler};
 
@@ -43,7 +43,8 @@ async fn main() {
             tx: Sender {
                 inner: broadcast::channel(100).0,
             },
-            rooms: Vec::new(),
+            rooms: Mutex::new(Vec::new()),
+            peers: Mutex::new(Vec::new()),
         }));
 
     // run it with hyper
