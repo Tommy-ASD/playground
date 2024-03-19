@@ -48,7 +48,7 @@ impl Sender {
 #[derive(Default)]
 pub struct AppState {
     pub tx: Sender,
-    pub rooms: Mutex<Vec<Arc<Mutex<Room>>>>,
+    pub rooms: Mutex<Vec<Arc<Room>>>,
     pub peers: Mutex<Vec<Arc<Peer>>>,
 }
 
@@ -62,5 +62,33 @@ impl AppState {
 
         Ok(())
     }
-    pub fn add_peer_to_room(&self, peer_id: Uuid, room_id: Uuid) {}
+    pub async fn add_peer_to_room(&self, peer_id: Uuid, room_id: Uuid) {
+        if let Some(room) = self.get_room_by_id(room_id).await {
+            room.add_user(peer_id).await;
+        }
+    }
+    pub async fn get_room_by_id(&self, id: Uuid) -> Option<Arc<Room>> {
+        match self
+            .rooms
+            .lock()
+            .await
+            .iter()
+            .find(|room| room.get_id() == id)
+        {
+            Some(room) => Some(Arc::clone(room)),
+            None => None,
+        }
+    }
+    pub async fn get_peer_by_id(&self, id: Uuid) -> Option<Arc<Peer>> {
+        match self
+            .peers
+            .lock()
+            .await
+            .iter()
+            .find(|peer| peer.get_id() == id)
+        {
+            Some(peer) => Some(Arc::clone(peer)),
+            None => None,
+        }
+    }
 }
