@@ -7,12 +7,10 @@ use tokio::sync::{broadcast, Mutex};
 use traceback_error::{traceback, TracebackError};
 use uuid::Uuid;
 
-use crate::{peer::Peer, room::Room};
-
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub enum Payload {
-    PlainText(String),
-}
+use crate::{
+    peer::Peer,
+    room::{Room, RoomType},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PayloadDistribution {
@@ -62,10 +60,29 @@ impl AppState {
 
         Ok(())
     }
-    pub async fn add_peer_to_room(&self, peer_id: Uuid, room_id: Uuid) {
+    /// Sends a payload to state.tx, which is then received and handled by each peer's respective ws_sender task
+    #[traceback_derive::traceback]
+    pub async fn add_peer_to_room(
+        &self,
+        peer_id: Uuid,
+        room_id: Uuid,
+    ) -> Result<(), TracebackError> {
         if let Some(room) = self.get_room_by_id(room_id).await {
-            room.add_user(peer_id).await;
+            room.add_user(peer_id).await?;
         }
+        Ok(())
+    }
+    /// Sends a payload to state.tx, which is then received and handled by each peer's respective ws_sender task
+    #[traceback_derive::traceback]
+    pub async fn remove_peer_from_room(
+        &self,
+        peer_id: Uuid,
+        room_id: Uuid,
+    ) -> Result<(), TracebackError> {
+        if let Some(room) = self.get_room_by_id(room_id).await {
+            room.remove_user(peer_id).await;
+        }
+        Ok(())
     }
     pub async fn get_room_by_id(&self, id: Uuid) -> Option<Arc<Room>> {
         match self
@@ -90,5 +107,44 @@ impl AppState {
             Some(peer) => Some(Arc::clone(peer)),
             None => None,
         }
+    }
+    #[traceback_derive::traceback]
+    pub async fn broadcast_payload(&self, payload: Payload) -> Result<(), TracebackError> {
+        let peer_ids: HashSet<Uuid> = self
+            .peers
+            .lock()
+            .await
+            .iter()
+            .map(|peer| peer.get_id())
+            .collect();
+        dbg!();
+        println!("Broadcasting {payload:?}");
+        println!("to {peer_ids:?}");
+        let pd = PayloadDistribution {
+            payload,
+            receiver_ids: peer_ids,
+        };
+        self.tx.send(pd)?;
+        Ok(())
+    }
+    #[traceback_derive::traceback]
+    pub async fn send_payload_to_peer(
+        &self,
+        payload: Payload,
+        peer_id: Uuid,
+    ) -> Result<(), TracebackError> {
+        let peer_ids = [peer_id].into_iter().collect();
+        let pd = PayloadDistribution {
+            payload,
+            receiver_ids: peer_ids,
+        };
+        self.tx.send(pd)?;
+        Ok(())
+    }
+    pub async fn add_room(self: Arc<Self>, room_type: RoomType) -> Arc<Room> {
+        let room = Room::new(room_type, Arc::clone(&self)).await;
+        let arc = Arc::new(room);
+        self.rooms.lock().await.push(Arc::clone(&arc));
+        arc
     }
 }

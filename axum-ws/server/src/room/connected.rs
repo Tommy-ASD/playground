@@ -1,12 +1,6 @@
-use crate::{
-    peer::Peer,
-    room::Room,
-    state::{AppState, Payload, PayloadDistribution},
-};
+use crate::{peer::Peer, room::Room, state::PayloadDistribution};
 use std::{collections::HashSet, sync::Arc};
 
-use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 use traceback_error::{traceback, TracebackError};
 use uuid::Uuid;
 

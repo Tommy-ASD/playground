@@ -11,6 +11,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::{headers, TypedHeader};
+use serde_json::json;
 use traceback_error::{traceback, TracebackError};
 use uuid::Uuid;
 
@@ -49,7 +50,10 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, state: Arc<AppState>)
     let peer = Peer {
         addr: who,
         id: Uuid::new_v4(),
+        state: Arc::clone(&state),
     };
+    dbg!();
+    println!("ID set to {id}", id = peer.get_id());
     let peer = Arc::new(peer);
     state.peers.lock().await.push(Arc::clone(&peer));
     // By splitting socket we can send and receive at the same time. In this example we will send
@@ -84,7 +88,7 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, state: Arc<AppState>)
     println!("Websocket context {who} destroyed");
 }
 
-/// Sender task attached to each websocket connection, handles all sent messages
+/// Sender task attached to each websocket connection, handles all messages sent to the peer
 async fn ws_sender(
     peer: Arc<Peer>,
     mut sender: futures::prelude::stream::SplitSink<WebSocket, ws::Message>,
@@ -94,21 +98,32 @@ async fn ws_sender(
 
     while let Ok(msg) = rx.recv().await {
         if !msg.receiver_ids.contains(&peer.id) {
+            println!(
+                "Payload {msg:?} does not include user ID {id}",
+                id = peer.id
+            );
             continue;
         }
+        println!("Sending {msg:?} to {id}", id = peer.id);
         // for each message sent in state.tx
         // In any websocket error, break loop.
         if sender
-            .send(ws::Message::Text(serde_json::to_string(&msg).unwrap()))
+            .send(ws::Message::Text(
+                serde_json::to_string(&msg.payload).unwrap(),
+            ))
             .await
             .is_err()
         {
+            println!(
+                "Failed sending {msg:?} to {id}, closing connection",
+                id = peer.id
+            );
             break;
         }
     }
 }
 
-/// Receiver task attached to each websocket connection, handles all received messages
+/// Receiver task attached to each websocket connection, handles all messages sent by the peer
 async fn ws_recver(peer: Arc<Peer>, mut receiver: SplitStream<WebSocket>, state: Arc<AppState>) {
     while let Some(Ok(msg)) = receiver.next().await {
         // for each received message
@@ -129,10 +144,34 @@ async fn message_received_from_peer(
 ) -> Result<(), TracebackError> {
     match msg {
         Message::Text(txt) => {
-            let parsed: PayloadDistribution = serde_json::from_str(&txt)?;
-            state.send(parsed).await?;
+            handle_text_message_from_peer(txt, state, peer).await?;
+        }
+        Message::Binary(bytes) => {
+            if let Ok(txt) = String::from_utf8(bytes) {
+                handle_text_message_from_peer(txt, state, peer).await?;
+            }
         }
         _ => {}
     }
+    Ok(())
+}
+
+#[traceback_derive::traceback]
+async fn handle_text_message_from_peer(
+    txt: String,
+    state: Arc<AppState>,
+    peer: Arc<Peer>,
+) -> Result<(), TracebackError> {
+    println!("Broadcasting {txt} to all users");
+    // let parsed: Payload = match serde_json::from_str(&txt) {
+    //     Ok(p) => p,
+    //     Err(e) => {
+    //         return Err(
+    //             traceback!(err e, "Failed to parse JSON").with_extra_data(json!({"json": txt}))
+    //         )
+    //     }
+    // };
+    let parsed = Payload::PlainText(txt);
+    state.broadcast_payload(parsed).await?;
     Ok(())
 }

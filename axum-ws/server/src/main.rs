@@ -13,6 +13,7 @@ use tokio::sync::{broadcast, Mutex};
 
 use crate::{state::Sender, ws::ws_handler};
 
+pub mod payloads;
 pub mod peer;
 mod room;
 pub mod state;
@@ -30,6 +31,14 @@ async fn main() {
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
+    let state = Arc::new(AppState {
+        tx: Sender {
+            inner: broadcast::channel(100).0,
+        },
+        rooms: Mutex::new(Vec::new()),
+        peers: Mutex::new(Vec::new()),
+    });
+
     // build our application with some routes
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
@@ -39,13 +48,7 @@ async fn main() {
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
         )
-        .with_state(Arc::new(AppState {
-            tx: Sender {
-                inner: broadcast::channel(100).0,
-            },
-            rooms: Mutex::new(Vec::new()),
-            peers: Mutex::new(Vec::new()),
-        }));
+        .with_state(state);
 
     // run it with hyper
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
