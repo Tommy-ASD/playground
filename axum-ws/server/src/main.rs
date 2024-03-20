@@ -13,7 +13,6 @@ use tokio::sync::{broadcast, Mutex};
 
 use crate::{state::Sender, ws::ws_handler};
 
-pub mod payloads;
 pub mod peer;
 mod room;
 pub mod state;

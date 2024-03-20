@@ -1,6 +1,6 @@
 use crate::{
     peer::Peer,
-    state::{AppState, Payload, PayloadDistribution},
+    state::{AppState, PayloadDistribution},
 };
 use axum::{
     extract::{
@@ -11,6 +11,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::{headers, TypedHeader};
+use common::payloads::ClientPayload;
 use serde_json::json;
 use traceback_error::{traceback, TracebackError};
 use uuid::Uuid;
@@ -171,7 +172,9 @@ async fn handle_text_message_from_peer(
     //         )
     //     }
     // };
-    let parsed = Payload::PlainText(txt);
-    state.broadcast_payload(parsed).await?;
+    let parsed = ClientPayload::PlainText(txt);
+    dbg!();
+    println!("Received message. Parsed; {parsed:?}");
+    // state.broadcast_payload(parsed).await?;
     Ok(())
 }

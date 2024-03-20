@@ -1,5 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
+use common::payloads::from_server::ServerPayload;
 use serde::{Deserialize, Serialize};
 //allows to split the websocket stream into separate TX and RX branches
 use tokio::sync::{broadcast, Mutex};
@@ -15,7 +16,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PayloadDistribution {
     pub receiver_ids: HashSet<Uuid>, // IDs of peers who should receive this payload
-    pub payload: Payload,            // The payload to be distributed
+    pub payload: ServerPayload,      // The payload to be distributed
 }
 
 #[derive(Clone)]
@@ -109,7 +110,7 @@ impl AppState {
         }
     }
     #[traceback_derive::traceback]
-    pub async fn broadcast_payload(&self, payload: Payload) -> Result<(), TracebackError> {
+    pub async fn broadcast_payload(&self, payload: ServerPayload) -> Result<(), TracebackError> {
         let peer_ids: HashSet<Uuid> = self
             .peers
             .lock()
@@ -130,7 +131,7 @@ impl AppState {
     #[traceback_derive::traceback]
     pub async fn send_payload_to_peer(
         &self,
-        payload: Payload,
+        payload: ServerPayload,
         peer_id: Uuid,
     ) -> Result<(), TracebackError> {
         let peer_ids = [peer_id].into_iter().collect();

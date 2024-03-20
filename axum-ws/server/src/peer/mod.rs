@@ -3,7 +3,8 @@ use std::{net::SocketAddr, sync::Arc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::state::{AppState, Payload};
+use crate::state::AppState;
+use common::payloads::ServerPayload;
 
 use traceback_error::{traceback, TracebackError};
 
@@ -22,7 +23,7 @@ impl Peer {
         self.id
     }
     #[traceback_derive::traceback]
-    pub async fn send(&self, payload: Payload) -> Result<(), TracebackError> {
+    pub async fn send(&self, payload: ServerPayload) -> Result<(), TracebackError> {
         self.state.send_payload_to_peer(payload, self.id).await?;
         Ok(())
     }

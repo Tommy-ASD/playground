@@ -1,7 +1,8 @@
 use crate::{
     peer::Peer,
-    state::{AppState, Payload, PayloadDistribution},
+    state::{AppState, PayloadDistribution},
 };
+use common::payloads::ServerPayload;
 use std::{collections::HashSet, sync::Arc};
 
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,7 @@ pub enum RoomType {
 pub struct Room {
     id: Uuid,
     connected: Mutex<Vec<Uuid>>,
-    payloads: Mutex<Vec<Payload>>,
+    payloads: Mutex<Vec<ServerPayload>>,
     room_type: RoomType,
     state: Arc<AppState>,
 }
@@ -36,7 +37,10 @@ impl Room {
         }
     }
     #[traceback_derive::traceback]
-    pub async fn send_payload_to_connected(&self, payload: Payload) -> Result<(), TracebackError> {
+    pub async fn send_payload_to_connected(
+        &self,
+        payload: ServerPayload,
+    ) -> Result<(), TracebackError> {
         let pd = PayloadDistribution {
             receiver_ids: self.get_connected_ids().await,
             payload,
@@ -47,7 +51,7 @@ impl Room {
     pub fn get_id(&self) -> Uuid {
         self.id
     }
-    pub async fn get_payloads(&self) -> Vec<Payload> {
+    pub async fn get_payloads(&self) -> Vec<ServerPayload> {
         self.payloads.lock().await.clone()
     }
     pub fn get_room_type(&self) -> RoomType {

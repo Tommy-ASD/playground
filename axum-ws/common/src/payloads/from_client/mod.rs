@@ -8,5 +8,6 @@ mod server;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum ClientPayload {
+    PlainText(String),
     ServerPayload(ServerPayload),
 }
