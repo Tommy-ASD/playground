@@ -172,9 +172,19 @@ async fn handle_text_message_from_peer(
     //         )
     //     }
     // };
-    let parsed = ClientPayload::PlainText(txt);
+    let parsed: ClientPayload = match serde_json::from_str(&txt) {
+        Ok(p) => p,
+        Err(e) => todo!(),
+    };
     dbg!();
     println!("Received message. Parsed; {parsed:?}");
+    if let ClientPayload::PlainText(txt) = parsed {
+        state
+            .broadcast_payload(common::payloads::ServerPayload::BroadcastMessageFromPeer(
+                peer.id, txt,
+            ))
+            .await?;
+    }
     // state.broadcast_payload(parsed).await?;
     Ok(())
 }
