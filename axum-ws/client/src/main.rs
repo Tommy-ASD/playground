@@ -12,7 +12,7 @@
 
 use std::env;
 
-use common::payloads::{ClientPayload, ServerPayload};
+use common::payloads::{from_server::ErrorPayload, ClientPayload, ServerPayload};
 use futures_util::{future, pin_mut, StreamExt};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -39,6 +39,7 @@ async fn main() {
         read.for_each(|message| async {
             let data = message.unwrap().into_data();
             if let Ok(text) = String::from_utf8(data.clone()) {
+                println!("{text}");
                 let parsed: ServerPayload = match serde_json::from_str(&text) {
                     Ok(p) => p,
                     Err(e) => todo!(),
@@ -79,6 +80,6 @@ fn handle_payload(payload: ServerPayload) {
     }
 }
 
-fn handle_error_payload(payload: common::payloads::from_server::ErrorPayload) {
+fn handle_error_payload(payload: ErrorPayload) {
     todo!();
 }
