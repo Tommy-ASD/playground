@@ -34,7 +34,11 @@ async fn main() {
     let ws_to_stdout = {
         read.for_each(|message| async {
             let data = message.unwrap().into_data();
-            tokio::io::stdout().write_all(&data).await.unwrap();
+            if let Ok(text) = String::from_utf8(data.clone()) {
+                println!("Received text {text}");
+            } else {
+                println!("Received bytes {data:?}");
+            }
         })
     };
 
