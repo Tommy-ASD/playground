@@ -48,20 +48,20 @@ async fn main() {
 
     // build our application with some routes
     let app = Router::new()
-        // .route("/", get(show_form))
-        // .nest("/upload", upload_router())
-        // .route("/upload/", post(accept_form_index))
-        // .route("/uploaded/*uri", get(successfully_uploaded))
-        // .nest("/directory", get_directories_router())
-        // .route("/directory/", get(directories::index)) // to support trailing slash for url
-        // .nest("/create-dir", create_directories_router())
-        // .route("/create-dir/", post(directories::create_directory_index))
+        .route("/", get(show_form))
+        .nest("/upload", upload_router())
+        .route("/upload/", post(accept_form_index))
+        .route("/uploaded/*uri", get(successfully_uploaded))
+        .nest("/directory", get_directories_router())
+        .route("/directory/", get(directories::index)) // to support trailing slash for url
+        .nest("/create-dir", create_directories_router())
+        .route("/create-dir/", post(directories::create_directory_index))
         .nest("/download", downloads_router())
         .route("/download/", get(downloads::index)) // to support trailing slash for url
         .nest("/initialize_download", initialize_download_router())
         .route("/initialize_download/", post(initialize_download_index))
         // .nest("/oauth", oauth_router())
-        // .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
+        .nest_service("/static", ServeDir::new(dotenv!("STATIC_PATH")))
         .layer(DefaultBodyLimit::disable())
         .layer(tower_http::trace::TraceLayer::new_for_http());
 
