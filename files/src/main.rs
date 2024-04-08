@@ -48,7 +48,7 @@ async fn main() {
 
     // build our application with some routes
     let app = Router::new()
-        .route("/", get(show_form))
+//        .route("/", get(show_form))
 //        .nest("/upload", upload_router())
 //        .route("/upload/", post(accept_form_index))
 //        .route("/uploaded/*uri", get(successfully_uploaded))
