@@ -109,7 +109,7 @@ pub async fn initialize_download(
     let nanos = now.timestamp_nanos_opt().unwrap_or(now.timestamp());
 
     dbg!();
-    let file_name = format!("{timestamp}.{nanos}");
+    let file_name = format!("{timestamp}.{nanos}.log");
 
     let _ = std::fs::write(
         format!("{logs}/{file_name}", logs = dotenv!("LOG_PATH"),),
