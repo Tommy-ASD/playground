@@ -10,7 +10,7 @@ COPY src src
 COPY Cargo.lock Cargo.lock
 COPY Cargo.toml Cargo.toml
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 RUN $HOME/.cargo/bin/cargo build --release
 
