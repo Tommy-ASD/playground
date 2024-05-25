@@ -1,21 +1,19 @@
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use std::env;
 use std::sync::atomic::{AtomicU32, Ordering};
-use tokio::fs::rename;
-use tokio::io::AsyncReadExt;
-use tracing_subscriber::fmt::format;
-use youtube_dl::YoutubeDl;
 
 use songbird::SerenityInit;
 
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 
+use songbird::input::YoutubeDl;
+
 use reqwest::{Client as HttpClient, Url};
 
 use serenity::{
     async_trait,
-    client::{Client, EventHandler},
-    model::{channel::Message, gateway::Ready},
+    client::Client,
+    model::channel::Message,
     prelude::{GatewayIntents, TypeMapKey},
     Result as SerenityResult,
 };
@@ -63,6 +61,7 @@ async fn event_handler(
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
+    dotenv::dotenv().ok();
 
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
@@ -75,7 +74,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play(), leave() /*test()*/],
+            commands: vec![age(), join(), play() /*test()*/],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -137,6 +136,7 @@ async fn age(
 /// Checks that a message successfully sent; if not, then logs why to stdout.
 fn check_msg(result: SerenityResult<Message>) {
     if let Err(why) = result {
+        dbg!();
         println!("Error sending message: {:?}", why);
     }
 }
@@ -190,7 +190,7 @@ async fn play(
     let url = match Url::parse(&song) {
         Ok(url) => url,
         Err(e) => {
-            ctx.reply(format!("`{song}` is not a valid URL: {e}")).await;
+            ctx.reply(format!("{song} is not a valid URL: {e}")).await;
             return Err(e.into());
         }
     };
@@ -223,86 +223,12 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
             || url.host_str() == Some("youtube.com")
             || url.host_str() == Some("www.youtube.com")
         {
-            let url_clone = url.clone();
-            let id = if url.host_str() == Some("youtu.be") || url.host_str() == Some("www.youtu.be")
-            {
-                url_clone.path_segments().and_then(|mut paths| {
-                    paths.next().and_then(|segment| Some(segment.to_string()))
-                })
-            } else {
-                url_clone
-                    .query_pairs()
-                    .into_iter()
-                    .find(|item| {
-                        println!("Q: {item:?}");
-                        item.0 == "v"
-                    })
-                    .and_then(|id_pair| Some(id_pair.1.to_string()))
-            };
-            if id.is_none() {
-                return Err("Could not get ID".into());
-            }
-            let id = id.unwrap();
-            if let Ok(mut bytes) = tokio::fs::File::open(format!(
-                "{}/{id}.m4a",
-                env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
-            ))
-            .await
-            {
-                let mut buf = vec![];
-                bytes.read_to_end(&mut buf).await.unwrap();
+            let id = url.query();
+            dbg!();
+            println!("Id: {id:?}");
 
-                let thandle = handler.play_input(buf.into());
-                ctx.reply("Playing song").await;
-                return Ok(());
-            }
-
-            ctx.reply("Downloading song... Don't worry, won't have to download next time")
-                .await;
-
-            tokio::process::Command::new(env::var("YT_DLP_PATH").unwrap_or("yt-dlp".to_string()))
-                .arg("-f")
-                .arg("bestvideo[ext=mp4]+bestaudio[ext=m4a]")
-                .arg("-o")
-                .arg(format!(
-                    "{}/%(id)s",
-                    env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
-                ))
-                .arg("-k")
-                .arg(url.as_str())
-                .status()
-                .await
-                .unwrap();
-
-            let mut dir = tokio::fs::read_dir(
-                env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string()),
-            )
-            .await
-            .unwrap();
-
-            while let Some(entry) = dir.next_entry().await.unwrap() {
-                let path = entry.path();
-                let name = entry.file_name();
-                let name = name.to_string_lossy();
-
-                if name.starts_with(&id) && name.ends_with("m4a") {
-                    let target_path = path.with_file_name(format!("{id}.m4a"));
-                    tokio::fs::rename(path, target_path).await.unwrap();
-                }
-            }
-
-            let path = format!(
-                "{}/{id}.m4a",
-                env::var("SONGBIRD_DOWNLOADS_PATH").unwrap_or("./downloads".to_string())
-            );
-
-            let mut file = tokio::fs::File::open(&path)
-                .await
-                .expect(&format!("Error opening {path}"));
-            let mut buf = vec![];
-            file.read_to_end(&mut buf).await.unwrap();
-
-            let thandle = handler.play_input(buf.into());
+            let src = YoutubeDl::new(http_client, url.to_string());
+            let thandle = handler.play_input(src.clone().into());
             ctx.reply("Playing song").await;
         } else {
             let req = match reqwest::get(url.as_str()).await {
@@ -312,12 +238,12 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
                         ctx.reply("Playing song").await;
                     }
                     Err(e) => {
-                        ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}\n<@373135474119933955> come fix this")).await;
+                        ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}")).await;
                     }
                 },
                 Err(e) => {
                     ctx.reply(format!(
-                        "Did not get a response from URL. Exact error for debugging purposes; {e}\n<@373135474119933955> come fix this"
+                        "Did not get a response from URL. Exact error for debugging purposes; {e}"
                     ))
                     .await;
                 }
@@ -384,49 +310,6 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
         ctx.reply("Joined").await.unwrap();
-    }
-
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command)]
-async fn leave(ctx: Context<'_>) -> Result<(), Error> {
-    let (guild_id, channel_id) = {
-        let guild = ctx.guild().unwrap();
-        let channel_id = guild
-            .voice_states
-            .get(&ctx.author().id)
-            .and_then(|voice_state| voice_state.channel_id);
-
-        (guild.id, channel_id)
-    };
-
-    let disconnect_from = match channel_id {
-        Some(channel) => channel,
-        None => {
-            ctx.reply("Not in a voice channel").await.unwrap();
-
-            return Ok(());
-        }
-    };
-
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .expect("Songbird Voice client placed in at initialisation.")
-        .clone();
-
-    if let Ok(handler_lock) = manager.join(guild_id, disconnect_from).await {
-        // Attach an event handler to see notifications of all track errors.
-        let mut handler = handler_lock.lock().await;
-        match handler.leave().await {
-            Ok(_) => ctx.reply("Ok :thumbsup:").await.unwrap(),
-            Err(e) => ctx
-                .reply(&format!(
-                    "Error leaving: {e}; \n<@373135474119933955> come fix this"
-                ))
-                .await
-                .unwrap(),
-        };
     }
 
     Ok(())

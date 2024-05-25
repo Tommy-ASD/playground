@@ -404,6 +404,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bot"
+version = "0.1.0"
+dependencies = [
+ "dotenv",
+ "poise",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "songbird",
+ "surrealdb",
+ "symphonia",
+ "tokio",
+ "tracing",
+ "tracing-futures",
+ "tracing-subscriber",
+ "youtube_dl",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -857,6 +876,12 @@ name = "doc-comment"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
+
+[[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
 name = "earcutr"
@@ -3411,24 +3436,6 @@ dependencies = [
  "typemap_rev",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "songbird-test"
-version = "0.1.0"
-dependencies = [
- "poise",
- "reqwest",
- "serde",
- "serde_json",
- "songbird",
- "surrealdb",
- "symphonia",
- "tokio",
- "tracing",
- "tracing-futures",
- "tracing-subscriber",
- "youtube_dl",
 ]
 
 [[package]]
