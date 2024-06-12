@@ -36,9 +36,17 @@ pub struct Data {
 }
 
 #[derive(Default)]
+enum LoopState {
+    #[default]
+    NoLoop,
+    LoopSong,
+}
+
+#[derive(Default)]
 pub struct GuildData {
     pub queue: VecDeque<Input>,
-    pub current_song: Option<TrackHandle>
+    pub current_song: Option<TrackHandle>,
+    pub loop_state: LoopState,
 }
 
 struct HttpKey;
@@ -88,7 +96,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play(), skip(), leave()],
+            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop()],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -153,6 +161,40 @@ async fn skip(ctx: Context<'_>) -> Result<(), Error> {
         } else {
             ctx.reply("No song currently playing").await.unwrap();
         }
+    }
+
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn toggle_loop(ctx: Context<'_>) -> Result<(), Error> {
+    let guild_id = ctx.guild_id().unwrap();
+
+    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
+        dbg!();
+        println!("Skip song now: {:?}", std::time::Instant::now());
+        let mut data = guild_lock.lock().await;
+        dbg!();
+        let new_loop_state;
+        if let Some(song) = &data.current_song {
+            match data.loop_state {
+                LoopState::NoLoop => {
+                    new_loop_state = LoopState::LoopSong;
+                    song.enable_loop();
+                    ctx.reply("Enabled loop").await.unwrap();
+                }
+                LoopState::LoopSong => {
+                    new_loop_state = LoopState::NoLoop;
+                    song.disable_loop();
+                    ctx.reply("Disabled loop").await.unwrap();
+                }
+            }
+        } else {
+            new_loop_state = LoopState::NoLoop;
+            ctx.reply("No song currently playing").await.unwrap();
+        }
+        data.loop_state = new_loop_state;
+        
     }
 
     Ok(())
@@ -229,6 +271,8 @@ async fn leave_inner(ctx: &Context<'_>) -> Result<(), Error> {
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
+
+    ctx.reply("Left vc").await;
 
     if let Err(e) = manager.leave(guild_id).await {}
 
