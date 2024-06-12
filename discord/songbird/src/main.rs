@@ -2,7 +2,7 @@ use poise::serenity_prelude::{GuildId, Message};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use songbird::tracks::TrackHandle;
 use tokio::sync::Mutex;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::env;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
@@ -37,7 +37,7 @@ pub struct Data {
 
 #[derive(Default)]
 pub struct GuildData {
-    pub queue: Vec<Input>,
+    pub queue: VecDeque<Input>,
     pub current_song: Option<TrackHandle>
 }
 
