@@ -1,22 +1,29 @@
+use poise::serenity_prelude::{GuildId, Message};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
+use songbird::tracks::TrackHandle;
+use tokio::sync::Mutex;
+use std::collections::HashMap;
 use std::env;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 use songbird::SerenityInit;
 
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 
-use songbird::input::YoutubeDl;
+use songbird::input::{Input, YoutubeDl};
 
 use reqwest::{Client as HttpClient, Url};
 
 use serenity::{
     async_trait,
     client::Client,
-    model::channel::Message,
     prelude::{GatewayIntents, TypeMapKey},
-    Result as SerenityResult,
 };
+
+mod play;
+
+use crate::play::play;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 #[allow(unused)]
@@ -25,6 +32,13 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 // Custom user data passed to all command functions
 pub struct Data {
     poise_mentions: AtomicU32,
+    guilds: HashMap<GuildId, Arc<Mutex<GuildData>>>
+}
+
+#[derive(Default)]
+pub struct GuildData {
+    pub queue: Vec<Input>,
+    pub current_song: Option<TrackHandle>
 }
 
 struct HttpKey;
@@ -74,7 +88,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play() /*test()*/],
+            commands: vec![age(), join(), play(), skip(), leave()],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -86,6 +100,7 @@ async fn main() {
                 });
                 Ok(Data {
                     poise_mentions: AtomicU32::new(0),
+                    guilds: HashMap::new()
                 })
             })
         })
@@ -96,11 +111,6 @@ async fn main() {
     let mut client = Client::builder(&token, intents)
         .framework(framework)
         .register_songbird()
-        // We insert our own HTTP client here to make use of in
-        // `~play`. If we wanted, we could supply cookies and auth
-        // details ahead of time.
-        //
-        // Generally, we don't want to make a new Client for every request!
         .type_map_insert::<HttpKey>(HttpClient::new())
         .await
         .expect("Err creating client");
@@ -123,92 +133,14 @@ async fn age(
     #[description = "Selected user"] user: Option<serenity::User>,
 ) -> Result<(), Error> {
     let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    // println!(
-    //     "Got age command by {author} for {user}",
-    //     author = ctx.author().name,
-    //     user = u.name
-    // );
     let response = format!("{}'s account was created at {}", u.name, u.created_at());
     ctx.say(response).await.unwrap();
     Ok(())
 }
 
-/// Checks that a message successfully sent; if not, then logs why to stdout.
-fn check_msg(result: SerenityResult<Message>) {
-    if let Err(why) = result {
-        dbg!();
-        println!("Error sending message: {:?}", why);
-    }
-}
-
-// #[poise::command(slash_command, prefix_command)]
-// async fn test(ctx: Context<'_>) -> Result<(), Error> {
-//     println!("{}", ctx.id());
-//     let msg = ctx
-//         .channel_id()
-//         .message(ctx.http(), ctx.id())
-//         .await
-//         .unwrap();
-//     let manager = songbird::get(ctx.serenity_context())
-//         .await
-//         .expect("Songbird Voice client placed in at initialisation.")
-//         .clone();
-//     for attachment in msg.attachments {
-//         println!("A URL: {}", attachment.url);
-//         println!("P URL: {}", attachment.proxy_url);
-//         println!("CT: {:?}", attachment.content_type);
-//         println!("A: {:?}", attachment);
-//         let b = reqwest::get(attachment.proxy_url)
-//             .await
-//             .unwrap()
-//             .bytes()
-//             .await
-//             .unwrap();
-//         if let Some(handler_lock) = manager.get(ctx.guild_id().unwrap()) {
-//             let mut handler = handler_lock.lock().await;
-
-//             let _ = handler.play_input(b.into());
-
-//             check_msg(ctx.channel_id().say(&ctx.http(), "Playing song").await);
-//         } else {
-//             check_msg(
-//                 ctx.channel_id()
-//                     .say(&ctx.http(), "Not in a voice channel to play in")
-//                     .await,
-//             );
-//         }
-//     }
-
-//     Ok(())
-// }
-
 #[poise::command(slash_command, prefix_command)]
-async fn play(
-    ctx: Context<'_>,
-    #[description = "Song URL (song search will be implemented at later point)"] song: String,
-) -> Result<(), Error> {
-    let url = match Url::parse(&song) {
-        Ok(url) => url,
-        Err(e) => {
-            ctx.reply(format!("{song} is not a valid URL: {e}")).await;
-            return Err(e.into());
-        }
-    };
-    play_inner(&ctx, &url).await
-}
-
-async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
-    let opt_msg = ctx.channel_id().message(ctx.http(), ctx.id()).await;
-    if let Ok(msg) = opt_msg {}
-
+async fn skip(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
-
-    let http_client = {
-        let data = ctx.serenity_context().data.read().await;
-        data.get::<HttpKey>()
-            .cloned()
-            .expect("Guaranteed to exist in the typemap.")
-    };
 
     let manager = songbird::get(ctx.serenity_context())
         .await
@@ -217,40 +149,9 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
 
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
+        handler.stop();
 
-        if url.host_str() == Some("youtu.be")
-            || url.host_str() == Some("www.youtu.be")
-            || url.host_str() == Some("youtube.com")
-            || url.host_str() == Some("www.youtube.com")
-        {
-            let id = url.query();
-            dbg!();
-            println!("Id: {id:?}");
-
-            let src = YoutubeDl::new(http_client, url.to_string());
-            let thandle = handler.play_input(src.clone().into());
-            ctx.reply("Playing song").await;
-        } else {
-            let req = match reqwest::get(url.as_str()).await {
-                Ok(req) => match req.bytes().await {
-                    Ok(b) => {
-                        let _ = handler.play(b.into());
-                        ctx.reply("Playing song").await;
-                    }
-                    Err(e) => {
-                        ctx.reply( format!("Failed to get bytestream; Maybe URL does not point directly to the file? Exact error for debugging purposes; {e}")).await;
-                    }
-                },
-                Err(e) => {
-                    ctx.reply(format!(
-                        "Did not get a response from URL. Exact error for debugging purposes; {e}"
-                    ))
-                    .await;
-                }
-            };
-        }
-    } else {
-        ctx.reply("Not in a voice channel to play in").await;
+        ctx.reply("Skipped").await.unwrap();
     }
 
     Ok(())
@@ -311,6 +212,24 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
         handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
         ctx.reply("Joined").await.unwrap();
     }
+
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn leave(ctx: Context<'_>) -> Result<(), Error> {
+    leave_inner(&ctx).await
+}
+
+async fn leave_inner(ctx: &Context<'_>) -> Result<(), Error> {
+    let guild_id = ctx.guild().unwrap().id;
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    if let Err(e) = manager.leave(guild_id).await {}
 
     Ok(())
 }
