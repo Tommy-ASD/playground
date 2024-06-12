@@ -32,7 +32,7 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 // Custom user data passed to all command functions
 pub struct Data {
     poise_mentions: AtomicU32,
-    guilds: HashMap<GuildId, Arc<Mutex<GuildData>>>
+    guilds: Mutex<HashMap<GuildId, Arc<Mutex<GuildData>>>>
 }
 
 #[derive(Default)]
@@ -100,7 +100,7 @@ async fn main() {
                 });
                 Ok(Data {
                     poise_mentions: AtomicU32::new(0),
-                    guilds: HashMap::new()
+                    guilds: Mutex::new(HashMap::new())
                 })
             })
         })
@@ -142,16 +142,17 @@ async fn age(
 async fn skip(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
 
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .expect("Songbird Voice client placed in at initialisation.")
-        .clone();
-
-    if let Some(handler_lock) = manager.get(guild_id) {
-        let mut handler = handler_lock.lock().await;
-        handler.stop();
-
-        ctx.reply("Skipped").await.unwrap();
+    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
+        dbg!();
+        println!("Skip song now: {:?}", std::time::Instant::now());
+        let data = guild_lock.lock().await;
+        dbg!();
+        if let Some(song) = &data.current_song {
+            song.stop();
+            ctx.reply("Skipped").await.unwrap();
+        } else {
+            ctx.reply("No song currently playing").await.unwrap();
+        }
     }
 
     Ok(())
