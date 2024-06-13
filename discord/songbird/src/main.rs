@@ -25,6 +25,7 @@ use serenity::{
 mod play;
 mod receive;
 mod deafen;
+mod rtp_stream;
 
 use crate::{play::play, deafen::{deafen, undeafen}};
 

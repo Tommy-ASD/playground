@@ -25,6 +25,7 @@ use songbird::{
     }, packet::Packet, Config, CoreEvent, Event, EventContext, EventHandler as VoiceEventHandler, SerenityInit
 };
 
+use crate::rtp_stream::RtpPacket;
 
 #[derive(Clone)]
 pub struct Receiver {
@@ -155,6 +156,12 @@ impl VoiceEventHandler for Receiver {
                 dbg!();
                 tokio::fs::write(format!("./files/{now}.{user_id_str}"), format!("{}: {sequence}", bytes_to_hexadecimal_string(pl), sequence = rtp.get_sequence().0)).await.unwrap();
                 dbg!();
+                let packet: RtpPacket = RtpPacket { 
+                    ssrc: rtp.get_ssrc(),
+                    sequence: rtp.get_sequence().0.0,
+                    timestamp: rtp.get_timestamp().0.0,
+                    payload: rtp.payload().to_vec()
+                };
             },
             Ctx::RtcpPacket(data) => {
                 // An event which fires for every received rtcp packet,
