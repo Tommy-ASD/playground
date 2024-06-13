@@ -1,26 +1,13 @@
-use poise::{
-    serenity_prelude::{self as serenity, CacheHttp, ChannelId, Http},
-    PrefixFrameworkOptions,
-};
-use tokio::sync::{Mutex, MutexGuard};
-use std::{
-    env,
-    sync::{
-        atomic::{AtomicU32, AtomicUsize, Ordering},
-        Arc,
-    },
-};
+use poise::serenity_prelude::{self as serenity, ChannelId, Http};
+use tokio::sync::Mutex;
+use std::sync::Arc;
 use songbird::{
     events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent},
     input::{Input, YoutubeDl},
-    Call, SerenityInit,
+    Call,
 };
-use reqwest::{Client as HttpClient, Url};
-use serenity::{
-    async_trait,
-    client::Client,
-    prelude::{GatewayIntents, TypeMapKey},
-};
+use reqwest::Url;
+use serenity::async_trait;
 use crate::{Context, Error, GuildData, HttpKey};
 
 #[poise::command(slash_command, prefix_command)]

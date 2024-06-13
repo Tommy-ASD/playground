@@ -1,5 +1,6 @@
-use poise::serenity_prelude::{GuildId, Message};
+use poise::serenity_prelude::GuildId;
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
+use receive::Receiver;
 use songbird::tracks::TrackHandle;
 use tokio::sync::Mutex;
 use std::collections::{HashMap, VecDeque};
@@ -7,13 +8,13 @@ use std::env;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
-use songbird::SerenityInit;
+use songbird::{CoreEvent, SerenityInit};
 
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 
-use songbird::input::{Input, YoutubeDl};
+use songbird::input::Input;
 
-use reqwest::{Client as HttpClient, Url};
+use reqwest::Client as HttpClient;
 
 use serenity::{
     async_trait,
@@ -22,8 +23,10 @@ use serenity::{
 };
 
 mod play;
+mod receive;
+mod deafen;
 
-use crate::play::play;
+use crate::{play::play, deafen::{deafen, undeafen}};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 #[allow(unused)]
@@ -96,7 +99,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop()],
+            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen()],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -200,6 +203,28 @@ async fn toggle_loop(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+#[poise::command(slash_command, prefix_command)]
+async fn rewind(ctx: Context<'_>) -> Result<(), Error> {
+    let guild_id = ctx.guild_id().unwrap();
+
+    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
+        dbg!();
+        println!("Skip song now: {:?}", std::time::Instant::now());
+        let mut data = guild_lock.lock().await;
+        dbg!();
+        let new_loop_state;
+        if let Some(song) = &data.current_song {
+                song.enable_loop();
+                song.stop();
+        } else {
+            new_loop_state = LoopState::NoLoop;
+            ctx.reply("No song currently playing").await.unwrap();
+        }
+    }
+
+    Ok(())
+}
+
 struct TrackErrorNotifier;
 
 #[async_trait]
@@ -253,6 +278,15 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
         // Attach an event handler to see notifications of all track errors.
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
+
+        let evt_receiver = Receiver::new();
+    
+        handler.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
+        handler.add_global_event(CoreEvent::RtpPacket.into(), evt_receiver.clone());
+        handler.add_global_event(CoreEvent::RtcpPacket.into(), evt_receiver.clone());
+        handler.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());
+        handler.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver);
+
         ctx.reply("Joined").await.unwrap();
     }
 
