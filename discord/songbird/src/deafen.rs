@@ -1,30 +1,3 @@
-use std::{
-    env,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
-
-use async_trait::async_trait;
-use chrono::Utc;
-use dashmap::DashMap;
-
-use songbird::{
-    driver::DecodeMode,
-    model::{
-        id::UserId,
-        payload::{ClientDisconnect, Speaking},
-    },
-    packet::Packet,
-    Config,
-    CoreEvent,
-    Event,
-    EventContext,
-    EventHandler as VoiceEventHandler,
-    SerenityInit,
-};
-
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]

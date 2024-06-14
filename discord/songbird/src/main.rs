@@ -26,8 +26,10 @@ mod play;
 mod receive;
 mod deafen;
 mod rtp_stream;
+mod currently_playing;
+mod join;
 
-use crate::{play::play, deafen::{deafen, undeafen}};
+use crate::{play::play, deafen::{deafen, undeafen}, currently_playing::{skip, toggle_loop, pause}, join::{join, leave}};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 #[allow(unused)]
@@ -158,115 +160,6 @@ async fn age(
     Ok(())
 }
 
-#[poise::command(slash_command, prefix_command)]
-async fn skip(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().unwrap();
-
-    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
-        dbg!();
-        println!("Skip song now: {:?}", std::time::Instant::now());
-        let data = guild_lock.lock().await;
-        dbg!();
-        if let Some(song) = &data.current_song {
-            song.stop();
-            ctx.reply("Skipped").await.unwrap();
-        } else {
-            ctx.reply("No song currently playing").await.unwrap();
-        }
-    }
-
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command)]
-async fn toggle_loop(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().unwrap();
-
-    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
-        dbg!();
-        println!("Skip song now: {:?}", std::time::Instant::now());
-        let mut data = guild_lock.lock().await;
-        dbg!();
-        let new_loop_state;
-        if let Some(song) = &data.current_song {
-            match data.loop_state {
-                LoopState::NoLoop => {
-                    new_loop_state = LoopState::LoopSong;
-                    song.enable_loop();
-                    ctx.reply("Enabled loop").await.unwrap();
-                }
-                LoopState::LoopSong => {
-                    new_loop_state = LoopState::NoLoop;
-                    song.disable_loop();
-                    ctx.reply("Disabled loop").await.unwrap();
-                }
-            }
-        } else {
-            new_loop_state = LoopState::NoLoop;
-            ctx.reply("No song currently playing").await.unwrap();
-        }
-        data.loop_state = new_loop_state;
-        
-    }
-
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command)]
-async fn rewind(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().unwrap();
-
-    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
-        dbg!();
-        println!("Skip song now: {:?}", std::time::Instant::now());
-        let mut data = guild_lock.lock().await;
-        dbg!();
-        let new_loop_state;
-        if let Some(song) = &data.current_song {
-                song.enable_loop();
-                song.stop();
-        } else {
-            new_loop_state = LoopState::NoLoop;
-            ctx.reply("No song currently playing").await.unwrap();
-        }
-    }
-
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command)]
-async fn pause(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().unwrap();
-
-    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
-        dbg!();
-        println!("Skip song now: {:?}", std::time::Instant::now());
-        let mut data = guild_lock.lock().await;
-        dbg!();
-        let new_pause_state;
-        if let Some(song) = &data.current_song {
-            match data.pause_state {
-                PauseState::Playing => {
-                    new_pause_state = PauseState::Paused;
-                    song.pause();
-                    ctx.reply("Paused song").await.unwrap();
-                }
-                PauseState::Paused => {
-                    new_pause_state = PauseState::Playing;
-                    song.play();
-                    ctx.reply("Playing song").await.unwrap();
-                }
-            }
-        } else {
-            new_pause_state = PauseState::Playing;
-            ctx.reply("No song currently playing").await.unwrap();
-        }
-        data.pause_state = new_pause_state;
-    }
-
-    Ok(())
-}
-
 struct TrackErrorNotifier;
 
 #[async_trait]
@@ -284,73 +177,4 @@ impl VoiceEventHandler for TrackErrorNotifier {
 
         None
     }
-}
-
-#[poise::command(slash_command, prefix_command)]
-async fn join(ctx: Context<'_>) -> Result<(), Error> {
-    join_inner(&ctx).await
-}
-
-async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
-    let (guild_id, channel_id) = {
-        let guild = ctx.guild().unwrap();
-        let channel_id = guild
-            .voice_states
-            .get(&ctx.author().id)
-            .and_then(|voice_state| voice_state.channel_id);
-
-        (guild.id, channel_id)
-    };
-
-    let connect_to = match channel_id {
-        Some(channel) => channel,
-        None => {
-            ctx.reply("Not in a voice channel").await.unwrap();
-
-            return Ok(());
-        }
-    };
-
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .expect("Songbird Voice client placed in at initialisation.")
-        .clone();
-
-    if let Ok(handler_lock) = manager.join(guild_id, connect_to).await {
-        // Attach an event handler to see notifications of all track errors.
-        let mut handler = handler_lock.lock().await;
-        handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
-
-        // let evt_receiver = Receiver::new();
-    
-        // handler.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
-        // handler.add_global_event(CoreEvent::RtpPacket.into(), evt_receiver.clone());
-        // handler.add_global_event(CoreEvent::RtcpPacket.into(), evt_receiver.clone());
-        // handler.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());
-        // handler.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver);
-
-        ctx.reply("Joined").await.unwrap();
-    }
-
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command)]
-async fn leave(ctx: Context<'_>) -> Result<(), Error> {
-    leave_inner(&ctx).await
-}
-
-async fn leave_inner(ctx: &Context<'_>) -> Result<(), Error> {
-    let guild_id = ctx.guild().unwrap().id;
-
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .expect("Songbird Voice client placed in at initialisation.")
-        .clone();
-
-    ctx.reply("Left vc").await;
-
-    if let Err(e) = manager.leave(guild_id).await {}
-
-    Ok(())
 }
