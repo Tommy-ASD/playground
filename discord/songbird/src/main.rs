@@ -1,6 +1,6 @@
 use poise::serenity_prelude::GuildId;
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
-use receive::Receiver;
+// use receive::Receiver;
 use songbird::tracks::TrackHandle;
 use tokio::sync::Mutex;
 use std::collections::{HashMap, VecDeque};
@@ -47,10 +47,18 @@ enum LoopState {
 }
 
 #[derive(Default)]
+enum PauseState {
+    #[default]
+    Playing,
+    Paused,
+}
+
+#[derive(Default)]
 pub struct GuildData {
     pub queue: VecDeque<Input>,
     pub current_song: Option<TrackHandle>,
     pub loop_state: LoopState,
+    pub pause_state: PauseState,
 }
 
 struct HttpKey;
@@ -100,7 +108,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen()],
+            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen(), pause()],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -226,6 +234,39 @@ async fn rewind(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+#[poise::command(slash_command, prefix_command)]
+async fn pause(ctx: Context<'_>) -> Result<(), Error> {
+    let guild_id = ctx.guild_id().unwrap();
+
+    if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
+        dbg!();
+        println!("Skip song now: {:?}", std::time::Instant::now());
+        let mut data = guild_lock.lock().await;
+        dbg!();
+        let new_pause_state;
+        if let Some(song) = &data.current_song {
+            match data.pause_state {
+                PauseState::Playing => {
+                    new_pause_state = PauseState::Paused;
+                    song.pause();
+                    ctx.reply("Paused song").await.unwrap();
+                }
+                PauseState::Paused => {
+                    new_pause_state = PauseState::Playing;
+                    song.play();
+                    ctx.reply("Playing song").await.unwrap();
+                }
+            }
+        } else {
+            new_pause_state = PauseState::Playing;
+            ctx.reply("No song currently playing").await.unwrap();
+        }
+        data.pause_state = new_pause_state;
+    }
+
+    Ok(())
+}
+
 struct TrackErrorNotifier;
 
 #[async_trait]
@@ -280,13 +321,13 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
 
-        let evt_receiver = Receiver::new();
+        // let evt_receiver = Receiver::new();
     
-        handler.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
-        handler.add_global_event(CoreEvent::RtpPacket.into(), evt_receiver.clone());
-        handler.add_global_event(CoreEvent::RtcpPacket.into(), evt_receiver.clone());
-        handler.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());
-        handler.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver);
+        // handler.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
+        // handler.add_global_event(CoreEvent::RtpPacket.into(), evt_receiver.clone());
+        // handler.add_global_event(CoreEvent::RtcpPacket.into(), evt_receiver.clone());
+        // handler.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());
+        // handler.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver);
 
         ctx.reply("Joined").await.unwrap();
     }
