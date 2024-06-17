@@ -3,7 +3,7 @@ use tokio::sync::Mutex;
 use std::sync::Arc;
 use songbird::{
     events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent},
-    input::{Input, YoutubeDl},
+    input::{Compose, Input, YoutubeDl},
     Call,
 };
 use reqwest::Url;
@@ -45,7 +45,8 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
         if ["youtu.be", "www.youtu.be", "youtube.com", "www.youtube.com"]
             .contains(&url.host_str().unwrap_or(""))
         {
-            let src = YoutubeDl::new(http_client, url.to_string());
+            let mut src = YoutubeDl::new(http_client, url.to_string());
+            src.aux_metadata().await.map(|metadata| metadata.title.map(|title| println!("Playing {title}")));
             let mut guild_data = guild_data_arc.lock().await;
             if guild_data.current_song.is_none() {
                 dbg!();

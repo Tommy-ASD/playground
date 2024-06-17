@@ -42,14 +42,14 @@ pub struct Data {
 }
 
 #[derive(Default)]
-enum LoopState {
+pub enum LoopState {
     #[default]
     NoLoop,
     LoopSong,
 }
 
 #[derive(Default)]
-enum PauseState {
+pub enum PauseState {
     #[default]
     Playing,
     Paused,
@@ -165,14 +165,17 @@ struct TrackErrorNotifier;
 #[async_trait]
 impl VoiceEventHandler for TrackErrorNotifier {
     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
-        if let EventContext::Track(track_list) = ctx {
-            for (state, handle) in *track_list {
-                println!(
-                    "Track {:?} encountered an error: {:?}",
-                    handle.uuid(),
-                    state.playing
-                );
+        match ctx {
+            EventContext::Track(track_list) => {
+                for (state, handle) in *track_list {
+                    println!(
+                        "Track {:?} encountered an error: {:?}",
+                        handle.uuid(),
+                        state.playing
+                    );
+                }
             }
+            _ => {}
         }
 
         None
