@@ -408,6 +408,7 @@ dependencies = [
  "futures",
  "hex",
  "poise",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",

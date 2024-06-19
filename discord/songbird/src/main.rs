@@ -1,4 +1,5 @@
-use poise::serenity_prelude::GuildId;
+use minesweeper::{minesweeper, PlayType};
+use poise::serenity_prelude::{CacheHttp, ChannelId, GuildId, UserId};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 // use receive::Receiver;
 use songbird::tracks::TrackHandle;
@@ -28,6 +29,7 @@ mod deafen;
 mod rtp_stream;
 mod currently_playing;
 mod join;
+mod minesweeper;
 
 use crate::{play::play, deafen::{deafen, undeafen}, currently_playing::{skip, toggle_loop, pause}, join::{join, leave}};
 
@@ -38,7 +40,8 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 // Custom user data passed to all command functions
 pub struct Data {
     poise_mentions: AtomicU32,
-    guilds: Mutex<HashMap<GuildId, Arc<Mutex<GuildData>>>>
+    guilds: Mutex<HashMap<GuildId, Arc<Mutex<GuildData>>>>,
+    users: Mutex<HashMap<UserId, Arc<Mutex<UserData>>>>
 }
 
 #[derive(Default)]
@@ -63,6 +66,17 @@ pub struct GuildData {
     pub pause_state: PauseState,
 }
 
+#[derive(Default)]
+pub struct MinesweeperManager {
+    pub board: minesweeper::Board,
+    pub origin_channel_id: ChannelId,
+}
+
+#[derive(Default)]
+pub struct UserData {
+    pub minesweeper: Option<MinesweeperManager>,
+}
+
 struct HttpKey;
 
 impl TypeMapKey for HttpKey {
@@ -72,7 +86,7 @@ impl TypeMapKey for HttpKey {
 async fn event_handler(
     ctx: &serenity::Context,
     event: &serenity::FullEvent,
-    _framework: poise::FrameworkContext<'_, Data, Error>,
+    framework: poise::FrameworkContext<'_, Data, Error>,
     data: &Data,
 ) -> Result<(), Error> {
     match event {
@@ -80,6 +94,9 @@ async fn event_handler(
             println!("Logged in as {}", data_about_bot.user.name);
         }
         serenity::FullEvent::Message { new_message } => {
+            let mut users_lock = framework.user_data.users.lock().await;
+            let udata = users_lock.entry(new_message.author.id).or_insert_with(|| Arc::new(Mutex::new(UserData::default())));
+            let user_data_arc = Arc::clone(udata);
             // let Message { content, .. } = new_message;
             if new_message.content.to_lowercase().contains("poise") {
                 let mentions = data.poise_mentions.load(Ordering::SeqCst) + 1;
@@ -88,6 +105,22 @@ async fn event_handler(
                     .reply(ctx, format!("Poise has been mentioned {} times", mentions))
                     .await?;
             }
+            let mut user_data_lock = user_data_arc.lock().await;
+            if let Some(ms) = user_data_lock.minesweeper.as_mut() {
+                if ms.origin_channel_id == new_message.channel_id {
+                    let mut split = new_message.content.split(" ");
+                    let y = split.next().unwrap().parse::<usize>().unwrap() - 1;
+                    let x = split.next().unwrap().parse::<usize>().unwrap() - 1;
+                    let flag = split.next().and_then(|f| Some(if f.starts_with("f") {
+                        PlayType::Flag
+                    } else {
+                        PlayType::Press
+                    })).unwrap_or(PlayType::Press);
+                    
+                    ms.board.play((y, x), flag);
+                    new_message.reply(ctx.http(), ms.board.to_emojis()).await;
+                };
+            };
         }
         _ => {}
     }
@@ -110,7 +143,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen(), pause()],
+            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen(), pause(), minesweeper()],
             prefix_options: prefix,
             ..Default::default()
         })
@@ -122,7 +155,8 @@ async fn main() {
                 });
                 Ok(Data {
                     poise_mentions: AtomicU32::new(0),
-                    guilds: Mutex::new(HashMap::new())
+                    guilds: Mutex::new(HashMap::new()),
+                    users: Mutex::new(HashMap::new())
                 })
             })
         })
