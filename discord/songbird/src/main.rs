@@ -1,4 +1,5 @@
-use minesweeper::{minesweeper, PlayType};
+use games::{four_in_a_row, handle_games_message};
+use games::minesweeper::{self, minesweeper, PlayType};
 use poise::serenity_prelude::{CacheHttp, ChannelId, GuildId, UserId};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 // use receive::Receiver;
@@ -29,7 +30,7 @@ mod deafen;
 mod rtp_stream;
 mod currently_playing;
 mod join;
-mod minesweeper;
+mod games;
 
 use crate::{play::play, deafen::{deafen, undeafen}, currently_playing::{skip, toggle_loop, pause}, join::{join, leave}};
 
@@ -73,8 +74,15 @@ pub struct MinesweeperManager {
 }
 
 #[derive(Default)]
+pub struct FourInARowManager {
+    pub board: four_in_a_row::Board,
+    pub origin_channel_id: ChannelId,
+}
+
+#[derive(Default)]
 pub struct UserData {
     pub minesweeper: Option<MinesweeperManager>,
+    pub four_in_a_row: Option<FourInARowManager>
 }
 
 struct HttpKey;
@@ -106,21 +114,7 @@ async fn event_handler(
                     .await?;
             }
             let mut user_data_lock = user_data_arc.lock().await;
-            if let Some(ms) = user_data_lock.minesweeper.as_mut() {
-                if ms.origin_channel_id == new_message.channel_id {
-                    let mut split = new_message.content.split(" ");
-                    let y = split.next().unwrap().parse::<usize>().unwrap() - 1;
-                    let x = split.next().unwrap().parse::<usize>().unwrap() - 1;
-                    let flag = split.next().and_then(|f| Some(if f.starts_with("f") {
-                        PlayType::Flag
-                    } else {
-                        PlayType::Press
-                    })).unwrap_or(PlayType::Press);
-                    
-                    ms.board.play((y, x), flag);
-                    new_message.reply(ctx.http(), ms.board.to_emojis()).await;
-                };
-            };
+            handle_games_message(ctx, &mut user_data_lock, new_message).await;
         }
         _ => {}
     }
@@ -143,7 +137,7 @@ async fn main() {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
-            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen(), pause(), minesweeper()],
+            commands: vec![age(), join(), play(), skip(), leave(), toggle_loop(), deafen(), undeafen(), pause(), minesweeper(), four_in_a_row::four_in_a_row()],
             prefix_options: prefix,
             ..Default::default()
         })
