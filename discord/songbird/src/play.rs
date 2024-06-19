@@ -46,7 +46,7 @@ async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
             .contains(&url.host_str().unwrap_or(""))
         {
             let mut src = YoutubeDl::new(http_client, url.to_string());
-            src.aux_metadata().await.map(|metadata| metadata.title.map(|title| println!("Playing {title}")));
+            src.aux_metadata().await.map(|metadata| metadata.title.map(|title| println!("Playing {title}"))).unwrap();
             let mut guild_data = guild_data_arc.lock().await;
             if guild_data.current_song.is_none() {
                 dbg!();
@@ -106,7 +106,7 @@ async fn play_song(
             handler_lock: Arc::clone(&handler_lock),
             guild_data: Arc::clone(&guild_data_arc),
         },
-    );
+    ).unwrap();
     dbg!();
     let mut guild_data = guild_data_arc.lock().await;
     guild_data.current_song = Some(thandle);

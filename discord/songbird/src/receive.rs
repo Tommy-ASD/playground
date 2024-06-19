@@ -6,23 +6,19 @@
 //! git = "https://github.com/serenity-rs/serenity.git"
 //! features = ["client", "standard_framework", "voice"]
 //! ```
-use std::{
-    env,
-    sync::{
+use std::sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
-    },
-};
+    };
 
 use async_trait::async_trait;
-use chrono::Utc;
 use dashmap::DashMap;
 
 use songbird::{
-    driver::DecodeMode, input::Input, model::{
+    model::{
         id::UserId,
         payload::{ClientDisconnect, Speaking},
-    }, packet::Packet, Config, CoreEvent, Event, EventContext, EventHandler as VoiceEventHandler, SerenityInit
+    }, packet::Packet, Event, EventContext, EventHandler as VoiceEventHandler
 };
 
 use crate::rtp_stream::RtpPacket;
@@ -185,14 +181,6 @@ impl VoiceEventHandler for Receiver {
 
         None
     }
-}
-
-
-fn bytes_to_binary_string(bytes: &[u8]) -> String {
-    bytes.iter()
-         .map(|byte| format!("{:08b} ", byte))
-         .collect::<Vec<String>>()
-         .concat()
 }
 
 fn bytes_to_hexadecimal_string(bytes: &[u8]) -> String {

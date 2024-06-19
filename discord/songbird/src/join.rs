@@ -64,9 +64,9 @@ async fn leave_inner(ctx: &Context<'_>) -> Result<(), Error> {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    ctx.reply("Left vc").await;
+    ctx.reply("Left vc").await.unwrap();
 
-    if let Err(e) = manager.leave(guild_id).await {}
+    if let Err(_e) = manager.leave(guild_id).await {}
 
     Ok(())
 }

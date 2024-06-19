@@ -12,7 +12,7 @@ pub async fn deafen(ctx: Context<'_>) -> Result<(), Error> {
     let handler_lock = match manager.get(guild_id) {
         Some(handler) => handler,
         None => {
-            ctx.reply("Not in a voice channel").await;
+            ctx.reply("Not in a voice channel").await.unwrap();
 
             return Ok(());
         },
@@ -21,13 +21,13 @@ pub async fn deafen(ctx: Context<'_>) -> Result<(), Error> {
     let mut handler = handler_lock.lock().await;
 
     if handler.is_deaf() {
-        ctx.reply("Already deafened").await;
+        ctx.reply("Already deafened").await.unwrap();
     } else {
         if let Err(e) = handler.deafen(true).await {
-            ctx.reply(format!("Failed: {:?}", e)).await;
+            ctx.reply(format!("Failed: {:?}", e)).await.unwrap();
         }
 
-        ctx.reply("Deafened").await;
+        ctx.reply("Deafened").await.unwrap();
     }
 
     Ok(())
@@ -46,7 +46,7 @@ pub async fn undeafen(ctx: Context<'_>) -> Result<(), Error> {
     let handler_lock = match manager.get(guild_id) {
         Some(handler) => handler,
         None => {
-            ctx.reply("Not in a voice channel").await;
+            ctx.reply("Not in a voice channel").await.unwrap();
 
             return Ok(());
         },
@@ -55,13 +55,13 @@ pub async fn undeafen(ctx: Context<'_>) -> Result<(), Error> {
     let mut handler = handler_lock.lock().await;
 
     if handler.is_deaf() {
-        ctx.reply("Not deafened").await;
+        ctx.reply("Not deafened").await.unwrap();
     } else {
         if let Err(e) = handler.deafen(true).await {
-            ctx.reply(format!("Failed: {:?}", e)).await;
+            ctx.reply(format!("Failed: {:?}", e)).await.unwrap();
         }
 
-        ctx.reply("Undefeaned").await;
+        ctx.reply("Undefeaned").await.unwrap();
     }
 
     Ok(())

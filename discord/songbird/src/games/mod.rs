@@ -1,29 +1,7 @@
 use minesweeper::PlayType;
-use poise::serenity_prelude::{CacheHttp, ChannelId, GuildId, Message, UserId};
-use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
-// use receive::Receiver;
-use songbird::tracks::TrackHandle;
-use tokio::sync::{Mutex, MutexGuard};
-use std::collections::{HashMap, VecDeque};
-use std::env;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Arc;
-
-use songbird::{CoreEvent, SerenityInit};
-
-use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
-
-use songbird::input::Input;
-
-use reqwest::Client as HttpClient;
-
-use serenity::{
-    async_trait,
-    client::Client,
-    prelude::{GatewayIntents, TypeMapKey},
-};
-
-use crate::{Data, Error, UserData};
+use poise::serenity_prelude::{CacheHttp, Message};
+use poise::serenity_prelude as serenity;
+use crate::UserData;
 
 pub mod minesweeper;
 pub mod four_in_a_row;

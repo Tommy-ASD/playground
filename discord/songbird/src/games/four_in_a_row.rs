@@ -67,7 +67,7 @@ impl Board {
             Some(col) => col,
             None => return PlayResult::OutOfBounds,
         };
-        let (x, first) = match col.iter_mut().enumerate().find(|(index, cell)| cell.piece.is_none()) {
+        let (x, first) = match col.iter_mut().enumerate().find(|(_, cell)| cell.piece.is_none()) {
             Some(cell) => cell,
             None => return PlayResult::ColumnFull,
         };

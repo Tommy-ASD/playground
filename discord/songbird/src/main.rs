@@ -1,6 +1,6 @@
 use games::{four_in_a_row, handle_games_message};
-use games::minesweeper::{self, minesweeper, PlayType};
-use poise::serenity_prelude::{CacheHttp, ChannelId, GuildId, UserId};
+use games::minesweeper::{self, minesweeper};
+use poise::serenity_prelude::{ChannelId, GuildId, UserId};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 // use receive::Receiver;
 use songbird::tracks::TrackHandle;
@@ -10,9 +10,9 @@ use std::env;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
-use songbird::{CoreEvent, SerenityInit};
+use songbird::SerenityInit;
 
-use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
+use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler};
 
 use songbird::input::Input;
 

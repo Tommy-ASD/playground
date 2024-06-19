@@ -10,7 +10,7 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
         let data = guild_lock.lock().await;
         dbg!();
         if let Some(song) = &data.current_song {
-            song.stop();
+            song.stop().unwrap();
             ctx.reply("Skipped").await.unwrap();
         } else {
             ctx.reply("No song currently playing").await.unwrap();
@@ -34,12 +34,12 @@ pub async fn toggle_loop(ctx: Context<'_>) -> Result<(), Error> {
             match data.loop_state {
                 LoopState::NoLoop => {
                     new_loop_state = LoopState::LoopSong;
-                    song.enable_loop();
+                    song.enable_loop().unwrap();
                     ctx.reply("Enabled loop").await.unwrap();
                 }
                 LoopState::LoopSong => {
                     new_loop_state = LoopState::NoLoop;
-                    song.disable_loop();
+                    song.disable_loop().unwrap();
                     ctx.reply("Disabled loop").await.unwrap();
                 }
             }
@@ -61,9 +61,9 @@ pub async fn rewind(ctx: Context<'_>) -> Result<(), Error> {
     if let Some(guild_lock) = ctx.data().guilds.lock().await.get(&guild_id) {
         dbg!();
         println!("Skip song now: {:?}", std::time::Instant::now());
-        let mut data = guild_lock.lock().await;
+        let data = guild_lock.lock().await;
         dbg!();
-        if let Some(song) = &data.current_song {
+        if let Some(_song) = &data.current_song {
         } else {
             ctx.reply("No song currently playing").await.unwrap();
         }
@@ -86,12 +86,12 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
             match data.pause_state {
                 PauseState::Playing => {
                     new_pause_state = PauseState::Paused;
-                    song.pause();
+                    song.pause().unwrap();
                     ctx.reply("Paused song").await.unwrap();
                 }
                 PauseState::Paused => {
                     new_pause_state = PauseState::Playing;
-                    song.play();
+                    song.play().unwrap();
                     ctx.reply("Playing song").await.unwrap();
                 }
             }
