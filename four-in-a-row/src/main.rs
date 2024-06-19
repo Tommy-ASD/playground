@@ -1,7 +1,18 @@
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
 enum Color {
     Red,
     Blue,
+}
+
+impl std::ops::Not for Color {
+    type Output = Color;
+    
+    fn not(self) -> Self::Output {
+        match self {
+            Color::Red => Color::Blue,
+            Color::Blue => Color::Red,
+        }
+    }
 }
 
 impl std::fmt::Display for Color {
@@ -48,11 +59,16 @@ impl Board {
             Some(col) => col,
             None => return PlayResult::OutOfBounds,
         };
-        let first = match col.iter_mut().find(|cell| cell.piece.is_none()) {
+        let (x, first) = match col.iter_mut().enumerate().find(|(index, cell)| cell.piece.is_none()) {
             Some(cell) => cell,
             None => return PlayResult::ColumnFull,
         };
         first.piece = Some(color);
+        if let Some(winner) = self.check_four_in_a_row((y, x)) {
+            println!("Winner: {}", winner);
+        } else {
+            println!("No winner yet after {y} {x} turned to {color}");
+        }
         return PlayResult::Ok;
     }
 
@@ -65,36 +81,36 @@ impl Board {
         }
     }
 
-    fn check_four_in_a_row(&self) -> Option<Color> {
+    fn check_four_in_a_row(&self, index: (usize, usize)) -> Option<Color> {
         let directions = [
             (1, 0),   // horizontal
             (0, 1),   // vertical
+            (-1, 0),
+            (0, -1),
             (1, 1),   // diagonal (bottom-left to top-right)
             (1, -1),  // diagonal (top-left to bottom-right)
+            (-1, 1),
+            (-1, -1), 
         ];
 
-        for x in 0..self.grid.len() {
-            for y in 0..self.grid[0].len() {
-                if let Some(color) = &self.grid[x][y].piece {
-                    for &(dx, dy) in &directions {
-                        if self.check_direction(x, y, dx, dy, color) {
-                            return Some(color.clone());
-                        }
-                    }
+        if let Some(color) = &self.grid[index.0][index.1].piece {
+            for &direction in &directions {
+                if self.check_direction(index, direction, color) {
+                    return Some(color.clone());
                 }
             }
         }
         None
     }
 
-    fn check_direction(&self, x: usize, y: usize, dx: isize, dy: isize, color: &Color) -> bool {
+    fn check_direction(&self, index: (usize, usize), direction: (isize, isize), color: &Color) -> bool {
         for i in 0..4 {
-            let nx = x as isize + i * dx;
-            let ny = y as isize + i * dy;
-            if nx < 0 || ny < 0 || nx >= self.grid.len() as isize || ny >= self.grid[0].len() as isize {
+            let ny = index.0 as isize + i * direction.0;
+            let nx = index.1 as isize + i * direction.1;
+            if ny < 0 || nx < 0 || ny >= self.grid.len() as isize || nx >= self.grid[0].len() as isize {
                 return false;
             }
-            if self.grid[nx as usize][ny as usize].piece.as_ref() != Some(color) {
+            if self.grid[ny as usize][nx as usize].piece.as_ref() != Some(color) {
                 return false;
             }
         }
@@ -105,28 +121,6 @@ impl Board {
 fn main() {
     let mut board = Board::new(7, 6);
 
-    board.play(0, Color::Red);
-    board.play(1, Color::Blue);
-    board.play(0, Color::Blue);
-    board.play(2, Color::Red);
-    board.play(1, Color::Red);
-    board.play(2, Color::Blue);
-    board.play(3, Color::Red);
-    board.play(4, Color::Blue);
-    board.play(4, Color::Red);
-    board.play(5, Color::Blue);
-    board.play(5, Color::Blue);
-    board.play(5, Color::Red);
-    board.play(6, Color::Blue);
-    board.play(6, Color::Blue);
-    board.play(6, Color::Blue);
-    board.play(6, Color::Red);
 
     board.display();
-
-    if let Some(winner) = board.check_four_in_a_row() {
-        println!("Winner: {}", winner);
-    } else {
-        println!("No winner yet.");
-    }
 }
