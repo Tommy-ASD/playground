@@ -2,8 +2,10 @@ use games::{four_in_a_row, handle_games_message};
 use games::minesweeper::{self, minesweeper};
 use poise::serenity_prelude::{ChannelId, GuildId, UserId};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
+use rcon::Rcon;
 // use receive::Receiver;
 use songbird::tracks::TrackHandle;
+use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 use std::collections::{HashMap, VecDeque};
 use std::env;
@@ -31,6 +33,7 @@ mod rtp_stream;
 mod currently_playing;
 mod join;
 mod games;
+mod rcon;
 
 use crate::{play::play, deafen::{deafen, undeafen}, currently_playing::{skip, toggle_loop, pause}, join::{join, leave}};
 
@@ -42,7 +45,8 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 pub struct Data {
     poise_mentions: AtomicU32,
     guilds: Mutex<HashMap<GuildId, Arc<Mutex<GuildData>>>>,
-    users: Mutex<HashMap<UserId, Arc<Mutex<UserData>>>>
+    users: Mutex<HashMap<UserId, Arc<Mutex<UserData>>>>,
+    rcon_tx: Option<Arc<Mutex<Sender<String>>>>
 }
 
 #[derive(Default)]
@@ -115,16 +119,59 @@ async fn event_handler(
             }
             let mut user_data_lock = user_data_arc.lock().await;
             handle_games_message(ctx, &mut user_data_lock, new_message).await;
+
+            if new_message.author.id == UserId::new(373135474119933955) {
+                if let Some(tx) = &data.rcon_tx {
+                    tx.lock().await.send(new_message.content.to_string());
+                }
+            }
         }
         _ => {}
     }
     Ok(())
 }
 
+use clap::Parser;
+
+// TODO: add verbose parameter
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+pub struct Args {
+    /// RCON server IPv4 address
+    #[clap(short, long, default_value = "127.0.0.1")]
+    pub ip: String,
+
+    /// RCON server PORT number
+    #[clap(short, long, default_value = "27015")]
+    pub port: String,
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     dotenv::dotenv().ok();
+
+    let args = Args::parse();
+
+    let rcon = Rcon::new(&args).ok();
+
+    let rcon_tx = if let Some(mut r) = rcon {
+        println!("Authenticating...");
+        // Try password from user
+        while !r.authenticate() {
+            println!("Incorrect password. Please try again...");
+        }
+
+        let tx_clone = Arc::clone(&r.tx);
+
+        tokio::spawn(async move {
+            r.send_from_tx().await;
+        });
+        Some(tx_clone)
+    } else {
+        None
+    };
+
 
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
@@ -150,7 +197,8 @@ async fn main() {
                 Ok(Data {
                     poise_mentions: AtomicU32::new(0),
                     guilds: Mutex::new(HashMap::new()),
-                    users: Mutex::new(HashMap::new())
+                    users: Mutex::new(HashMap::new()),
+                    rcon_tx,
                 })
             })
         })

@@ -192,8 +192,22 @@ impl Board {
         }
     }
     pub fn to_emojis(&self) -> String {
-        let mut result = String::new();
+        let mut result = "".to_string();
+        result.push_str("⬜");
+        result.push_str("⬜");
+        for x in 0..self.get_width() {
+            result.push_str(&number_to_emoji(x as u8));
+        }
+        result.push('\n');
+        result.push_str("⬜");
+        result.push_str("⬜");
+        for _ in 0..self.get_height() {
+            result.push_str("⬜");
+        }
+        result.push('\n');
         for y in 0..self.get_height() {
+            result.push_str(&number_to_emoji(y as u8));
+            result.push_str("⬜");
             for x in 0..self.get_width() {
                 let cell = &self.grid[y as usize][x as usize];
                 match cell.state {
@@ -207,8 +221,22 @@ impl Board {
         result
     }
     pub fn to_emojis_lost(&self) -> String {
-        let mut result = String::new();
+        let mut result = "".to_string();
+        result.push_str("⬜");
+        result.push_str("⬜");
+        for x in 0..self.get_width() {
+            result.push_str(&number_to_emoji(x as u8));
+        }
+        result.push('\n');
+        result.push_str("⬜");
+        result.push_str("⬜");
+        for _ in 0..self.get_height() {
+            result.push_str("⬜");
+        }
+        result.push('\n');
         for y in 0..self.get_height() {
+            result.push_str(&number_to_emoji(y as u8));
+            result.push_str("⬜");
             for x in 0..self.get_width() {
                 let cell = &self.grid[y as usize][x as usize];
                 match (&cell.ctype, &cell.state) {
@@ -236,7 +264,7 @@ fn number_to_emoji<'a>(num: u8) -> &'a str {
         7 => "7️⃣",
         8 => "8️⃣",
         9 => "9️⃣",
-        _ => panic!("{}", num)
+        _ => "❓",
     }
 }
 

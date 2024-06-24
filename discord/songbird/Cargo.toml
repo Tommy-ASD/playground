@@ -25,3 +25,12 @@ tracing = "0.1.40"
 tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 youtube_dl = { version = "0.9.0", features = ["tokio", "reqwest"] }
+
+array-bytes = { version = "1.5.1" }
+bytes = { version= "1.1.0", features = ["serde"] }
+clap = { version = "3.0.14", features = ["derive"] }
+env_logger = { version = "0.9.0" }
+log = { version = "0.4.17" }
+rpassword = { version = "5.0" }
+
+utils = { git = "https://github.com/Tommy-ASD/utils.git" }
