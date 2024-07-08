@@ -2,7 +2,10 @@ use clap::Parser;
 use rustcon::{Args, Rcon};
 use std::{io, process::exit};
 
-fn main() -> io::Result<()> {
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let (tx, _rx) = tokio::sync::broadcast::channel::<String>(100);
+
     let args = Args::parse();
     println!("Connecting to host at {}:{} ...", args.ip, args.port);
 
@@ -11,7 +14,7 @@ fn main() -> io::Result<()> {
         match Rcon::new(&args) {
             // start default rcon shell
             Ok(r) => {
-                if let Err(_) = r.run() {
+                if let Err(_) = r.run().await {
                     eprintln!("Lost connection to RCON server!");
                     eprintln!("Attempting to reconnect...");
                     continue;

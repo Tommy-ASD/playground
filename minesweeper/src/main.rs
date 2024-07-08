@@ -1,5 +1,6 @@
 use rand::Rng;
-use utils::input;
+
+mod input;
 
 #[derive(Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum PlayType {
@@ -39,6 +40,13 @@ struct Cell {
     state: CellState,
     ctype: CellType,
     mine_neighbors: u8
+}
+
+#[derive(Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum BoardDisplayType {
+    #[default]
+    InPlay,
+    Finished
 }
 
 impl Cell {
@@ -107,19 +115,6 @@ impl Board {
         }
         neighbors
     }
-    fn display(&self) {
-        for y in 0..self.get_height() {
-            for x in 0..self.get_width() {
-                let cell = &self.grid[y as usize][x as usize];
-                match cell.state {
-                    CellState::Unplayed => print!("◼ "),
-                    CellState::Pressed => print!("{} ", number_to_emoji(cell.mine_neighbors)),
-                    CellState::Flagged => print!("🚩 "),
-                }
-            }
-            println!("");
-        }
-    }
     fn clear_zeroes(&mut self, index: (usize, usize)) {
         let cell = self.get_cell_at_mut(index).unwrap();
         let cell_state_clone = cell.state.clone();
@@ -154,7 +149,10 @@ impl Board {
                             self.clear_zeroes(index);
                             PlayResult::PlayedClear(mine_neighbors)
                         },
-                        CellType::Mine => PlayResult::PlayedMine
+                        CellType::Mine => {
+                            cell.state = CellState::Pressed;
+                            PlayResult::PlayedMine
+                        }
                     }
                 }
                 PlayType::Flag => {
@@ -162,6 +160,34 @@ impl Board {
                     PlayResult::Flagged
                 }
             }
+        }
+    }
+    
+    fn display(&self) {
+        for y in 0..self.get_height() {
+            for x in 0..self.get_width() {
+                let cell = &self.grid[y as usize][x as usize];
+                match cell.state {
+                    CellState::Unplayed => print!("◼ "),
+                    CellState::Pressed => print!("{} ", number_to_emoji(cell.mine_neighbors)),
+                    CellState::Flagged => print!("🚩 "),
+                }
+            }
+            println!("");
+        }
+    }
+    fn display_lost(&self) {
+        for y in 0..self.get_height() {
+            for x in 0..self.get_width() {
+                let cell = &self.grid[y as usize][x as usize];
+                match (&cell.ctype, &cell.state) {
+                    (&CellType::Clear, _) => print!("{} ", number_to_emoji(cell.mine_neighbors)),
+                    (&CellType::Mine, &CellState::Pressed) => print!("💥 "),
+                    (&CellType::Mine, &CellState::Unplayed) => print!("💣 "),
+                    (&CellType::Mine, &CellState::Flagged) => print!("🚩 "),
+                }
+            }
+            println!("");
         }
     }
 }
@@ -186,7 +212,10 @@ fn main() {
             PlayResult::OutOfBounds => {},
             PlayResult::Unflagged => {},
             PlayResult::Flagged => {},
-            PlayResult::PlayedMine => {},
+            PlayResult::PlayedMine => {
+                board.display_lost();
+                break;
+            },
             PlayResult::PlayedClear(num) => {}
         }
     }

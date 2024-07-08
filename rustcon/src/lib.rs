@@ -4,12 +4,10 @@
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use clap::Parser;
+use tokio::sync::{broadcast::Sender, Mutex};
+use utils::input;
 use std::{
-    env, fmt,
-    io::{self, stdin, stdout, Read, Write},
-    net::TcpStream,
-    str,
-    time::Duration,
+    env, fmt, io::{self, stdin, stdout, Read, Write}, net::TcpStream, str, sync::Arc, time::Duration
 };
 
 // TODO: add verbose parameter
@@ -207,6 +205,8 @@ pub struct Rcon {
     /// TcpStream for reading and writing to RCON server
     conn: TcpStream,
 
+    tx: Arc<Mutex<Sender<String>>>,
+
     /// Last message ID sent to server
     last_sent_id: i32,
 
@@ -232,6 +232,7 @@ impl Rcon {
                 Ok(c) => c,
                 Err(_) => return Err(RconError::ConnError),
             },
+            tx: Arc::new(Mutex::new(tokio::sync::broadcast::channel::<String>(100).0)),
             last_sent_id: 0,
             next_send_id: 1,
         };
@@ -373,7 +374,7 @@ impl Rcon {
         // when all the response packets have been received for a given command
     }
 
-    pub fn run(mut self) -> RconResult {
+    pub async fn run(mut self) -> RconResult {
         println!("Authenticating...");
         // Try RUSTCON_PASS env variable but default to empty string
         let env_var_is_valid = match env::var("RUSTCON_PASS") {
@@ -394,35 +395,37 @@ impl Rcon {
         // Interactive prompt
         println!("{}", "=".repeat(80));
         let stdin = stdin();
+        
+        let tx_clone = Arc::clone(&self.tx);
 
-        loop {
-            let mut line = String::new();
+        let mut rx = tx_clone.lock().await.subscribe();
 
-            // Set prompt and read user commands
-            print!("λ: ");
-            if let Err(e) = stdout().flush() {
-                eprintln!("{}", e);
-                return Err(RconError::ConnError);
+        tokio::task::spawn(async move {
+            loop {
+                // Set prompt and read user commands
+                let line = input!("λ: ");
+    
+                if line.len() > PACKET_SIZE_MAX - 9 {
+                    eprintln!("Woah there! That command is waaay too long.");
+                    eprintln!("You might want to try that again.");
+                    continue;
+                }
+    
+                let cmd = &line.trim_end();
+                
+                tx_clone.lock().await.send(cmd.to_string());
             }
-            if let Err(e) = stdin.read_line(&mut line) {
-                eprintln!("{}", e);
-                return Err(RconError::ConnError);
-            }
+        });
 
-            if line.len() > PACKET_SIZE_MAX - 9 {
-                eprintln!("Woah there! That command is waaay too long.");
-                eprintln!("You might want to try that again.");
-                continue;
-            }
-
-            let cmd = &line.trim_end();
-            if cmd == &"exit" || cmd == &"quit" {
+        while let Ok(cmd) = rx.recv().await {
+            println!("Received message {cmd}");
+            if cmd == "exit".to_string() || cmd == "quit".to_string() {
                 println!("Sending {:?} could cause the server to shut down.", cmd);
                 println!("Type Ctrl+C to close the RCON console");
                 println!("{}", "=".repeat(80));
                 continue;
             }
-            if let Ok(response) = self.send_cmd(cmd) {
+            if let Ok(response) = self.send_cmd(&cmd) {
                 for p in response {
                     println!("{}", p);
                 }
@@ -431,8 +434,9 @@ impl Rcon {
                 eprintln!("There may have been a connection error. Please try again.");
                 return Err(RconError::ConnError);
             }
+        }
 
-            println!("{}", "=".repeat(80));
+        loop {
         }
     }
 }
