@@ -1,0 +1,11 @@
+[package]
+name = "docker-image-export"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7.5", features = ["multipart"] }
+bollard = "0.16.1"
+clap = { version = "4.5.4", features = ["derive"] }
+futures-util = "0.3.30"
+tokio = { version = "1.37.0", features = ["full"] }

@@ -3,25 +3,13 @@
  */
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use clap::Parser;
 use tokio::sync::{broadcast::Sender, Mutex};
 use utils::input;
 use std::{
     env, fmt, io::{self, stdin, stdout, Read, Write}, net::TcpStream, str, sync::Arc, time::Duration
 };
 
-// TODO: add verbose parameter
-#[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
-pub struct Args {
-    /// RCON server IPv4 address
-    #[clap(short, long, default_value = "127.0.0.1")]
-    pub ip: String,
-
-    /// RCON server PORT number
-    #[clap(short, long, default_value = "27015")]
-    pub port: String,
-}
+use crate::Args;
 
 #[derive(Clone, Debug)]
 pub enum PacketType {
@@ -205,7 +193,7 @@ pub struct Rcon {
     /// TcpStream for reading and writing to RCON server
     conn: TcpStream,
 
-    tx: Arc<Mutex<Sender<String>>>,
+    pub tx: Arc<Mutex<Sender<String>>>,
 
     /// Last message ID sent to server
     last_sent_id: i32,
@@ -220,19 +208,22 @@ pub enum RconError {
     PacketError,
     AuthError,
     ConnError,
+    AsciiError,
+    SizeError,
 }
 
 pub type RconResult = Result<Rcon, RconError>;
 
 impl Rcon {
     pub fn new(args: &Args) -> RconResult {
+        let (tx, rx) = tokio::sync::broadcast::channel::<String>(100);
         let conn = Rcon::get_conn(&args.ip, &args.port);
         let rcon = Rcon {
             conn: match conn {
                 Ok(c) => c,
                 Err(_) => return Err(RconError::ConnError),
             },
-            tx: Arc::new(Mutex::new(tokio::sync::broadcast::channel::<String>(100).0)),
+            tx: Arc::new(Mutex::new(tx)),
             last_sent_id: 0,
             next_send_id: 1,
         };
@@ -362,61 +353,9 @@ impl Rcon {
         Ok(packets)
     }
 
-    /// API function to send RCON commands and receive packets
-    pub fn send_cmd(&mut self, body: &str) -> Result<Vec<Packet>, RconError> {
-        let packet = Packet::new(self.next_send_id, PacketType::Command, body.to_string()).unwrap();
-        self.send_packet(packet)?;
-        self.receive_packets()
+    pub async fn send_from_tx(&mut self) {
 
-        // TODO (might be SRCDS specific)
-        // Send follow-up SERVERDATA_RESPONSE_VALUE packet
-        // This causes the server the server to respond with an empty packet body
-        // when all the response packets have been received for a given command
-    }
-
-    pub async fn run(mut self) -> RconResult {
-        println!("Authenticating...");
-        // Try RUSTCON_PASS env variable but default to empty string
-        let env_var_is_valid = match env::var("RUSTCON_PASS") {
-            Ok(pass) => self.authenticate_with(pass),
-            Err(e) => {
-                println!("RUSTCON_PASS env variable does not exist");
-                false
-            }
-        };
-
-        // Try password from user
-        if !env_var_is_valid {
-            while !self.authenticate() {
-                println!("Incorrect password. Please try again...");
-            }
-        }
-
-        // Interactive prompt
-        println!("{}", "=".repeat(80));
-        let stdin = stdin();
-        
-        let tx_clone = Arc::clone(&self.tx);
-
-        let mut rx = tx_clone.lock().await.subscribe();
-
-        tokio::task::spawn(async move {
-            loop {
-                // Set prompt and read user commands
-                let line = input!("λ: ");
-    
-                if line.len() > PACKET_SIZE_MAX - 9 {
-                    eprintln!("Woah there! That command is waaay too long.");
-                    eprintln!("You might want to try that again.");
-                    continue;
-                }
-    
-                let cmd = &line.trim_end();
-                
-                tx_clone.lock().await.send(cmd.to_string());
-            }
-        });
-
+        let mut rx = self.tx.lock().await.subscribe();
         while let Ok(cmd) = rx.recv().await {
             println!("Received message {cmd}");
             if cmd == "exit".to_string() || cmd == "quit".to_string() {
@@ -432,11 +371,23 @@ impl Rcon {
             } else {
                 eprintln!("Unable to send the command: {cmd}");
                 eprintln!("There may have been a connection error. Please try again.");
-                return Err(RconError::ConnError);
             }
         }
+    }
 
-        loop {
-        }
+    /// API function to send RCON commands and receive packets
+    pub fn send_cmd(&mut self, body: &str) -> Result<Vec<Packet>, RconError> {
+        let packet = match Packet::new(self.next_send_id, PacketType::Command, body.to_string()) {
+            Ok(p) => p,
+            Err(PacketError::NonAscii) => return Err(RconError::AsciiError),
+            Err(PacketError::SmallPacket) => return Err(RconError::SizeError),
+        };
+        self.send_packet(packet)?;
+        self.receive_packets()
+
+        // TODO (might be SRCDS specific)
+        // Send follow-up SERVERDATA_RESPONSE_VALUE packet
+        // This causes the server the server to respond with an empty packet body
+        // when all the response packets have been received for a given command
     }
 }
