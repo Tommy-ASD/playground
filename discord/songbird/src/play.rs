@@ -27,6 +27,8 @@ pub async fn play(
 
 async fn play_inner(ctx: &Context<'_>, url: &Url) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
+    dbg!();
+    println!("{guild_id}");
     let guild_data_arc = Arc::clone(ctx.data().guilds.lock().await.entry(guild_id).or_insert_with(|| Arc::new(Mutex::new(GuildData::default()))));
 
     let http_client = {
