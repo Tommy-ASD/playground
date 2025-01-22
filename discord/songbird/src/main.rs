@@ -120,7 +120,10 @@ async fn event_handler(
             let mut user_data_lock = user_data_arc.lock().await;
             handle_games_message(ctx, &mut user_data_lock, new_message).await;
 
-            if new_message.author.id == UserId::new(373135474119933955) {
+            let tommy_id = 373135474119933955;
+            let john_id = 337941989318459394;
+
+            if new_message.author.id == UserId::new(tommy_id) || new_message.author.id == UserId::new(john_id) {
                 if let Some(tx) = &data.rcon_tx {
                     tx.lock().await.send(new_message.content.to_string());
                 }

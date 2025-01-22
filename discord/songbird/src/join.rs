@@ -8,6 +8,8 @@ pub async fn join(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
+    dbg!();
+    println!("AAAA");
     let (guild_id, channel_id) = {
         let guild = ctx.guild().unwrap();
         let channel_id = guild
@@ -17,6 +19,8 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
 
         (guild.id, channel_id)
     };
+    dbg!();
+    println!("AAAA");
 
     let connect_to = match channel_id {
         Some(channel) => channel,
@@ -31,8 +35,12 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
+    dbg!();
+    println!("AAAA");
 
     if let Ok(handler_lock) = manager.join(guild_id, connect_to).await {
+        dbg!();
+        println!("AAAA");
         // Attach an event handler to see notifications of all track errors.
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
@@ -47,6 +55,8 @@ async fn join_inner(ctx: &Context<'_>) -> Result<(), Error> {
 
         ctx.reply("Joined").await.unwrap();
     }
+    dbg!();
+    println!("AAAA"); 
 
     Ok(())
 }
