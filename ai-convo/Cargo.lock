@@ -119,6 +119,8 @@ dependencies = [
  "surrealdb",
  "symphonia",
  "tokio",
+ "traceback-derive",
+ "traceback-error",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",

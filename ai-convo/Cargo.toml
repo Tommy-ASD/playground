@@ -32,3 +32,5 @@ log = { version = "0.4.17" }
 rpassword = { version = "5.0" }
 
 utils = { git = "https://github.com/Tommy-ASD/utils.git" }
+traceback-error = "0.1.9"
+traceback-derive = "0.1.1"

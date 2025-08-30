@@ -1,6 +1,8 @@
+use extract::fetch_messages;
+use futures::executor::block_on;
 use games::{four_in_a_row, handle_games_message};
 use games::minesweeper::{self, minesweeper};
-use poise::serenity_prelude::{ChannelId, GuildId, UserId};
+use poise::serenity_prelude::{CacheHttp, Channel, ChannelId, GuildId, UserId};
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use rcon::Rcon;
 // use receive::Receiver;
@@ -34,12 +36,13 @@ mod currently_playing;
 mod join;
 mod games;
 mod rcon;
+mod extract;
 
 use crate::{play::play, deafen::{deafen, undeafen}, currently_playing::{skip, toggle_loop, pause}, join::{join, leave}};
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
 #[allow(unused)]
-type Context<'a> = poise::Context<'a, Data, Error>;
+pub type Context<'a> = poise::Context<'a, Data, Error>;
 
 // Custom user data passed to all command functions
 pub struct Data {
@@ -104,6 +107,35 @@ async fn event_handler(
     match event {
         serenity::FullEvent::Ready { data_about_bot } => {
             println!("Logged in as {}", data_about_bot.user.name);
+            
+            // Iterate through each channel ID
+
+            println!("Block on");
+            for guild_id in ctx.cache.guilds() {
+                if guild_id != GuildId::new(1038031079803719690) {
+                    continue;
+                }
+                println!("Guild {guild_id}");
+                let guild = match ctx.http.get_guild(guild_id).await {
+                    Ok(guild) => guild,
+                    Err(_) => {
+                        println!("Failed to fetch guild from API");
+                        continue;
+                    }
+                };
+                if let Ok(channels) = guild.channels(ctx.http()).await {
+                    println!("Got channels");
+                    for (channel_id, channel) in channels {
+                        // if channel_id != ChannelId::new(1046846710082703452) {
+                        //     continue;
+                        // }
+                        
+                        println!("Channel {channel_id}");
+                        fetch_messages(ctx, &channel).await;
+                    }
+                };
+                println!("Doneso!");
+            };
         }
         serenity::FullEvent::Message { new_message } => {
             let mut users_lock = framework.user_data.users.lock().await;

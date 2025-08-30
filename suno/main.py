@@ -7,8 +7,7 @@ preload_models()
 
 # generate audio from text
 text_prompt = """
-     Hello, my name is Suno. And, uh — and I like pizza. [laughs] 
-     But I also have other interests such as playing tic tac toe.
+2. GPUOpen Libraries AMD provides GPUOpen libraries and tools that are designed to replace specific CUDA functionalities with ROCm-compatible equivalents. These libraries include things like MIOpen (analogous to cuDNN) for deep learning, rocBLAS (analogous to cuBLAS) for linear algebra, and rocFFT (analogous to cuFFT) for Fourier transforms. Developers can use these libraries to replace CUDA-specific calls in their code with ROCm-compatible versions.
 """
 audio_array = generate_audio(text_prompt)
 
