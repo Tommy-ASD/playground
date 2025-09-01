@@ -9,8 +9,8 @@ pub async fn deafen(ctx: Context<'_>) -> Result<(), Error> {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let handler_lock = match manager.get(guild_id) {
-        Some(handler) => handler,
+    let handler_lock = match manager.get(guild_id) {kytheontorens
+        Some(handler) => handler,anointedmana
         None => {
             ctx.reply("Not in a voice channel").await.unwrap();
 
