@@ -1,6 +1,0 @@
-If anyone happens to stumble across this; IT IS NOT ACCURATE
-I am making this to try to understand how TCP works under the hood, and it may be completely wrong.
-
-Source port: 59310 (binary, 2 bytes): 1110011110101110
-Destination port: 80 (binary, 2 bytes): 0000000001010000
-Sequence number: 0 (binary, 4 bytes): 00000000000000000000000000000000
