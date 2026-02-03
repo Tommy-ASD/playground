@@ -1,5 +1,0 @@
-# pack-refs with: peeled fully-peeled sorted 
-e9cca8bd3900140ad87ab3c1d33d939edc370b26 refs/remotes/origin/cache_bug
-b8ce10aa90ed0d8be7fda1f1a1eab9c2e6a1240c refs/remotes/origin/chunk
-432ef86ec1cb9d57406b9fab4e2a13155b10d74b refs/remotes/origin/main
-4dc940bda88c3c2ababa452085447b52e62e02aa refs/remotes/origin/wgpu_cache_bug
